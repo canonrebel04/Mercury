@@ -2,7 +2,7 @@
 
  - Rebased onto Firefox 159.0.1 (from 129.0.2). Re-check `patches/firefox/` on every Firefox release (`./version.sh` then `./setup.sh`)
 
- - Provide a macOS `Assets.car` and a `content/document_pdf.svg` in browser/branding/mercury (required by Firefox 159 packaging)
+ - Generate and commit browser/branding/mercury/Assets.car on a Mac (`infra/make_assets_car.sh`); until then macOS builds use firefox.icns only
 
  - Add more privacy patches from Librewolf
 

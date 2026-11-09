@@ -101,6 +101,20 @@ mkdir -p -v "${HG_SRC_DIR}/policies" &&
 cp -r -v ./policies/. "${HG_SRC_DIR}/policies/" &&
 cp -v ./mozconfigs/mozconfig "${HG_SRC_DIR}" &&
 
+# macOS: Firefox 159+ expects browser/branding/<brand>/Assets.car (compiled
+# app icon). It can only be generated on macOS (see infra/make_assets_car.sh).
+# If Mercury's branding doesn't have one yet, stop requiring it so the build
+# falls back to the Mercury firefox.icns.
+macAssetsCar () {
+	if [ -f "${MERCURY_SRC_DIR}/browser/branding/mercury/Assets.car" ]; then
+		printf "${GRE}Using Mercury Assets.car for the macOS app icon${c0}\n"
+	else
+		printf "${YEL}WARNING: browser/branding/mercury/Assets.car is missing; using firefox.icns only.${c0}\n"
+		printf "${YEL}Run infra/make_assets_car.sh on a Mac to generate it.${c0}\n"
+		applyPatch "${MERCURY_SRC_DIR}/patches/optional/macos-no-assets-car.patch"
+	fi
+}
+
 copyWin () {
 	printf "\n" &&
 	printf "${GRE}Copying Windows (Native Build) mozconfig${c0}\n" &&
@@ -215,6 +229,7 @@ case $1 in
 esac
 
 copyMac () {
+	macAssetsCar &&
 	printf "\n" &&
 	printf "${GRE}Copying MacOS x64 mozconfig${c0}\n" &&
 	printf "\n" &&
@@ -226,6 +241,7 @@ case $1 in
 esac
 
 copyMacArm () {
+	macAssetsCar &&
 	printf "\n" &&
 	printf "${GRE}Copying MacOS ARM64 mozconfig${c0}\n" &&
 	printf "\n" &&
@@ -236,6 +252,7 @@ case $1 in
 esac
 
 copyMacCross () {
+	macAssetsCar &&
 	printf "\n" &&
 	printf "${GRE}Copying MacOS x64 (Cross Compile) mozconfig${c0}\n" &&
 	printf "\n" &&
@@ -247,6 +264,7 @@ case $1 in
 esac
 
 copyMacArmCross () {
+	macAssetsCar &&
 	printf "\n" &&
 	printf "${GRE}Copying MacOS ARM64 (Cross Compile) mozconfig${c0}\n" &&
 	printf "\n" &&
