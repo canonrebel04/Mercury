@@ -7,7 +7,9 @@
       ]
     },
     "SearchEngines": {
+      "Default": "DuckDuckGo",
       "Remove": [
+        "Google",
         "Bing",
         "eBay"
       ]
