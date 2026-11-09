@@ -457,3 +457,16 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
+@@ -3878,3 +4002,12 @@
+ #ifdef XP_MACOSX
+   pref("browser.macAppMenu.setAsDefaultShown", false);
+ #endif
++
++// MERCURY: DE-GOOGLE AND PRIVACY DEFAULTS
++// These come last so they win over any earlier definition in this file.
++// Search: Google is filtered out of the search config (SearchEngineSelector
++// patch) and DuckDuckGo is the default; no Google/Amazon search shortcut tiles
++// on the new tab page, and no "Search image with Google Lens".
++pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
++pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts.searchEngines", "");
++pref("browser.search.visualSearch.featureGate", false);

@@ -1,0 +1,79 @@
+--- a/toolkit/components/search/SearchEngineSelector.sys.mjs
++++ b/toolkit/components/search/SearchEngineSelector.sys.mjs
+@@ -32,6 +32,30 @@
+ });
+ 
+ /**
++ * Mercury: returns true for search engines Mercury never offers (Google).
++ * Matches on the config identifier and on the search URL host, so a renamed
++ * or new Google engine record in a remote config update is caught too.
++ *
++ * @param {string} [identifier]
++ * @param {string} [searchUrlBase]
++ * @returns {boolean}
++ */
++function mercuryIsBlockedEngine(identifier, searchUrlBase) {
++  if (identifier && /^google(\b|[-_])/i.test(identifier)) {
++    return true;
++  }
++  if (searchUrlBase) {
++    try {
++      let host = new URL(searchUrlBase).hostname;
++      if (/(^|\.)google\.[a-z.]+$/i.test(host)) {
++        return true;
++      }
++    } catch {}
++  }
++  return false;
++}
++
++/**
+  * SearchEngineSelector parses the JSON configuration for
+  * search engines and returns the applicable engines depending
+  * on their region + locale.
+@@ -139,7 +163,10 @@
+    */
+   async findContextualSearchEngineByHost(host) {
+     for (let config of this.#configuration) {
+-      if (config.recordType !== "engine") {
++      if (
++        config.recordType !== "engine" ||
++        mercuryIsBlockedEngine(config.identifier, config.base?.urls?.search?.base)
++      ) {
+         continue;
+       }
+       let searchHost = new URL(config.base.urls.search.base).hostname;
+@@ -166,7 +193,10 @@
+    */
+   async findContextualSearchEngineById(id) {
+     for (let config of this.#configuration) {
+-      if (config.recordType !== "engine") {
++      if (
++        config.recordType !== "engine" ||
++        mercuryIsBlockedEngine(config.identifier, config.base?.urls?.search?.base)
++      ) {
+         continue;
+       }
+       if (config.identifier == id) {
+@@ -233,6 +263,21 @@
+       e => !e.optional
+     );
+ 
++    // Mercury: never offer Google, even if a remote search-config update
++    // brings it back, and make DuckDuckGo the default (normal and private
++    // windows) in every region.
++    refinedSearchConfig.engines = refinedSearchConfig.engines.filter(
++      e => !mercuryIsBlockedEngine(e.identifier, e.urls?.search?.base)
++    );
++    if (refinedSearchConfig.engines.some(e => e.identifier == "ddg")) {
++      refinedSearchConfig.appDefaultEngineId = "ddg";
++      refinedSearchConfig.appPrivateDefaultEngineId = "ddg";
++    } else if (
++      mercuryIsBlockedEngine(refinedSearchConfig.appPrivateDefaultEngineId)
++    ) {
++      refinedSearchConfig.appPrivateDefaultEngineId = null;
++    }
++
+     if (
+       !refinedSearchConfig.appDefaultEngineId ||
+       !refinedSearchConfig.engines.find(
