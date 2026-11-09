@@ -451,7 +451,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3878,3 +3996,110 @@
+@@ -3878,3 +3996,153 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -562,3 +562,46 @@
 +// Default browser agent (Windows scheduled task) and its pings.
 +pref("default-browser-agent.enabled", false);
 +pref("browser.shell.checkDefaultBrowser", false);
++
++// Optional AI features: all present but off by default. Nothing is loaded
++// and no model is downloaded until the user turns a feature on.
++// Turn them on in Settings > AI controls: either switch off "Block AI
++// enhancements" (makes every feature available) or pick a single feature
++// below it. These prefs are the same values Firefox's own "Blocked" state
++// uses, so the Settings UI shows them correctly and can switch them back.
++pref("browser.ai.control.default", "blocked");
++// AI chatbot in the sidebar, "Ask chatbot" context-menu items and the
++// selection shortcut. No provider is preselected; the full provider list is
++// offered when the user turns it on (browser.ml.chat.providers).
++pref("browser.ai.control.sidebarChatbot", "blocked");
++pref("browser.ml.chat.enabled", false);
++pref("browser.ml.chat.page", false);
++pref("browser.ml.chat.provider", "");
++// Link previews and their AI key points.
++pref("browser.ai.control.linkPreviewKeyPoints", "blocked");
++pref("browser.ml.linkPreview.enabled", false);
++pref("browser.ml.linkPreview.optin", false);
++// Smart tab groups (AI tab-group names and suggestions).
++pref("browser.ai.control.smartTabGroups", "blocked");
++pref("browser.tabs.groups.smart.enabled", false);
++pref("browser.tabs.groups.smart.userEnabled", false);
++pref("browser.tabs.groups.smart.optin", false);
++// PDF alt-text generation (the PDF editor's manual alt text is unaffected).
++pref("browser.ai.control.pdfjsAltText", "blocked");
++pref("pdfjs.enableGuessAltText", false);
++pref("pdfjs.enableAltTextModelDownload", false);
++// Smart Window and on-device speech recognition.
++pref("browser.ai.control.smartWindow", "blocked");
++pref("browser.smartwindow.enabled", false);
++pref("browser.ai.control.speechRecognition", "blocked");
++// Semantic history search (local embeddings model).
++pref("places.semanticHistory.featureGate", false);
++// Trial ML API for extensions (follows the global switch in Settings).
++pref("extensions.ml.enabled", false);
++// browser.ml.enable (the local inference engine) stays true: it only runs
++// when a feature above asks for a model, and smart tab groups and PDF alt
++// text can't be turned on from Settings without it.
++// Translations (local and private, models from Mozilla) stay available, but
++// Firefox no longer offers to translate pages on its own. Use the translate
++// button in the address bar, or turn the offer back on in Settings.
++pref("browser.translations.automaticallyPopup", false);
