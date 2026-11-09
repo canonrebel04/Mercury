@@ -63,7 +63,6 @@ ac_add_options --disable-crashreporter
 ac_add_options --disable-updater
 ac_add_options --enable-geckodriver
 ac_add_options --disable-maintenance-service
-ac_add_options --without-wasm-sandboxed-libraries
 ac_add_options --disable-bits-download
 #ac_add_options --disable-default-browser-agent
 export MOZ_SOURCE_CHANGESET=${changeset}
