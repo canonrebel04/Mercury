@@ -99,7 +99,6 @@ cp -r -v ./devtools/. "${HG_SRC_DIR}/devtools/" &&
 cp -r -v ./other-licenses/. "${HG_SRC_DIR}/other-licenses/" &&
 mkdir -p -v "${HG_SRC_DIR}/policies" &&
 cp -r -v ./policies/. "${HG_SRC_DIR}/policies/" &&
-cp -v ./mozconfigs/ga "${HG_SRC_DIR}" &&
 cp -v ./mozconfigs/mozconfig "${HG_SRC_DIR}" &&
 
 copyWin () {
