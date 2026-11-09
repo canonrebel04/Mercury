@@ -76,10 +76,12 @@ ac_add_options --with-distribution-id=com.alex313031.mercury
 # Make flags (set to number of CPU cores)
 mk_add_options MOZ_MAKE_FLAGS="-j16"
 
-# Change to actual location of SDK
+# macOS SDK for cross-compiling. Firefox 159 requires macOS SDK 26.5 or newer.
+# Set MERCURY_MACOS_SDK to the SDK path (default: $HOME/macos-sdk/MacOSX26.5.sdk).
 ## https://github.com/bitcoin-core/apple-sdk-tools
 ## https://firefox-source-docs.mozilla.org/widget/cocoa/sdks.html
-ac_add_options --with-macos-sdk=/home/alex/temp/MacOSX.sdk
+MERCURY_MACOS_SDK="${MERCURY_MACOS_SDK:-$HOME/macos-sdk/MacOSX26.5.sdk}"
+ac_add_options --with-macos-sdk="${MERCURY_MACOS_SDK}"
 
 # Autoclobber
 mk_add_options AUTOCLOBBER=1

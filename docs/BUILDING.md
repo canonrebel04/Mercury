@@ -9,6 +9,12 @@ _**The scripts assume the Mercury source is at $HOME/Mercury/ and Mozilla source
 - To build, run `./build.sh` (--help for help). *The -j# variable can be changed to limit or increase the number of jobs (generally should be the number of CPU cores on your machine)*
 
 
+### macOS
+- Firefox 159 requires the **macOS 26.5 SDK or newer** (Xcode 26.5+ for native builds).
+- Cross-compiling from Linux (`./setup.sh --mac-cross` / `--mac-arm-cross`): put the SDK somewhere and export `MERCURY_MACOS_SDK=/path/to/MacOSX26.5.sdk` before building. If unset, the mozconfigs use `$HOME/macos-sdk/MacOSX26.5.sdk`. See https://firefox-source-docs.mozilla.org/widget/cocoa/sdks.html.
+- The macOS app icon (`browser/branding/mercury/Assets.car`) can only be compiled on a Mac: run `infra/make_assets_car.sh` there and commit the result. Until then `setup.sh` makes the build use `firefox.icns` only.
+
+
 *Happy Mercury Building!*
 
 <img src="https://github.com/Alex313031/Mercury/blob/main/logos/geckoview.svg" width="144">
