@@ -6,11 +6,15 @@
 
 It aims to be the Firefox equivalent of my main project: [Thorium](https://github.com/Alex313031/Thorium) (a [Chromium](https://www.chromium.org/) fork).
 
+**Current base:** Firefox **159.0.1** (git tag `FIREFOX_159_0_1_RELEASE` in [mozilla-firefox/firefox](https://github.com/mozilla-firefox/firefox)). This fork ([canonrebel04/Mercury](https://github.com/canonrebel04/Mercury)) continues Mercury after the last upstream release (129.0.2, which is vulnerable to CVE-2024-9680 and later Firefox security bugs).
+
+Mercury's changes to upstream Firefox files live as small patches in [`patches/firefox/`](patches/firefox) and are applied by `setup.sh`, which stops with an error if a patch no longer applies. Mercury-only files (branding, icons, policies) are still copied over the tree.
+
 ## Patches <img src="https://raw.githubusercontent.com/Alex313031/Mercury/main/logos/patches.png" width="28">
-See > [PATCHES.md](https://github.com/Alex313031/Mercury/blob/main/docs/PATCHES.md)
+See > [PATCHES.md](docs/PATCHES.md)
 
 ## Bugs <img src="https://github.com/Alex313031/Mercury/blob/main/logos/bug.svg" width="28">
-See > [BUGS.md](https://github.com/Alex313031/Mercury/blob/main/docs/BUGS.md)
+See > [BUGS.md](docs/BUGS.md)
 
 ## Building <img src="https://github.com/Alex313031/Mercury/blob/main/logos/build_light.svg#gh-dark-mode-only"> <img src="https://github.com/Alex313031/Mercury/blob/main/logos/build_dark.svg#gh-light-mode-only">
-See > [BUILDING.md](https://github.com/Alex313031/Mercury/blob/main/docs/BUILDING.md) and [DEBUGGING.md](https://github.com/Alex313031/Mercury/blob/main/docs/DEBUGGING.md).
+See > [BUILDING.md](docs/BUILDING.md) and [DEBUGGING.md](docs/DEBUGGING.md).

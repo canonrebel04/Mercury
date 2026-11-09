@@ -26,6 +26,10 @@ case $1 in
 esac
 
 # mozilla source dir env variable
+# NOTE: Mozilla moved Firefox development from Mercurial (mozilla-unified) to
+# git (https://github.com/mozilla-firefox/firefox) in 2025. HG_SRC_DIR keeps its
+# old name for compatibility, but it must now point at a git checkout of
+# mozilla-firefox/firefox (e.g. created by ./bootstrap.sh).
 if [ -z "${HG_SRC_DIR}" ]; then 
     HG_SRC_DIR="$HOME/mozilla-unified"
     export HG_SRC_DIR
@@ -34,26 +38,33 @@ else
     export HG_SRC_DIR
 fi
 
+# Refuse to run destructive commands anywhere but a Firefox git checkout.
+if [ ! -f "${HG_SRC_DIR}/mach" ] || [ ! -d "${HG_SRC_DIR}/.git" ]; then
+	printf "${RED}${HG_SRC_DIR} is not a git checkout of Firefox (missing ./mach or .git). Aborting.${c0}\n"
+	exit 1
+fi
+
 printf "\n" &&
 printf "${bold}${GRE}Script to Rebase/Sync Mozilla repo.${c0}\n" &&
 printf "\n" &&
-printf "${YEL}Rebasing/Syncing with mozilla-unified Mercurial repository...${c0}\n" &&
+printf "${YEL}Rebasing/Syncing with the mozilla-firefox/firefox git repository...${c0}\n" &&
 
-MERCURY_BRANCH="c6f0209c79239408bef9b3c98e9c729dcf20ec0c"
+# Firefox release tag Mercury is based on (Firefox 159.0.1).
+MERCURY_BRANCH="FIREFOX_159_0_1_RELEASE"
 export MERCURY_BRANCH &&
 
-cd ${HG_SRC_DIR} &&
+cd "${HG_SRC_DIR}" &&
 
 rm -r -f ./obj-* &&
 
-hg purge &&
+git clean -fd &&
 
-hg pull &&
+git fetch --no-tags origin "refs/tags/${MERCURY_BRANCH}:refs/tags/${MERCURY_BRANCH}" &&
 
 printf "\n" &&
-printf "${GRE}Checking out the ${MERCURY_BRANCH} branch...${c0}\n" &&
+printf "${GRE}Checking out the ${MERCURY_BRANCH} tag...${c0}\n" &&
 
-hg update --clean -C $MERCURY_BRANCH &&
+git checkout --force "${MERCURY_BRANCH}" &&
 
 printf "\n" &&
 printf "${GRE}Running \`./mach bootstrap\`...${c0}\n" &&

@@ -14,12 +14,10 @@ export MOZ_INCLUDE_SOURCE_INFO=1
 # Optimization settings
 #ac_add_options --disable-tests
 ac_add_options --enable-clang-plugin
-ac_add_options --enable-wasm-avx
 ac_add_options --enable-optimize="-O3 -mavx -maes"
 ac_add_options --enable-rust-simd
 ac_add_options --enable-hardening
 ac_add_options --disable-dmd
-ac_add_options --disable-gpsd
 ac_add_options --disable-necko-wifi
 #ac_add_options --disable-trace-logging
 
@@ -30,7 +28,6 @@ ac_add_options --enable-webrtc
 ac_add_options --enable-pulseaudio
 ac_add_options --enable-alsa
 ac_add_options --enable-jxl
-ac_add_options --enable-av1
 ac_add_options --enable-eme=widevine
 
 # Add-ons

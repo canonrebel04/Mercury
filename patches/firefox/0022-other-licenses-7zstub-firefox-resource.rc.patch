@@ -1,0 +1,29 @@
+--- a/other-licenses/7zstub/firefox/resource.rc
++++ b/other-licenses/7zstub/firefox/resource.rc
+@@ -16,13 +16,13 @@
+   BEGIN
+       BLOCK "040904b0"
+       BEGIN
+-          VALUE "CompanyName", "Mozilla"
+-          VALUE "FileDescription", "Firefox"
++          VALUE "CompanyName", "Alex313031"
++          VALUE "FileDescription", "Mercury Browser Installer"
+           VALUE "FileVersion", MY_VERSION
+           VALUE "InternalName", "7zSD.sfx"
+-          VALUE "LegalCopyright", "Mozilla"
++          VALUE "LegalCopyright", "Alex313031"
+           VALUE "OriginalFilename", "7zSD.sfx"
+-          VALUE "ProductName", "Firefox"
++          VALUE "ProductName", "Mercury"
+           VALUE "ProductVersion", MY_VERSION
+       END
+   END
+@@ -47,7 +47,7 @@
+   IDS_CANNOT_CREATE_FOLDER  "Cannot create folder '{0}'"
+   IDS_PROGRESS_EXTRACTING  "Extracting"
+   IDS_MIN_OS_TITLE  "Setup Error"
+-  IDS_MIN_OS_TEXT  "Microsoft Windows 7 or newer is required."
++  IDS_MIN_OS_TEXT  "Microsoft Windows 10 or newer is required."
+ END
+ 
+ #include "../src/CPP/7zip/UI/FileManager/ProgressDialog.rc"

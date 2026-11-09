@@ -22,7 +22,6 @@ ac_add_options --disable-tests
 ac_add_options --enable-clang-plugin
 ac_add_options --enable-lto
 ac_add_options --enable-jemalloc
-ac_add_options --enable-wasm-avx
 #ac_add_options --enable-avx2
 ac_add_options --enable-optimize="-O3 -march=x86-64-v3"
 ac_add_options --enable-rust-simd
@@ -40,7 +39,6 @@ ac_add_options --enable-sandbox
 ac_add_options --enable-raw
 ac_add_options --enable-webrtc
 ac_add_options --enable-jxl
-ac_add_options --enable-av1
 ac_add_options --enable-eme=widevine
 
 # Add-ons
