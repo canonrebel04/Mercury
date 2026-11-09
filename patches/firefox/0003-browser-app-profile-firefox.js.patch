@@ -1,16 +1,5 @@
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -70,8 +70,8 @@
- pref("extensions.webextensions.pageActionIconDarkModeFilter.enabled", false);
- 
- // Require signed add-ons by default
--pref("extensions.langpacks.signatures.required", true);
--pref("xpinstall.signatures.required", true);
-+pref("extensions.langpacks.signatures.required", false);
-+pref("xpinstall.signatures.required", false);
- 
- // Enable data collection permissions.
- pref("extensions.dataCollectionPermissions.enabled", true);
 @@ -150,9 +150,100 @@
  // should no longer be used directly. Instead, getAppUpdateAutoEnabled and
  // getAppUpdateAutoEnabled from UpdateUtils.sys.mjs should be used.

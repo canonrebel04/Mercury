@@ -31,8 +31,7 @@ ac_add_options --enable-jxl
 ac_add_options --enable-eme=widevine
 
 # Add-ons
-ac_add_options --allow-addon-sideload
-ac_add_options --with-unsigned-addon-scopes=app,system
+# Extension signing is enforced (no unsigned scopes / sideloading).
 
 # Client settings
 ac_add_options --disable-parental-controls
@@ -46,7 +45,6 @@ mk_add_options MOZ_SERVICES_HEALTHREPORT=0
 mk_add_options MOZ_TELEMETRY_REPORTING=
 export MOZ_CRASHREPORTER=0
 export MOZ_DATA_REPORTING=0
-export MOZ_REQUIRE_SIGNING=
 export MOZ_TELEMETRY_REPORTING=
 export MOZ_PACKAGE_JSSHELL=1
 
