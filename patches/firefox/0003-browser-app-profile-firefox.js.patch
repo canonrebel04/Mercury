@@ -54,8 +54,8 @@
 +pref("image.avif.enabled", true);
 +// Enable JPEG-XL
 +pref("image.jxl.enabled", true);
-+// Enable Widevine automatically
-+pref("media.eme.enabled", true);
++// DRM (Widevine) is off by default; see the DRM/Widevine section at the end.
++pref("media.eme.enabled", false);
 +// Whether search engagement telemetry should be recorded.
 +pref("browser.urlbar.searchEngagementTelemetry.enabled", false);
 +// Make sure sites expecting Chromium or Firefox still work.
@@ -451,7 +451,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3878,3 +3996,12 @@
+@@ -3878,3 +3996,33 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -464,3 +464,24 @@
 +pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
 +pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts.searchEngines", "");
 +pref("browser.search.visualSearch.featureGate", false);
++
++// DRM / Widevine and other media plugins (GMP).
++// Off by default, one switch to turn on: Settings > General > "Play
++// DRM-controlled content" (media.eme.enabled). While it is off, Firefox hides
++// the Widevine plugin and never downloads it, and Mercury's
++// GMPInstallManager patch (0028) skips the plugin update check entirely, so
++// nothing is fetched from aus5.mozilla.org or from Google.
++// When the user turns DRM on, Firefox asks Mozilla's aus5 which Widevine
++// version to use and downloads Google's CDM from Google's servers
++// (edgedl.me.gvt1.com, mirror www.google.com/dl). The CDM is made by Google;
++// there is no non-Google Widevine.
++// Don't use Google's Chromium component-update service for version lookups.
++pref("media.gmp-widevinecdm.visible", true);
++pref("media.gmp-widevinecdm.allow-chromium-update", false);
++pref("media.gmp-widevinecdm-l1.allow-chromium-update", false);
++pref("media.gmp-manager.chromium-update-url", "");
++// Cisco's OpenH264 (for H.264 in WebRTC calls) is also downloaded on demand;
++// keep it visible in about:addons but off by default. WebRTC uses VP8/VP9
++// without it.
++pref("media.gmp-gmpopenh264.visible", true);
++pref("media.gmp-gmpopenh264.enabled", false);
