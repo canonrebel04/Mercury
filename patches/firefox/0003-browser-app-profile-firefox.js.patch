@@ -1,6 +1,6 @@
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -150,9 +150,122 @@
+@@ -150,9 +150,119 @@
  // should no longer be used directly. Instead, getAppUpdateAutoEnabled and
  // getAppUpdateAutoEnabled from UpdateUtils.sys.mjs should be used.
  #ifndef XP_WIN
@@ -63,9 +63,6 @@
 +pref("browser.newtabpage.activity-stream.default.sites", "https://addons.mozilla.org,https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/");
 +// Allow offline apps
 +pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
-+// CustomizableUI state of the browser's user interface
-+pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"home-button\",\"urlbar-container\",\"downloads-button\",\"developer-button\",\"unified-extensions-button\",\"fxa-toolbar-menu-button\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"PersonalToolbar\":[\"import-button\",\"personal-bookmarks\"]},\"seen\":[\"developer-button\"],\"dirtyAreaCache\":[\"PersonalToolbar\",\"nav-bar\",\"toolbar-menubar\",\"TabsToolbar\"],\"currentVersion\":19,\"newElementCount\":0}");
-+// pref("browser.uiCustomization.autoAdd", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"home-button\",\"urlbar-container\",\"downloads-button\",\"developer-button\",\"fxa-toolbar-menu-button\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"PersonalToolbar\":[\"import-button\",\"personal-bookmarks\"]},\"seen\":[\"developer-button\"],\"dirtyAreaCache\":[\"PersonalToolbar\",\"nav-bar\",\"toolbar-menubar\",\"TabsToolbar\"],\"currentVersion\":19,\"newElementCount\":0}");
 +
 +// Betterfox Fastfox.js
 +pref("nglayout.initialpaint.delay", 0); // default=5; used to be 250
@@ -124,7 +121,7 @@
  // If set to true, the Update Service will apply updates in the background
  // when it finishes downloading them.
  pref("app.update.staging.enabled", true);
-@@ -250,7 +363,7 @@
+@@ -250,7 +360,7 @@
  pref("browser.uitour.surveyDuration", 7200);
  
  #ifdef UNIX_BUT_NOT_MAC
@@ -133,7 +130,7 @@
  #else
    pref("general.autoScroll", true);
  #endif
-@@ -284,11 +397,11 @@
+@@ -284,11 +394,11 @@
  pref("browser.compactmode.show", false);
  
  // At startup, check if we're the default browser and prompt user if not.
@@ -148,7 +145,7 @@
  pref("browser.shell.defaultBrowserCheckCount", 0);
  #if defined(XP_WIN)
  // Attempt to set the default browser on Windows 10 using the UserChoice registry keys,
-@@ -299,7 +412,7 @@
+@@ -299,7 +409,7 @@
  pref("browser.shell.setDefaultBrowserUserChoice.regRename", true);
  // When setting the default browser on Windows 10 using the UserChoice
  // registry keys, also try to set Firefox as the default PDF handler.
@@ -157,7 +154,7 @@
  // When setting Firefox as the default PDF handler (subject to conditions
  // above), only set Firefox as the default PDF handler when the existing handler
  // is a known browser, and not when existing handler is another PDF handler such
-@@ -334,7 +447,7 @@
+@@ -334,7 +444,7 @@
  
  // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
  // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
@@ -166,7 +163,7 @@
  pref("browser.startup.homepage",            "about:home");
  pref("browser.startup.homepage.abouthome_cache.enabled", true);
  pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
-@@ -379,7 +492,7 @@
+@@ -379,7 +489,7 @@
  #if defined(XP_WIN)
    pref("browser.warnOnQuitShortcut", false);
  #else
@@ -175,7 +172,7 @@
  #endif
  
  // TODO bug 1702563: Renable fullscreen autohide by default on macOS.
-@@ -693,7 +806,7 @@
+@@ -693,7 +803,7 @@
  // is longer than this.
  pref("browser.urlbar.maxCharsForSearchSuggestions", 100);
  
@@ -184,7 +181,7 @@
  pref("browser.urlbar.trimHttps", false);
  pref("browser.urlbar.trimWww", false);
  pref("browser.urlbar.untrimOnUserInteraction.featureGate", false);
-@@ -847,7 +960,7 @@
+@@ -847,7 +957,7 @@
  
  // If `browser.urlbar.yelp.featureGate` is true, this controls whether
  // Yelp suggestions are turned on.
@@ -193,7 +190,7 @@
  
  // Feature gate pref for Fakespot suggestions in the urlbar.
  // TODO Bug 1982966: Remove this after all experiments and rollouts using it
-@@ -926,7 +1039,7 @@
+@@ -926,7 +1036,7 @@
  // their URLs with strings that explain why they're shown.
  pref("browser.urlbar.resultExplanations.featureGate", false);
  
@@ -202,7 +199,7 @@
  
  // Number of milliseconds to wait for the http headers (and thus
  // the Content-Disposition filename) before giving up and falling back to
-@@ -997,7 +1110,7 @@
+@@ -997,7 +1107,7 @@
  pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
  
  // Enables search SERP telemetry page categorization.
@@ -211,7 +208,7 @@
  
  // A count of Glean SERP categorization event metrics that have been recorded
  // but not yet submitted in a ping. Needed to prevent sending a ping with only
-@@ -1147,8 +1260,8 @@
+@@ -1147,8 +1257,8 @@
  pref("browser.tabs.loadDivertedInBackground", false);
  pref("browser.tabs.loadBookmarksInBackground", false);
  pref("browser.tabs.loadBookmarksInTabs", false);
@@ -222,7 +219,7 @@
  
  // When tabs opened by links in other tabs via a combination of
  // browser.link.open_newwindow being set to 3 and target="_blank" etc are
-@@ -1228,7 +1341,7 @@
+@@ -1228,7 +1338,7 @@
  #if defined(XP_MACOSX) || defined(XP_WIN)
      pref("browser.tabs.unloadOnLowMemory", true);
  #else
@@ -231,7 +228,7 @@
  #endif
  
  // Tab Unloader does not unload tabs whose last inactive period is longer than
-@@ -1309,7 +1422,7 @@
+@@ -1309,7 +1419,7 @@
  // the bookmarks toolbar as a default.
  pref("browser.bookmarks.defaultLocation", "toolbar");
  
@@ -240,7 +237,7 @@
  
  // Scripts & Windows prefs
  pref("dom.disable_open_during_load",              true);
-@@ -1455,7 +1568,9 @@
+@@ -1455,7 +1565,9 @@
    // who want to keep using this feature, let's enable it with alt+wheel.  This
    // is better for consistency with macOS users.
    pref("mousewheel.with_shift.action", 4);
@@ -250,7 +247,7 @@
  #endif
  
  pref("mousewheel.with_meta.action", 1);
-@@ -1544,7 +1659,7 @@
+@@ -1544,7 +1656,7 @@
  // 0 goes Back/Forward
  // 1 act like PgUp/PgDown
  // 2 and other values, nothing
@@ -259,7 +256,7 @@
  
  pref("intl.regional_prefs.use_os_locales", false);
  
-@@ -1600,11 +1715,11 @@
+@@ -1600,11 +1712,11 @@
  // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
  pref("browser.sessionstore.privacy_level", 0);
  // how many tabs can be reopened (per window)
@@ -273,7 +270,7 @@
  // number of crashes that can occur before the about:sessionrestore page is displayed
  // (this pref has no effect if more than 6 hours have passed since the last crash)
  pref("browser.sessionstore.max_resumed_crashes", 1);
-@@ -1619,7 +1734,7 @@
+@@ -1619,7 +1731,7 @@
  // Selected tabs are always restored regardless of this pref.
  pref("browser.sessionstore.restore_on_demand", true);
  // Whether to automatically restore hidden tabs (i.e., tabs in other tab groups) or not
@@ -282,7 +279,7 @@
  // If restore_on_demand is set, pinned tabs are restored on startup by default.
  // When set to true, this pref overrides that behavior, and pinned tabs will only
  // be restored when they are focused.
-@@ -1803,20 +1918,20 @@
+@@ -1803,20 +1915,20 @@
  pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", true);
  pref("services.sync.prefs.sync.browser.ctrlTab.sortByRecentlyUsed", true);
  pref("services.sync.prefs.sync.browser.download.useDownloadDir", true);
@@ -309,7 +306,7 @@
  // Some linux distributions disable all highlights by default.
  pref("services.sync.prefs.sync-seen.browser.newtabpage.activity-stream.section.highlights", false);
  pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.highlights.includeVisited", true);
-@@ -1945,7 +2060,7 @@
+@@ -1945,7 +2057,7 @@
  
  pref("browser.topsites.useRemoteSetting", true);
  // Fetch sponsored Top Sites from Mozilla Tiles Service (Contile)
@@ -318,7 +315,7 @@
  pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
  
  // Activates preloading of the new tab url.
-@@ -2103,7 +2218,7 @@
+@@ -2103,7 +2215,7 @@
  pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
  
  // These prefs control if Discovery Stream is enabled.
@@ -327,7 +324,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hybridLayout.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
-@@ -2116,7 +2231,7 @@
+@@ -2116,7 +2228,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.titleLines", 3);
  pref("browser.newtabpage.activity-stream.discoverystream.descLines", 3);
@@ -336,7 +333,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
  
-@@ -2644,19 +2759,19 @@
+@@ -2644,19 +2756,19 @@
  
  // Telemetry settings.
  // Determines if Telemetry pings can be archived locally.
@@ -361,7 +358,7 @@
  
  // Enable GMP support in the addon manager.
  pref("media.gmp-provider.enabled", true);
-@@ -3090,7 +3205,7 @@
+@@ -3090,7 +3202,7 @@
  // Normandy client preferences
  pref("app.normandy.api_url", "https://normandy.cdn.mozilla.net/api/v1");
  pref("app.normandy.dev_mode", false);
@@ -370,7 +367,7 @@
  pref("app.normandy.first_run", true);
  pref("app.normandy.logging.level", 50); // Warn
  pref("app.normandy.run_interval_seconds", 21600); // 6 hours
-@@ -3130,7 +3245,7 @@
+@@ -3130,7 +3242,7 @@
  #endif
  
  // Enable personalized extension recommendations
@@ -379,7 +376,7 @@
  
  pref("browser.engagement.recent_visited_origins.expiry", 86400); // 24 * 60 * 60 (24 hours in seconds)
  pref("browser.engagement.downloads-button.has-used", false);
-@@ -3140,7 +3255,7 @@
+@@ -3140,7 +3252,7 @@
  pref("browser.engagement.library-button.has-used", false);
  pref("browser.engagement.ctrlTab.has-used", false);
  
@@ -388,7 +385,7 @@
  
  pref("browser.toolbars.keyboard_navigation", true);
  
-@@ -3148,7 +3263,7 @@
+@@ -3148,7 +3260,7 @@
  // "newtab": Show on the New Tab Page
  // "always": Always show
  // "never": Never show
@@ -397,7 +394,7 @@
  
  // Visibility of the "Show Other Bookmarks" menuitem in the
  // bookmarks toolbar contextmenu.
-@@ -3172,14 +3287,14 @@
+@@ -3172,14 +3284,14 @@
  // quick access to sign-in and manage your Firefox Account.
  pref("identity.fxaccounts.toolbar.enabled", true);
  pref("identity.fxaccounts.toolbar.accessed", false);
@@ -416,7 +413,7 @@
  
  // Prefs to control Mozilla account panels that shows an updated flow
  // for users who don't have sync enabled
-@@ -3228,9 +3343,9 @@
+@@ -3228,9 +3340,9 @@
  pref("devtools.command-button-noautohide.enabled", false);
  pref("devtools.command-button-errorcount.enabled", true);
  pref("devtools.command-button-jstracer.enabled", false);
@@ -428,7 +425,7 @@
  
  // Inspector preferences
  // Enable the Inspector
-@@ -3627,7 +3742,7 @@
+@@ -3627,7 +3739,7 @@
  #ifdef MOZ_DEV_EDITION
    pref("browser.menu.showViewImageInfo", true);
  #else
