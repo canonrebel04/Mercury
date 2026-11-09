@@ -451,7 +451,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3878,3 +3996,46 @@
+@@ -3878,3 +3996,110 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -498,3 +498,67 @@
 +// WebRTC legacy setParameters allowlist (*.google.com; only defined on
 +// Nightly upstream). Keep it empty.
 +pref("media.peerconnection.allow_old_setParameters.allowlist", "");
++
++// No tracking: telemetry, studies, experiments, ads, promos.
++// Real security features are untouched: Mozilla tracking-protection lists,
++// CRLite/OCSP, HTTPS-Only, and remote settings for certificate revocation
++// and the add-on blocklist all keep working.
++// Telemetry and data upload (Glean and legacy telemetry).
++pref("datareporting.healthreport.uploadEnabled", false);
++pref("datareporting.policy.dataSubmissionEnabled", false);
++pref("datareporting.usage.uploadEnabled", false);
++pref("toolkit.telemetry.enabled", false);
++pref("toolkit.telemetry.unified", false);
++pref("toolkit.telemetry.archive.enabled", false);
++pref("toolkit.telemetry.server", "data:,");
++pref("toolkit.telemetry.newProfilePing.enabled", false);
++pref("toolkit.telemetry.shutdownPingSender.enabled", false);
++pref("toolkit.telemetry.firstShutdownPing.enabled", false);
++pref("toolkit.telemetry.bhrPing.enabled", false);
++pref("toolkit.telemetry.user_characteristics_ping.opt-out", true);
++pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
++pref("browser.search.serpEventTelemetryCategorization.enabled", false);
++// Studies, Normandy and Nimbus experiments/rollouts. Firefox Labs stays
++// available in Settings (it's opt-in per feature).
++pref("app.shield.optoutstudies.enabled", false);
++pref("app.normandy.enabled", false);
++pref("app.normandy.api_url", "");
++pref("nimbus.rollouts.enabled", false);
++// Crash reports: never sent automatically (manual submission from
++// about:crashes still works).
++pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
++pref("browser.tabs.crashReporting.sendReport", false);
++// Sponsored content and ad-related remote settings (see also the new-tab
++// block above): no sponsored top sites in the URL bar, no Firefox Suggest,
++// no trending searches.
++pref("browser.urlbar.sponsoredTopSites", false);
++pref("browser.topsites.contile.enabled", false);
++pref("browser.urlbar.quicksuggest.enabled", false);
++pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
++pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
++pref("browser.urlbar.trending.featureGate", false);
++pref("browser.urlbar.suggest.trending", false);
++pref("browser.urlbar.fakespot.featureGate", false);
++// Weather (Mozilla's Merino/AccuWeather service): off on the new tab page and
++// in the URL bar. Can be turned back on from the new-tab settings.
++pref("browser.newtabpage.activity-stream.showWeather", false);
++pref("browser.newtabpage.activity-stream.system.showWeather", false);
++pref("browser.newtabpage.activity-stream.widgets.weather.enabled", false);
++pref("browser.newtabpage.activity-stream.widgets.system.weather.enabled", false);
++pref("browser.urlbar.weather.featureGate", false);
++pref("browser.urlbar.suggest.weather", false);
++// Pocket leftovers and new-tab personalization.
++pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", false);
++pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", false);
++// Mozilla account / sync / VPN / product promos (sync itself still works).
++pref("identity.fxaccounts.toolbar.pxiToolbarEnabled", false);
++pref("browser.preferences.moreFromMozilla", false);
++pref("browser.vpn_promo.enabled", false);
++pref("browser.promo.pin.enabled", false);
++pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
++pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
++pref("extensions.htmlaboutaddons.recommendations.enabled", false);
++pref("browser.discovery.enabled", false);
++// Default browser agent (Windows scheduled task) and its pings.
++pref("default-browser-agent.enabled", false);
++pref("browser.shell.checkDefaultBrowser", false);
