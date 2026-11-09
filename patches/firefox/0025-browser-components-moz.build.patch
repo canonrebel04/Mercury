@@ -1,0 +1,12 @@
+--- a/browser/components/moz.build
++++ b/browser/components/moz.build
+@@ -83,6 +83,9 @@
+ 
+ DIRS += ["build"]
+ 
++# Mercury: GitHub Releases update notification.
++DIRS += ["mercury"]
++
+ if CONFIG["MOZ_SELECTABLE_PROFILES"]:
+     DIRS += ["profiles"]
+ 
