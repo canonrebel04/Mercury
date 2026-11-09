@@ -39,7 +39,7 @@
  
  // Tables for anti-tracking features
  pref("urlclassifier.trackingAnnotationTable", "moztest-track-simple,ads-track-digest256,social-track-digest256,analytics-track-digest256,content-track-digest256");
-@@ -3337,7 +3334,7 @@
+@@ -3337,14 +3334,16 @@
  pref("urlclassifier.features.antifraud.annotate.allowlistTables", "mozstd-trackwhite-digest256");
  
  // These tables will never trigger a gethash call.
@@ -48,7 +48,17 @@
  
  // Workaround for Google Recaptcha
  pref("urlclassifier.trackingAnnotationSkipURLs", "");
-@@ -3382,7 +3379,7 @@
+ pref("privacy.rejectForeign.allowList", "");
+ 
+ // The list of email webapp sites
+-pref("privacy.trackingprotection.emailtracking.webapp.domains", "mail.163.com,mail.aol.com,fastmail.com,webmail.gandi.net,mail.google.com,navigator-bs.gmx.com,app.hey.com,horde.org/apps/webmail,hushmail.com,icloud.com/mail,kolabnow.com,laposte.net/accueil,mail.lycos.com,mail.com/mail/,mail.ru,mailfence.com,outlook.live.com,email-postaci.com/,posteo.de,mail.protonmail.com,app.rackspace.com,mail.rediff.com,emailmg.ipage.com,runbox.com,mail.sina.com.cn,tutanota.com,mail.yahoo.com,mail.yandex.com,mail.zimbra.com,zoho.com/mail/");
++// Mercury: mail.google.com removed. The list only labels telemetry
++// (email-tracker counts on webmail pages); it does not change blocking.
++pref("privacy.trackingprotection.emailtracking.webapp.domains", "mail.163.com,mail.aol.com,fastmail.com,webmail.gandi.net,navigator-bs.gmx.com,app.hey.com,horde.org/apps/webmail,hushmail.com,icloud.com/mail,kolabnow.com,laposte.net/accueil,mail.lycos.com,mail.com/mail/,mail.ru,mailfence.com,outlook.live.com,email-postaci.com/,posteo.de,mail.protonmail.com,app.rackspace.com,mail.rediff.com,emailmg.ipage.com,runbox.com,mail.sina.com.cn,tutanota.com,mail.yahoo.com,mail.yandex.com,mail.zimbra.com,zoho.com/mail/");
+ 
+ // The migration for this pref disables both allow-list categories (convenience
+ // and baseline) for users in ETP "strict" and "custom" mode.
+@@ -3382,7 +3381,7 @@
  pref("browser.safebrowsing.downloads.enabled", true);
  pref("browser.safebrowsing.downloads.remote.enabled", true);
  pref("browser.safebrowsing.downloads.remote.timeout_ms", 15000);
@@ -57,7 +67,7 @@
  pref("browser.safebrowsing.downloads.remote.block_dangerous",            true);
  pref("browser.safebrowsing.downloads.remote.block_dangerous_host",       true);
  pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", true);
-@@ -3391,40 +3388,8 @@
+@@ -3391,40 +3390,8 @@
  // Android SafeBrowsing's configuration is in ContentBlocking.java, keep in sync.
  #ifndef MOZ_WIDGET_ANDROID
  

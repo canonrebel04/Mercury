@@ -64,7 +64,7 @@
 +// Browser Agent "Set Firefox as default" call to action.
 +pref("browser.shell.defaultBrowserAgent.thanksURL", "https://thorium.rocks/mercury");
 +// Default top site tiles on the NTP
-+pref("browser.newtabpage.activity-stream.default.sites", "https://addons.mozilla.org,https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/");
++pref("browser.newtabpage.activity-stream.default.sites", "https://addons.mozilla.org,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/");
 +// Allow offline apps
 +pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
 +
@@ -451,7 +451,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3878,3 +3996,33 @@
+@@ -3878,3 +3996,46 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -485,3 +485,16 @@
 +// without it.
 +pref("media.gmp-gmpopenh264.visible", true);
 +pref("media.gmp-gmpopenh264.enabled", false);
++
++// Other Google touchpoints.
++// Use Mercury's default top sites (default.sites above, no YouTube) instead
++// of Mozilla's remote-settings list, which includes youtube.com.
++pref("browser.topsites.useRemoteSetting", false);
++// Protections report: no Google Play links (and no mobile-app/VPN promos).
++pref("browser.contentblocking.report.show_mobile_app", false);
++pref("browser.contentblocking.report.mobile-android.url", "");
++pref("browser.contentblocking.report.vpn-android.url", "");
++pref("browser.contentblocking.report.hide_vpn_banner", true);
++// WebRTC legacy setParameters allowlist (*.google.com; only defined on
++// Nightly upstream). Keep it empty.
++pref("media.peerconnection.allow_old_setParameters.allowlist", "");
