@@ -1,0 +1,10 @@
+--- a/browser/components/preferences/privacy.js
++++ b/browser/components/preferences/privacy.js
+@@ -617,6 +617,7 @@
+     initSettingGroup("nonTechnicalPrivacy2");
+     initSettingGroup("securityPrivacyStatus");
+     initSettingGroup("securityPrivacyWarnings");
++    initSettingGroup("mercuryHardened");
+     initSettingGroup("httpsOnly");
+     initSettingGroup("browsingProtection");
+     initSettingGroup("cookiesAndSiteData");

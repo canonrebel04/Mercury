@@ -1,0 +1,43 @@
+--- a/browser/components/preferences/config/privacy.mjs
++++ b/browser/components/preferences/config/privacy.mjs
+@@ -453,6 +453,9 @@
+   // First-Party Isolation
+   { id: "privacy.firstparty.isolate", type: "bool" },
+ 
++  // Mercury: Hardened mode
++  { id: "mercury.hardened.enabled", type: "bool" },
++
+   // HTTPS-Only
+   { id: "dom.security.https_only_mode", type: "bool" },
+   { id: "dom.security.https_only_mode_pbm", type: "bool" },
+@@ -534,6 +537,18 @@
+ }
+ 
+ SettingGroupManager.registerGroups({
++  // Mercury: one switch for the stricter privacy settings, see
++  // browser/components/mercury/MercuryHardened.sys.mjs.
++  mercuryHardened: {
++    l10nId: "mercury-hardened-group",
++    headingLevel: 2,
++    items: [
++      {
++        id: "mercuryHardenedEnabled",
++        l10nId: "mercury-hardened-enabled",
++      },
++    ],
++  },
+   httpsOnly: {
+     l10nId: "httpsonly-group",
+     supportPage: "https-only-prefs",
+@@ -1602,6 +1617,11 @@
+ });
+ 
+ Preferences.addSetting({
++  id: "mercuryHardenedEnabled",
++  pref: "mercury.hardened.enabled",
++});
++
++Preferences.addSetting({
+   id: "trustPanelFeatureGate",
+   pref: "browser.urlbar.trustPanel.featureGate",
+ });
