@@ -1,0 +1,13 @@
+{
+  "name": "mercury-mcp",
+  "version": "0.1.0",
+  "description": "EXPERIMENTAL zero-dependency MCP server that drives Mercury through Firefox's built-in WebDriver BiDi Remote Agent",
+  "type": "module",
+  "private": true,
+  "license": "MPL-2.0",
+  "bin": { "mercury-mcp": "./mercury-mcp.mjs" },
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node test/e2e.mjs"
+  }
+}
