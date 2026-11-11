@@ -1,0 +1,19 @@
+--- a/browser/locales/en-US/browser/preferences/preferences.ftl
++++ b/browser/locales/en-US/browser/preferences/preferences.ftl
+@@ -12,6 +12,16 @@
+ non-technical-privacy-group =
+     .label = Website Privacy Preferences
+ 
++## Mercury: Hardened mode
++
++mercury-hardened-group =
++    .label = Hardened mode
++    .description = Stronger privacy protections in one switch. They may break some sites and make browsing a bit slower.
++
++mercury-hardened-enabled =
++    .label = Use Hardened mode
++    .description = Resists fingerprinting (reports UTC as your timezone and adds letterboxing), uses Strict tracking protection, HTTPS-Only Mode and DNS over HTTPS (Quad9 unless you pick a provider), deletes cookies and site data when { -brand-short-name } closes (except sites you allow), stops address-bar preconnects and shows punycode domains. Restart { -brand-short-name } for all changes to apply.
++
+ do-not-track-removal3 =
+     .message = We no longer support the “Do Not Track” feature.
+ 
