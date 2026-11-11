@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Mercury MCP fixture</title></head>
+<body>
+  <h1>Mercury MCP test page</h1>
+  <p id="status">Not clicked</p>
+  <button id="btn" onclick="document.getElementById('status').textContent = 'Clicked!'; console.log('button-clicked-log')">Press me</button>
+  <form id="f" onsubmit="event.preventDefault(); document.getElementById('echo').textContent = 'You typed: ' + document.getElementById('q').value;">
+    <label for="q">Search box</label>
+    <input id="q" type="text">
+  </form>
+  <p id="echo"></p>
+  <a id="next" href="fixture2.html">Go to page two</a>
+  <script>console.warn("fixture-loaded-warning");</script>
+</body>
+</html>
