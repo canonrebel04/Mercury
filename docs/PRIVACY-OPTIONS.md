@@ -1,11 +1,93 @@
-# Optional privacy features: a proposal
+# Privacy options
 
-**Status: proposal only. Nothing in this document is implemented.** It reviews
-privacy features from [LibreWolf](https://codeberg.org/librewolf) and
-[Camoufox](https://github.com/daijro/camoufox) and asks one question for
-each: is it worth adding to Mercury without giving up Mercury's speed or
-breaking sites? Pick the ones you want, and each can then be implemented as a
-small, separate change.
+**Status: implemented** (the proposal below was approved). Mercury now turns on
+the cheap privacy items by default and adds one optional **Hardened mode**
+switch for the costly ones. The first two sections describe what is in the
+browser; the rest of the document is the original review of
+[LibreWolf](https://codeberg.org/librewolf) and
+[Camoufox](https://github.com/daijro/camoufox) features that led to it.
+
+## On by default
+
+These are ordinary default prefs in the Mercury block of
+`browser/app/profile/firefox.js` (patch `0003`) plus one policy. You can still
+change any of them in `about:config`, and Settings still shows tracking
+protection as "Standard", because only defaults change.
+
+| Pref / policy | Value | What it does |
+|---|---|---|
+| `privacy.fingerprintingProtection` | `true` | Firefox's fingerprinting protection (FPP) in normal windows too, not only private ones (#1) |
+| `dom.webgpu.enabled` | `false` | WebGPU off (#5) |
+| `network.http.referer.XOriginTrimmingPolicy` | `2` | Other sites only get the origin (`https://example.com/`) as referer (#10) |
+| `media.peerconnection.ice.proxy_only_if_behind_proxy` | `true` | When a proxy is set, WebRTC goes through it and can't leak your IP (#11) |
+| `security.OCSP.enabled` | `0` | No OCSP requests; revocation is checked with CRLite (#12b, see below) |
+| `privacy.query_stripping.enabled` / `.pbmode` | `true` | Known tracking parameters are removed from URLs in normal and private windows (#18) |
+| `pdfjs.enableScripting` | `false` | No JavaScript in PDFs (#26) |
+| `browser.helperApps.deleteTempFileOnExit` | `true` | Files opened in other apps are deleted on exit, on macOS too (#29) |
+| policy `ExtensionSettings` → `uBlock0@raymondhill.net` | `"private_browsing": true` | uBlock Origin also runs in private windows (#23). Because a policy sets it, the "Run in private windows" switch for uBO is locked on. |
+
+**OCSP and CRLite.** Firefox 159 has CRLite in enforce mode
+(`security.pki.crlite_mode=2`) with the full revocation set, and with
+enforcing CRLite it already skips OCSP for ordinary (DV) certificates from
+built-in roots. Turning OCSP off therefore only changes two cases:
+EV certificates and certificates from private or enterprise CAs (which
+CRLite doesn't cover). Those no longer get a revocation check; OCSP responses
+stapled by the server are still checked. In return Mercury never tells a CA
+which sites you visit. If you rely on a company CA with revocation, set
+`security.OCSP.enabled` back to `1`.
+
+## Hardened mode (optional, off by default)
+
+One switch for people who want LibreWolf-level protection and accept that some
+sites break: **Settings > Privacy & Security > Hardened mode > "Use Hardened
+mode"**, or the pref `mercury.hardened.enabled`. Restart Mercury after
+switching so every open page and window picks it up (newly loaded pages get
+most of it right away).
+
+When it's on:
+
+| Setting | Pref(s) |
+|---|---|
+| ResistFingerprinting (RFP): timezone reported as UTC+0 (`Atlantic/Reykjavik` in Firefox 159), coarse timers, rounded window sizes, light theme, canvas-read prompt, restricted fonts, English locale for pages | `privacy.resistFingerprinting` |
+| Letterboxing | `privacy.resistFingerprinting.letterboxing` |
+| Delete cookies and site data (and the cache) when Mercury closes. History, form data and site settings are kept. Sites you add under "Manage Exceptions..." keep their cookies. | `privacy.sanitize.sanitizeOnShutdown`, `privacy.clearOnShutdown_v2.*` |
+| Tracking protection: Strict | `browser.contentblocking.category` |
+| HTTPS-Only mode | `dom.security.https_only_mode` |
+| DNS over HTTPS, "Increased protection" (falls back to normal DNS if DoH fails). Default provider Quad9 (`https://dns.quad9.net/dns-query`), never Google. If you already chose a provider or "Max protection", that choice is kept. To use another provider by default, set `mercury.hardened.doh.uri` (e.g. `https://dns.mullvad.net/dns-query`) or pick one in Settings > Privacy & Security > DNS over HTTPS. | `network.trr.mode=2`, `network.trr.uri`, `network.trr.custom_uri` |
+| No speculative connections from the address bar or bookmarks | `browser.urlbar.speculativeConnect.enabled`, `browser.places.speculativeConnect.enabled` |
+| Internationalized domains shown as punycode (`xn--...`) | `network.IDN_show_punycode` |
+
+How it works (`browser/components/mercury/MercuryHardened.sys.mjs`):
+
+- **No cost while off.** At startup Mercury reads one pref and adds one pref
+  observer. The module is loaded only when the switch changes (or at startup
+  if the switch and the saved state disagree, e.g. you edited `user.js`).
+- **Turning it on** sets only prefs that aren't already at the hardened value
+  and records what it changed (and the previous user value, if there was one)
+  in `mercury.hardened.state`.
+- **Turning it off** restores only the prefs it changed **and that you haven't
+  changed since**. If you, for example, kept HTTPS-Only on by hand or picked
+  a different DoH provider while Hardened mode was on, those stay as you set
+  them. Locked prefs (enterprise policy) are never touched.
+- Limits: if tracking protection was "Custom" before, turning Hardened mode off
+  returns to "Standard" (Firefox can't restore a custom set from the category
+  pref alone). After turning off clear-on-close, data that was already
+  deleted doesn't come back.
+
+**Extra uBlock Origin lists** (AdGuard URL Tracking Protection, the
+EasyList/Fanboy cookie-notice and annoyance lists) aren't part of Hardened
+mode. uBO's list choice comes from a static policy (managed storage), so a pref
+switch can't add and remove them cleanly. To add them: uBO dashboard > Filter
+lists > "Privacy" and "Cookie notices"/"Annoyances", tick the lists, Apply.
+
+**Tests:** `node tests/privacy/hardened-unit.mjs` (unit test with mocked prefs)
+and `tests/privacy/integration.mjs`, which runs a stock Firefox 159 with
+Mercury's prefs, policy, module and Settings patches (see
+[tests/privacy/README.md](../tests/privacy/README.md)).
+
+---
+
+# Original review (approved proposal)
 
 Sources reviewed (November 2026):
 - LibreWolf settings, `librewolf.cfg` v8.6 and `distribution/policies.json`
@@ -42,7 +124,7 @@ cheap.
 Mercury can get most of LibreWolf's privacy by adopting the cheap items and
 offering the five above only as opt-in toggles.
 
-## What Mercury already has (after the `degoogle` branch)
+## What Mercury already had (after the `degoogle` branch, before this change)
 
 These are already done and aren't counted again below:
 
@@ -403,17 +485,13 @@ implemented):
 - `webdriver-bidi-app-name` and similar patches that make an automated
   browser look like stock Firefox.
 
-## Suggested next steps (if approved)
+## What was implemented and what's left
 
-1. **Small pref-only PR** (no code, no measurable perf cost): #1, #5, #10,
-   #11, #12b, #18, #26, #29 in the Mercury block of `firefox.js`, plus #23 in
-   `policies.json`. Test on a set of common sites (logins, maps, video,
-   banking, web calendars).
-2. **"Hardened mode" toggle:** one checkbox in Settings > Privacy that turns
-   on RFP (+ letterboxing, canvas prompt, fonts), clear-on-close,
-   ETP Strict and no speculative connections, with a clear warning that it
-   breaks sites and is slower. Implemented as a pref group, so it adds no
-   runtime cost while off.
-3. **Later and optional, as patches:** per-site WebGL prompt, per-site JIT
+1. Done: #1, #5, #10, #11, #12b, #18, #26, #29 in `firefox.js` and #23 in
+   `policies.json` (see "On by default" above).
+2. Done: Hardened mode with #2 (RFP, which includes #3's companion settings,
+   #6, #15 and #16), #3, #7, #9, #19, #20, #21 and #25. #24 is documented
+   instead (manual uBO lists).
+3. Not done, possible later patches: per-site WebGL prompt, per-site JIT
    toggle and canvas prompt without RFP (from LibreWolf); push connect on
-   demand (from Camoufox).
+   demand (from Camoufox); #30 and #32.
