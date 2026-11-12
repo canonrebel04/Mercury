@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/config/privacy.mjs
 +++ b/browser/components/preferences/config/privacy.mjs
-@@ -453,6 +453,9 @@
+@@ -461,6 +461,9 @@
    // First-Party Isolation
    { id: "privacy.firstparty.isolate", type: "bool" },
  
@@ -10,7 +10,7 @@
    // HTTPS-Only
    { id: "dom.security.https_only_mode", type: "bool" },
    { id: "dom.security.https_only_mode_pbm", type: "bool" },
-@@ -534,6 +537,18 @@
+@@ -542,6 +545,18 @@
  }
  
  SettingGroupManager.registerGroups({
@@ -29,7 +29,7 @@
    httpsOnly: {
      l10nId: "httpsonly-group",
      supportPage: "https-only-prefs",
-@@ -1602,6 +1617,11 @@
+@@ -1640,6 +1655,11 @@
  });
  
  Preferences.addSetting({

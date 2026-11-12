@@ -177,7 +177,7 @@
  #endif
  
  // TODO bug 1702563: Renable fullscreen autohide by default on macOS.
-@@ -693,7 +808,7 @@
+@@ -680,7 +795,7 @@
  // is longer than this.
  pref("browser.urlbar.maxCharsForSearchSuggestions", 100);
  
@@ -186,7 +186,7 @@
  pref("browser.urlbar.trimHttps", false);
  pref("browser.urlbar.trimWww", false);
  pref("browser.urlbar.untrimOnUserInteraction.featureGate", false);
-@@ -847,7 +962,7 @@
+@@ -830,7 +945,7 @@
  
  // If `browser.urlbar.yelp.featureGate` is true, this controls whether
  // Yelp suggestions are turned on.
@@ -195,7 +195,7 @@
  
  // Feature gate pref for Fakespot suggestions in the urlbar.
  // TODO Bug 1982966: Remove this after all experiments and rollouts using it
-@@ -926,7 +1041,7 @@
+@@ -909,7 +1024,7 @@
  // their URLs with strings that explain why they're shown.
  pref("browser.urlbar.resultExplanations.featureGate", false);
  
@@ -204,7 +204,7 @@
  
  // Number of milliseconds to wait for the http headers (and thus
  // the Content-Disposition filename) before giving up and falling back to
-@@ -997,7 +1112,7 @@
+@@ -980,7 +1095,7 @@
  pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
  
  // Enables search SERP telemetry page categorization.
@@ -213,7 +213,7 @@
  
  // A count of Glean SERP categorization event metrics that have been recorded
  // but not yet submitted in a ping. Needed to prevent sending a ping with only
-@@ -1147,8 +1262,8 @@
+@@ -1131,8 +1246,8 @@
  pref("browser.tabs.loadDivertedInBackground", false);
  pref("browser.tabs.loadBookmarksInBackground", false);
  pref("browser.tabs.loadBookmarksInTabs", false);
@@ -224,7 +224,7 @@
  
  // When tabs opened by links in other tabs via a combination of
  // browser.link.open_newwindow being set to 3 and target="_blank" etc are
-@@ -1228,7 +1343,7 @@
+@@ -1218,7 +1333,7 @@
  #if defined(XP_MACOSX) || defined(XP_WIN)
      pref("browser.tabs.unloadOnLowMemory", true);
  #else
@@ -233,7 +233,7 @@
  #endif
  
  // Tab Unloader does not unload tabs whose last inactive period is longer than
-@@ -1309,7 +1424,7 @@
+@@ -1299,7 +1414,7 @@
  // the bookmarks toolbar as a default.
  pref("browser.bookmarks.defaultLocation", "toolbar");
  
@@ -242,7 +242,7 @@
  
  // Scripts & Windows prefs
  pref("dom.disable_open_during_load",              true);
-@@ -1455,7 +1570,9 @@
+@@ -1445,7 +1560,9 @@
    // who want to keep using this feature, let's enable it with alt+wheel.  This
    // is better for consistency with macOS users.
    pref("mousewheel.with_shift.action", 4);
@@ -252,7 +252,7 @@
  #endif
  
  pref("mousewheel.with_meta.action", 1);
-@@ -1544,7 +1661,7 @@
+@@ -1534,7 +1651,7 @@
  // 0 goes Back/Forward
  // 1 act like PgUp/PgDown
  // 2 and other values, nothing
@@ -261,7 +261,7 @@
  
  pref("intl.regional_prefs.use_os_locales", false);
  
-@@ -1600,11 +1717,11 @@
+@@ -1592,11 +1709,11 @@
  // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
  pref("browser.sessionstore.privacy_level", 0);
  // how many tabs can be reopened (per window)
@@ -275,7 +275,7 @@
  // number of crashes that can occur before the about:sessionrestore page is displayed
  // (this pref has no effect if more than 6 hours have passed since the last crash)
  pref("browser.sessionstore.max_resumed_crashes", 1);
-@@ -1619,7 +1736,7 @@
+@@ -1611,7 +1728,7 @@
  // Selected tabs are always restored regardless of this pref.
  pref("browser.sessionstore.restore_on_demand", true);
  // Whether to automatically restore hidden tabs (i.e., tabs in other tab groups) or not
@@ -284,7 +284,7 @@
  // If restore_on_demand is set, pinned tabs are restored on startup by default.
  // When set to true, this pref overrides that behavior, and pinned tabs will only
  // be restored when they are focused.
-@@ -1803,20 +1920,20 @@
+@@ -1795,20 +1912,20 @@
  pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", true);
  pref("services.sync.prefs.sync.browser.ctrlTab.sortByRecentlyUsed", true);
  pref("services.sync.prefs.sync.browser.download.useDownloadDir", true);
@@ -311,7 +311,7 @@
  // Some linux distributions disable all highlights by default.
  pref("services.sync.prefs.sync-seen.browser.newtabpage.activity-stream.section.highlights", false);
  pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.highlights.includeVisited", true);
-@@ -1945,7 +2062,7 @@
+@@ -1937,7 +2054,7 @@
  
  pref("browser.topsites.useRemoteSetting", true);
  // Fetch sponsored Top Sites from Mozilla Tiles Service (Contile)
@@ -320,7 +320,7 @@
  pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
  
  // Activates preloading of the new tab url.
-@@ -1990,8 +2107,9 @@
+@@ -1982,8 +2099,9 @@
  pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-c", false);
  
  // Mozilla Ad Routing Service (MARS) unified ads service
@@ -332,7 +332,7 @@
  pref("browser.newtabpage.activity-stream.unifiedAds.endpoint", "https://ads.mozilla.org/");
  pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled", false);
  pref("browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled", true);
-@@ -2103,7 +2221,7 @@
+@@ -2095,7 +2213,7 @@
  pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
  
  // These prefs control if Discovery Stream is enabled.
@@ -341,7 +341,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hybridLayout.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
-@@ -2116,7 +2234,7 @@
+@@ -2108,7 +2226,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.titleLines", 3);
  pref("browser.newtabpage.activity-stream.discoverystream.descLines", 3);
@@ -350,7 +350,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
  
-@@ -2644,19 +2762,19 @@
+@@ -2652,19 +2770,19 @@
  
  // Telemetry settings.
  // Determines if Telemetry pings can be archived locally.
@@ -375,7 +375,7 @@
  
  // Enable GMP support in the addon manager.
  pref("media.gmp-provider.enabled", true);
-@@ -3090,7 +3208,7 @@
+@@ -3101,7 +3219,7 @@
  // Normandy client preferences
  pref("app.normandy.api_url", "https://normandy.cdn.mozilla.net/api/v1");
  pref("app.normandy.dev_mode", false);
@@ -384,7 +384,7 @@
  pref("app.normandy.first_run", true);
  pref("app.normandy.logging.level", 50); // Warn
  pref("app.normandy.run_interval_seconds", 21600); // 6 hours
-@@ -3130,7 +3248,7 @@
+@@ -3141,7 +3259,7 @@
  #endif
  
  // Enable personalized extension recommendations
@@ -393,7 +393,7 @@
  
  pref("browser.engagement.recent_visited_origins.expiry", 86400); // 24 * 60 * 60 (24 hours in seconds)
  pref("browser.engagement.downloads-button.has-used", false);
-@@ -3140,7 +3258,7 @@
+@@ -3151,7 +3269,7 @@
  pref("browser.engagement.library-button.has-used", false);
  pref("browser.engagement.ctrlTab.has-used", false);
  
@@ -402,7 +402,7 @@
  
  pref("browser.toolbars.keyboard_navigation", true);
  
-@@ -3148,7 +3266,7 @@
+@@ -3159,7 +3277,7 @@
  // "newtab": Show on the New Tab Page
  // "always": Always show
  // "never": Never show
@@ -411,7 +411,7 @@
  
  // Visibility of the "Show Other Bookmarks" menuitem in the
  // bookmarks toolbar contextmenu.
-@@ -3172,14 +3290,14 @@
+@@ -3186,14 +3304,14 @@
  // quick access to sign-in and manage your Firefox Account.
  pref("identity.fxaccounts.toolbar.enabled", true);
  pref("identity.fxaccounts.toolbar.accessed", false);
@@ -430,7 +430,7 @@
  
  // Prefs to control Mozilla account panels that shows an updated flow
  // for users who don't have sync enabled
-@@ -3228,9 +3346,9 @@
+@@ -3242,9 +3360,9 @@
  pref("devtools.command-button-noautohide.enabled", false);
  pref("devtools.command-button-errorcount.enabled", true);
  pref("devtools.command-button-jstracer.enabled", false);
@@ -442,7 +442,7 @@
  
  // Inspector preferences
  // Enable the Inspector
-@@ -3627,7 +3745,7 @@
+@@ -3644,7 +3762,7 @@
  #ifdef MOZ_DEV_EDITION
    pref("browser.menu.showViewImageInfo", true);
  #else
@@ -451,7 +451,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3878,3 +3996,194 @@
+@@ -3909,3 +4027,196 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -517,6 +517,7 @@
 +pref("toolkit.telemetry.bhrPing.enabled", false);
 +pref("toolkit.telemetry.user_characteristics_ping.opt-out", true);
 +pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
++pref("network.http.akamai_waf_telemetry.enabled", false);
 +pref("browser.search.serpEventTelemetryCategorization.enabled", false);
 +// Studies, Normandy and Nimbus experiments/rollouts. Firefox Labs stays
 +// available in Settings (it's opt-in per feature).
@@ -593,6 +594,7 @@
 +// Smart Window and on-device speech recognition.
 +pref("browser.ai.control.smartWindow", "blocked");
 +pref("browser.smartwindow.enabled", false);
++pref("browser.smartwindow.resumeCards.enabled", false);
 +pref("browser.ai.control.speechRecognition", "blocked");
 +// Semantic history search (local embeddings model).
 +pref("places.semanticHistory.featureGate", false);
@@ -627,7 +629,7 @@
 +pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
 +// No OCSP requests (they tell the certificate authority which sites you
 +// visit). Revocation is checked locally with CRLite, which enforces in
-+// Firefox 159 (security.pki.crlite_mode=2). Stapled OCSP responses are still
++// Firefox 159 and 160 (security.pki.crlite_mode=2). Stapled OCSP responses are still
 +// checked. Trade-off: certificates from private or enterprise CAs (not in
 +// CRLite) are no longer checked for revocation.
 +pref("security.OCSP.enabled", 0);

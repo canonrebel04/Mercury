@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/preferences.js
 +++ b/browser/components/preferences/preferences.js
-@@ -424,6 +424,8 @@
+@@ -452,6 +452,8 @@
        "cookiesAndSiteData2",
        "history2",
        "nonTechnicalPrivacy2",
