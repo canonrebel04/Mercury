@@ -1,0 +1,21 @@
+--- a/browser/extensions/newtab/lib/DefaultSites.sys.mjs
++++ b/browser/extensions/newtab/lib/DefaultSites.sys.mjs
+@@ -6,15 +6,15 @@
+   // This first item is the global list fallback for any unexpected geos
+   [
+     "",
+-    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.reddit.com/,https://addons.mozilla.org",
++    "https://addons.mozilla.org,https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/",
+   ],
+   [
+     "US",
+-    "https://www.wikipedia.org/,https://www.youtube.com/,https://apnews.com/,https://www.reddit.com/",
++    "https://addons.mozilla.org,https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/",
+   ],
+   [
+     "CA",
+-    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.reddit.com/,https://addons.mozilla.org",
++    "https://addons.mozilla.org,https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/",
+   ],
+   [
+     "DE",

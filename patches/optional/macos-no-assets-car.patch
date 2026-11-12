@@ -1,0 +1,31 @@
+--- a/browser/app/moz.build
++++ b/browser/app/moz.build
+@@ -74,7 +74,6 @@
+     extra_files = [
+         (f"{branding}/firefox.icns", "Resources/firefox.icns"),
+         (f"{branding}/document.icns", "Resources/document.icns"),
+-        (f"{branding}/Assets.car", "Resources/Assets.car"),
+     ]
+     if CONFIG["MOZ_UPDATER"]:
+         extra_files.append((
+--- a/browser/app/macbuild/Contents/Info.plist.in
++++ b/browser/app/macbuild/Contents/Info.plist.in
+@@ -190,8 +190,6 @@
+ 	<string>@MAC_APP_NAME@ @APP_VERSION@</string>
+ 	<key>CFBundleIconFile</key>
+ 	<string>firefox.icns</string>
+-	<key>CFBundleIconName</key>
+-	<string>AppIcon</string>
+ 	<key>CFBundleIdentifier</key>
+ 	<string>@MOZ_MACBUNDLE_ID@</string>
+ 	<key>CFBundleInfoDictionaryVersion</key>
+--- a/browser/installer/package-manifest.in
++++ b/browser/installer/package-manifest.in
+@@ -42,7 +42,6 @@
+ @APPNAME@/Contents/PkgInfo
+ @RESPATH@/firefox.icns
+ @RESPATH@/document.icns
+-@RESPATH@/Assets.car
+ @RESPATH@/@LPROJ_ROOT@.lproj/*
+ #endif
+ 

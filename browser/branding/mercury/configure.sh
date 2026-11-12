@@ -20,7 +20,7 @@ MOZ_DISTRIBUTION_ID=com.alex313031.mercury
 
 MOZ_MACBUNDLE_NAME="Mercury.app"
 
-MOZ_SOURCE_REPO=https://github.com/Alex313031/mercury
+MOZ_SOURCE_REPO=https://github.com/canonrebel04/Mercury
 
 MOZ_APP_VENDOR=Alex313031
 

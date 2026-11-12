@@ -19,7 +19,6 @@ export MOZ_INCLUDE_SOURCE_INFO=1
 # Optimization settings
 ac_add_options --disable-tests
 ac_add_options --enable-clang-plugin
-ac_add_options --enable-wasm-avx
 ac_add_options --enable-optimize="-O2 -O3 -mavx -maes -Xclang -O3"
 ac_add_options --enable-rust-simd
 ac_add_options --enable-hardening
@@ -30,19 +29,16 @@ ac_add_options --enable-sandbox
 ac_add_options --enable-raw
 ac_add_options --enable-webrtc
 ac_add_options --enable-jxl
-ac_add_options --enable-av1
 ac_add_options --enable-eme=widevine
 
 # Add-ons
-ac_add_options --allow-addon-sideload
-ac_add_options --with-unsigned-addon-scopes=app,system
+# Extension signing is enforced (no unsigned scopes / sideloading).
 
 # Client settings
 ac_add_options --disable-parental-controls
 ac_add_options --disable-crashreporter
 ac_add_options --disable-updater
 ac_add_options --disable-maintenance-service
-ac_add_options --without-wasm-sandboxed-libraries
 ac_add_options --disable-bits-download
 #ac_add_options --disable-default-browser-agent
 export MOZ_SOURCE_CHANGESET=${changeset}
@@ -52,7 +48,6 @@ mk_add_options MOZ_SERVICES_HEALTHREPORT=0
 mk_add_options MOZ_TELEMETRY_REPORTING=
 export MOZ_CRASHREPORTER=0
 export MOZ_DATA_REPORTING=0
-export MOZ_REQUIRE_SIGNING=
 export MOZ_TELEMETRY_REPORTING=
 export MOZ_PACKAGE_JSSHELL=1
 
@@ -60,14 +55,14 @@ export MOZ_PACKAGE_JSSHELL=1
 export WIN32_REDIST_DIR="/c/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC/14.38.33130/x64/Microsoft.VC143.CRT"
 
 # API Keys
-ac_add_options --with-google-location-service-api-keyfile=@TOPSRCDIR@/ga
-ac_add_options --with-google-safebrowsing-api-keyfile=@TOPSRCDIR@/ga
+# None: Mercury ships without Google (or other) API keys.
 
 # Branding
 ac_add_options --with-app-name=mercury
 ac_add_options --with-app-basename=Mercury
 ac_add_options --with-branding=browser/branding/mercury
-ac_add_options --with-l10n-base="C:\mozilla-source\mozilla-unified\browser\locales\en-US"
+# Relative to the Firefox source tree, wherever it is checked out.
+ac_add_options --with-l10n-base=@TOPSRCDIR@/browser/locales/en-US
 ac_add_options --with-distribution-id=com.alex313031.mercury
 #-app=/home/alex/bin/Mercury/application.ini
 

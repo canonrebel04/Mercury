@@ -1,0 +1,459 @@
+--- a/browser/app/profile/firefox.js
++++ b/browser/app/profile/firefox.js
+@@ -150,9 +150,130 @@
+ // should no longer be used directly. Instead, getAppUpdateAutoEnabled and
+ // getAppUpdateAutoEnabled from UpdateUtils.sys.mjs should be used.
+ #ifndef XP_WIN
+-  pref("app.update.auto", true);
++  pref("app.update.auto", false);
+ #endif
+ 
++// MISC. MERCURY SETTINGS
++// Enable Do Not Track and GPC by default.
++pref("privacy.donottrackheader.enabled", true);
++pref("privacy.globalprivacycontrol.enabled", true);
++// Disable more telemetry
++pref("toolkit.telemetry.enabled", false);
++pref("browser.ping-centre.telemetry", false);
++pref("browser.attribution.enabled", false);
++pref("toolkit.telemetry.pioneer-new-studies-available", false);
++// Enables search SERP telemetry (impressions, engagements and abandonment)
++pref("browser.search.serpEventTelemetry.enabled", false);
++// Disable Auto Update
++pref("app.update.auto", false);
++// Allow WebAudio to play automatically.
++pref("media.autoplay.block-webaudio", false);
++// Disable all annoying new tab page stuff except for top sites.
++pref("browser.pocket.enabled", false);
++// (These are defaults in the default branch, so newtab's ActivityStream
++// PREFS_CONFIG does not override them.)
++pref("browser.newtabpage.activity-stream.showSponsored", false);
++pref("browser.newtabpage.activity-stream.system.showSponsored", false);
++pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
++pref("browser.newtabpage.activity-stream.topSitesRows", 2);
++pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
++pref("browser.newtabpage.activity-stream.feeds.system.topstories", false);
++pref("browser.newtabpage.activity-stream.feeds.section.highlights", false);
++pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
++pref("browser.newtabpage.activity-stream.telemetry", false);
++// Disable Firefox View
++pref("browser.tabs.firefox-view", false);
++// Enable AutoScrolling and Smooth Scroll by default
++pref("general.autoScroll", true);
++pref("general.smoothScroll", true);
++// Force enable GPU accelerated compositing.
++pref("layers.acceleration.force-enabled", true);
++// Always show menu bar and view image info.
++// pref("ui.key.menuAccessKeyFocuses", false);
++pref("browser.menu.showViewImageInfo", true);
++// Disable overlay scrollbars on Linux.
++#if defined(XP_LINUX)
++  pref("widget.gtk.overlay-scrollbars.enabled", false);
++#endif
++// Enable AVIF
++pref("image.avif.enabled", true);
++// Enable JPEG-XL
++pref("image.jxl.enabled", true);
++// Enable Widevine automatically
++pref("media.eme.enabled", true);
++// Whether search engagement telemetry should be recorded.
++pref("browser.urlbar.searchEngagementTelemetry.enabled", false);
++// Make sure sites expecting Chromium or Firefox still work.
++pref("general.useragent.compatMode.firefox", true);
++// URL to navigate to when launching Firefox after accepting the Windows Default
++// Browser Agent "Set Firefox as default" call to action.
++pref("browser.shell.defaultBrowserAgent.thanksURL", "https://thorium.rocks/mercury");
++// Default top site tiles on the NTP
++pref("browser.newtabpage.activity-stream.default.sites", "https://addons.mozilla.org,https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/");
++// Allow offline apps
++pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
++
++// Betterfox Fastfox.js
++pref("nglayout.initialpaint.delay", 0); // default=5; used to be 250
++pref("nglayout.initialpaint.delay_in_oopif", 0); // default=5
++pref("content.notify.interval", 100000); // (.10s); default=120000 (.12s)
++pref("layout.css.grid-template-masonry-value.enabled", true);
++pref("dom.enable_web_task_scheduling", true);
++pref("layout.css.has-selector.enabled", true);
++pref("gfx.canvas.accelerated.cache-items", 4096); // default=2048; alt=8192
++pref("gfx.canvas.accelerated.cache-size", 512); // default=256; alt=1024
++pref("gfx.content.skia-font-cache-size", 20); // default=5; Chrome=20
++pref("media.memory_cache_max_size", 65536); // default=8192; AF=65536; alt=131072
++pref("media.cache_readahead_limit", 7200); // 120 min; default=60; stop reading ahead when our buffered data is this many seconds ahead of the current playback
++pref("media.cache_resume_threshold", 3600); // 60 min; default=30; when a network connection is suspended, don't resume it until the amount of buffered data falls below this threshold
++pref("image.mem.decode_bytes_at_a_time", 32768); // default=16384; alt=65536; chunk size for calls to the image decoders
++pref("network.buffer.cache.size", 262144); // 256 kb; default=32768 (32 kb)
++pref("network.buffer.cache.count", 128); // default=24
++pref("network.http.max-connections", 1800); // default=900
++pref("network.http.max-persistent-connections-per-server", 10); // default=6; download connections; anything above 10 is excessive
++pref("network.http.max-urgent-start-excessive-connections-per-host", 5); // default=3
++pref("network.websocket.max-connections", 400); // default=200
++pref("network.http.pacing.requests.enabled", false);
++pref("network.dnsCacheEntries", 10000); // default=400
++pref("network.dnsCacheExpiration", 86400); // keep entries for 1 day; alt=3600 (1 hour)
++pref("network.dns.max_high_priority_threads", 8); // default=5
++pref("network.ssl_tokens_cache_capacity", 20480); // default=2048; more TLS token caching (fast reconnects)
++pref("network.http.speculative-parallel-limit", 0);
++pref("network.dns.disablePrefetch", true);
++pref("network.prefetch-next", false);
++pref("network.predictor.enabled", false);
++pref("network.predictor.enable-prefetch", false);
++// No Google API keys are compiled into Mercury, so turn off everything that
++// would talk to Google Safe Browsing or Google geolocation (it would only fail).
++// Mozilla-hosted lists (provider "mozilla": tracking protection/shavar, and
++// moz-block via browser.safebrowsing.blockedURIs.enabled) keep working.
++// Based on LibreWolf's librewolf.cfg.
++pref("browser.safebrowsing.malware.enabled", false);
++pref("browser.safebrowsing.phishing.enabled", false);
++pref("browser.safebrowsing.downloads.enabled", false);
++pref("browser.safebrowsing.downloads.remote.enabled", false);
++pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", false);
++pref("browser.safebrowsing.downloads.remote.block_uncommon", false);
++pref("browser.safebrowsing.downloads.remote.url", "");
++pref("browser.safebrowsing.provider.google.updateURL", "");
++pref("browser.safebrowsing.provider.google.gethashURL", "");
++pref("browser.safebrowsing.provider.google4.updateURL", "");
++pref("browser.safebrowsing.provider.google4.gethashURL", "");
++pref("browser.safebrowsing.provider.google4.dataSharingURL", "");
++pref("browser.safebrowsing.provider.google5.enabled", false);
++pref("browser.safebrowsing.provider.google5.updateURL", "");
++pref("browser.safebrowsing.provider.google5.gethashURL", "");
++// Google geolocation needs an API key too; leave network geolocation unset.
++pref("geo.provider.network.url", "");
++// Mercury update notification (browser/components/mercury). Checks the
++// GitHub Releases API at most once per interval, shows a notification bar
++// with a link, never downloads anything. Set to false to turn it off.
++pref("mercury.updatecheck.enabled", true);
++pref("mercury.updatecheck.url", "https://api.github.com/repos/canonrebel04/Mercury/releases/latest");
++pref("mercury.updatecheck.releasesPage", "https://github.com/canonrebel04/Mercury/releases/latest");
++pref("mercury.updatecheck.intervalHours", 24);
++// END MISC MERCURY SETTINGS
++
+ // If set to true, the Update Service will apply updates in the background
+ // when it finishes downloading them.
+ pref("app.update.staging.enabled", true);
+@@ -250,7 +371,7 @@
+ pref("browser.uitour.surveyDuration", 7200);
+ 
+ #ifdef UNIX_BUT_NOT_MAC
+-  pref("general.autoScroll", false);
++  pref("general.autoScroll", true);
+ #else
+   pref("general.autoScroll", true);
+ #endif
+@@ -284,11 +405,11 @@
+ pref("browser.compactmode.show", false);
+ 
+ // At startup, check if we're the default browser and prompt user if not.
+-pref("browser.shell.checkDefaultBrowser", true);
++pref("browser.shell.checkDefaultBrowser", false);
+ pref("browser.shell.shortcutFavicons",true);
+ pref("browser.shell.mostRecentDateSetAsDefault", "");
+-pref("browser.shell.skipDefaultBrowserCheckOnFirstRun", true);
+-pref("browser.shell.didSkipDefaultBrowserCheckOnFirstRun", false);
++pref("browser.shell.skipDefaultBrowserCheckOnFirstRun", false);
++pref("browser.shell.didSkipDefaultBrowserCheckOnFirstRun", true);
+ pref("browser.shell.defaultBrowserCheckCount", 0);
+ #if defined(XP_WIN)
+ // Attempt to set the default browser on Windows 10 using the UserChoice registry keys,
+@@ -299,7 +420,7 @@
+ pref("browser.shell.setDefaultBrowserUserChoice.regRename", true);
+ // When setting the default browser on Windows 10 using the UserChoice
+ // registry keys, also try to set Firefox as the default PDF handler.
+-pref("browser.shell.setDefaultPDFHandler", true);
++pref("browser.shell.setDefaultPDFHandler", false);
+ // When setting Firefox as the default PDF handler (subject to conditions
+ // above), only set Firefox as the default PDF handler when the existing handler
+ // is a known browser, and not when existing handler is another PDF handler such
+@@ -334,7 +455,7 @@
+ 
+ // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
+ // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
+-pref("browser.startup.page",                1);
++pref("browser.startup.page",                3);
+ pref("browser.startup.homepage",            "about:home");
+ pref("browser.startup.homepage.abouthome_cache.enabled", true);
+ pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
+@@ -379,7 +500,7 @@
+ #if defined(XP_WIN)
+   pref("browser.warnOnQuitShortcut", false);
+ #else
+-  pref("browser.warnOnQuitShortcut", true);
++  pref("browser.warnOnQuitShortcut", false);
+ #endif
+ 
+ // TODO bug 1702563: Renable fullscreen autohide by default on macOS.
+@@ -680,7 +801,7 @@
+ // is longer than this.
+ pref("browser.urlbar.maxCharsForSearchSuggestions", 100);
+ 
+-pref("browser.urlbar.trimURLs", true);
++pref("browser.urlbar.trimURLs", false);
+ pref("browser.urlbar.trimHttps", false);
+ pref("browser.urlbar.trimWww", false);
+ pref("browser.urlbar.untrimOnUserInteraction.featureGate", false);
+@@ -830,7 +951,7 @@
+ 
+ // If `browser.urlbar.yelp.featureGate` is true, this controls whether
+ // Yelp suggestions are turned on.
+-pref("browser.urlbar.suggest.yelp", true);
++pref("browser.urlbar.suggest.yelp", false);
+ 
+ // Feature gate pref for Fakespot suggestions in the urlbar.
+ // TODO Bug 1982966: Remove this after all experiments and rollouts using it
+@@ -909,7 +1030,7 @@
+ // their URLs with strings that explain why they're shown.
+ pref("browser.urlbar.resultExplanations.featureGate", false);
+ 
+-pref("browser.altClickSave", false);
++pref("browser.altClickSave", true);
+ 
+ // Number of milliseconds to wait for the http headers (and thus
+ // the Content-Disposition filename) before giving up and falling back to
+@@ -980,7 +1101,7 @@
+ pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
+ 
+ // Enables search SERP telemetry page categorization.
+-pref("browser.search.serpEventTelemetryCategorization.enabled", true);
++pref("browser.search.serpEventTelemetryCategorization.enabled", false);
+ 
+ // A count of Glean SERP categorization event metrics that have been recorded
+ // but not yet submitted in a ping. Needed to prevent sending a ping with only
+@@ -1131,8 +1252,8 @@
+ pref("browser.tabs.loadDivertedInBackground", false);
+ pref("browser.tabs.loadBookmarksInBackground", false);
+ pref("browser.tabs.loadBookmarksInTabs", false);
+-pref("browser.tabs.tabClipWidth", 140);
+-pref("browser.tabs.tabMinWidth", 76);
++pref("browser.tabs.tabClipWidth", 100);
++pref("browser.tabs.tabMinWidth", 50);
+ 
+ // When tabs opened by links in other tabs via a combination of
+ // browser.link.open_newwindow being set to 3 and target="_blank" etc are
+@@ -1218,7 +1339,7 @@
+ #if defined(XP_MACOSX) || defined(XP_WIN)
+     pref("browser.tabs.unloadOnLowMemory", true);
+ #else
+-    pref("browser.tabs.unloadOnLowMemory", false);
++    pref("browser.tabs.unloadOnLowMemory", true);
+ #endif
+ 
+ // Tab Unloader does not unload tabs whose last inactive period is longer than
+@@ -1299,7 +1420,7 @@
+ // the bookmarks toolbar as a default.
+ pref("browser.bookmarks.defaultLocation", "toolbar");
+ 
+-pref("browser.tabs.allow_transparent_browser", false);
++pref("browser.tabs.allow_transparent_browser", true);
+ 
+ // Scripts & Windows prefs
+ pref("dom.disable_open_during_load",              true);
+@@ -1445,7 +1566,9 @@
+   // who want to keep using this feature, let's enable it with alt+wheel.  This
+   // is better for consistency with macOS users.
+   pref("mousewheel.with_shift.action", 4);
++  pref("mousewheel.with_control.action",3); // Zoom
+   pref("mousewheel.with_alt.action", 2);
++  pref("mousewheel.with_meta.action", 1); // win key on Win, Super/Hyper on Linux
+ #endif
+ 
+ pref("mousewheel.with_meta.action", 1);
+@@ -1534,7 +1657,7 @@
+ // 0 goes Back/Forward
+ // 1 act like PgUp/PgDown
+ // 2 and other values, nothing
+-pref("browser.backspace_action", 2);
++pref("browser.backspace_action", 0);
+ 
+ pref("intl.regional_prefs.use_os_locales", false);
+ 
+@@ -1592,11 +1715,11 @@
+ // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
+ pref("browser.sessionstore.privacy_level", 0);
+ // how many tabs can be reopened (per window)
+-pref("browser.sessionstore.max_tabs_undo", 25);
++pref("browser.sessionstore.max_tabs_undo", 255);
+ // how many windows will be saved and can be reopened per session - on non-macOS platforms this
+ // pref may be ignored when dealing with pop-up windows to ensure the user actually gets
+ // at least one window with a menu bar.
+-pref("browser.sessionstore.max_windows_undo", 5);
++pref("browser.sessionstore.max_windows_undo", 32);
+ // number of crashes that can occur before the about:sessionrestore page is displayed
+ // (this pref has no effect if more than 6 hours have passed since the last crash)
+ pref("browser.sessionstore.max_resumed_crashes", 1);
+@@ -1611,7 +1734,7 @@
+ // Selected tabs are always restored regardless of this pref.
+ pref("browser.sessionstore.restore_on_demand", true);
+ // Whether to automatically restore hidden tabs (i.e., tabs in other tab groups) or not
+-pref("browser.sessionstore.restore_hidden_tabs", false);
++pref("browser.sessionstore.restore_hidden_tabs", true);
+ // If restore_on_demand is set, pinned tabs are restored on startup by default.
+ // When set to true, this pref overrides that behavior, and pinned tabs will only
+ // be restored when they are focused.
+@@ -1795,20 +1918,20 @@
+ pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", true);
+ pref("services.sync.prefs.sync.browser.ctrlTab.sortByRecentlyUsed", true);
+ pref("services.sync.prefs.sync.browser.download.useDownloadDir", true);
+-pref("services.sync.prefs.sync.browser.firefox-view.feature-tour", true);
++pref("services.sync.prefs.sync.browser.firefox-view.feature-tour", false);
+ pref("services.sync.prefs.sync.browser.formfill.enable", true);
+ pref("services.sync.prefs.sync.browser.link.open_newwindow", true);
+ pref("services.sync.prefs.sync.browser.menu.showViewImageInfo", true);
+ pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
+ pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", true);
+ pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.showSearch", true);
+-pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.showSponsored", true);
+-pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.showSponsoredTopSites", true);
++pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.showSponsored", false);
++pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+ pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.feeds.topsites", true);
+ pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.topSitesRows", true);
+-pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.feeds.section.topstories", true);
+-pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.topstories.rows", true);
+-pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.feeds.section.highlights", true);
++pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.feeds.section.topstories", false);
++pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.topstories.rows", false);
++pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.feeds.section.highlights", false);
+ // Some linux distributions disable all highlights by default.
+ pref("services.sync.prefs.sync-seen.browser.newtabpage.activity-stream.section.highlights", false);
+ pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.highlights.includeVisited", true);
+@@ -1937,7 +2060,7 @@
+ 
+ pref("browser.topsites.useRemoteSetting", true);
+ // Fetch sponsored Top Sites from Mozilla Tiles Service (Contile)
+-pref("browser.topsites.contile.enabled", true);
++pref("browser.topsites.contile.enabled", false);
+ pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
+ 
+ // Activates preloading of the new tab url.
+@@ -1982,8 +2105,9 @@
+ pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-c", false);
+ 
+ // Mozilla Ad Routing Service (MARS) unified ads service
+-pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
+-pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", true);
++// Mercury: never fetch sponsored tiles/stories from the ads service.
++pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", false);
++pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", false);
+ pref("browser.newtabpage.activity-stream.unifiedAds.endpoint", "https://ads.mozilla.org/");
+ pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled", false);
+ pref("browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled", true);
+@@ -2095,7 +2219,7 @@
+ pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
+ 
+ // These prefs control if Discovery Stream is enabled.
+-pref("browser.newtabpage.activity-stream.discoverystream.enabled", true);
++pref("browser.newtabpage.activity-stream.discoverystream.enabled", false);
+ pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
+ pref("browser.newtabpage.activity-stream.discoverystream.hybridLayout.enabled", false);
+ pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
+@@ -2108,7 +2232,7 @@
+ pref("browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled", false);
+ pref("browser.newtabpage.activity-stream.discoverystream.titleLines", 3);
+ pref("browser.newtabpage.activity-stream.discoverystream.descLines", 3);
+-pref("browser.newtabpage.activity-stream.discoverystream.readTime.enabled", true);
++pref("browser.newtabpage.activity-stream.discoverystream.readTime.enabled", false);
+ pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled", false);
+ pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
+ 
+@@ -2652,19 +2776,19 @@
+ 
+ // Telemetry settings.
+ // Determines if Telemetry pings can be archived locally.
+-pref("toolkit.telemetry.archive.enabled", true);
++pref("toolkit.telemetry.archive.enabled", false);
+ // Enables sending the shutdown ping when Firefox shuts down.
+-pref("toolkit.telemetry.shutdownPingSender.enabled", true);
++pref("toolkit.telemetry.shutdownPingSender.enabled", false);
+ // Enables using the `pingsender` background task.
+ pref("toolkit.telemetry.shutdownPingSender.backgroundtask.enabled", false);
+ // Enables sending the shutdown ping using the pingsender from the first session.
+ pref("toolkit.telemetry.shutdownPingSender.enabledFirstSession", false);
+ // Enables sending a duplicate of the first shutdown ping from the first session.
+-pref("toolkit.telemetry.firstShutdownPing.enabled", true);
++pref("toolkit.telemetry.firstShutdownPing.enabled", false);
+ // Enables sending the 'new-profile' ping on new profiles.
+-pref("toolkit.telemetry.newProfilePing.enabled", true);
++pref("toolkit.telemetry.newProfilePing.enabled", false);
+ // Enables sending 'bhr' pings when the browser hangs.
+-pref("toolkit.telemetry.bhrPing.enabled", true);
++pref("toolkit.telemetry.bhrPing.enabled", false);
+ 
+ // Enable GMP support in the addon manager.
+ pref("media.gmp-provider.enabled", true);
+@@ -3101,7 +3225,7 @@
+ // Normandy client preferences
+ pref("app.normandy.api_url", "https://normandy.cdn.mozilla.net/api/v1");
+ pref("app.normandy.dev_mode", false);
+-pref("app.normandy.enabled", true);
++pref("app.normandy.enabled", false);
+ pref("app.normandy.first_run", true);
+ pref("app.normandy.logging.level", 50); // Warn
+ pref("app.normandy.run_interval_seconds", 21600); // 6 hours
+@@ -3141,7 +3265,7 @@
+ #endif
+ 
+ // Enable personalized extension recommendations
+-pref("browser.discovery.enabled", true);
++pref("browser.discovery.enabled", false);
+ 
+ pref("browser.engagement.recent_visited_origins.expiry", 86400); // 24 * 60 * 60 (24 hours in seconds)
+ pref("browser.engagement.downloads-button.has-used", false);
+@@ -3151,7 +3275,7 @@
+ pref("browser.engagement.library-button.has-used", false);
+ pref("browser.engagement.ctrlTab.has-used", false);
+ 
+-pref("browser.aboutConfig.showWarning", true);
++pref("browser.aboutConfig.showWarning", false);
+ 
+ pref("browser.toolbars.keyboard_navigation", true);
+ 
+@@ -3159,7 +3283,7 @@
+ // "newtab": Show on the New Tab Page
+ // "always": Always show
+ // "never": Never show
+-pref("browser.toolbars.bookmarks.visibility", "newtab");
++pref("browser.toolbars.bookmarks.visibility", "always");
+ 
+ // Visibility of the "Show Other Bookmarks" menuitem in the
+ // bookmarks toolbar contextmenu.
+@@ -3186,14 +3310,14 @@
+ // quick access to sign-in and manage your Firefox Account.
+ pref("identity.fxaccounts.toolbar.enabled", true);
+ pref("identity.fxaccounts.toolbar.accessed", false);
+-pref("identity.fxaccounts.toolbar.defaultVisible", true);
++pref("identity.fxaccounts.toolbar.defaultVisible", false);
+ 
+ // Prefs to control Firefox Account panels that shows call to actions
+ // for other supported Mozilla products
+ pref("identity.fxaccounts.toolbar.pxiToolbarEnabled", true);
+-pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.monitorEnabled", true);
+-pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.relayEnabled", true);
+-pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled", true);
++pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.monitorEnabled", false);
++pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.relayEnabled", false);
++pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled", false);
+ 
+ // Prefs to control Mozilla account panels that shows an updated flow
+ // for users who don't have sync enabled
+@@ -3242,9 +3366,9 @@
+ pref("devtools.command-button-noautohide.enabled", false);
+ pref("devtools.command-button-errorcount.enabled", true);
+ pref("devtools.command-button-jstracer.enabled", false);
+-#ifndef MOZILLA_OFFICIAL
++// #ifndef MOZILLA_OFFICIAL
+   pref("devtools.command-button-experimental-prefs.enabled", true);
+-#endif
++// #endif
+ 
+ // Inspector preferences
+ // Enable the Inspector
+@@ -3644,7 +3768,7 @@
+ #ifdef MOZ_DEV_EDITION
+   pref("browser.menu.showViewImageInfo", true);
+ #else
+-  pref("browser.menu.showViewImageInfo", false);
++  pref("browser.menu.showViewImageInfo", true);
+ #endif
+ 
+ // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass

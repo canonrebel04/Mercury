@@ -24,7 +24,6 @@ ac_add_options --disable-tests
 ac_add_options --enable-clang-plugin
 ac_add_options --enable-lto
 ac_add_options --enable-jemalloc
-ac_add_options --enable-wasm-avx
 #ac_add_options --enable-avx2
 ac_add_options --enable-optimize="-O3 -march=x86-64-v3"
 ac_add_options --enable-rust-simd
@@ -42,19 +41,16 @@ ac_add_options --enable-sandbox
 ac_add_options --enable-raw
 ac_add_options --enable-webrtc
 ac_add_options --enable-jxl
-ac_add_options --enable-av1
 ac_add_options --enable-eme=widevine
 
 # Add-ons
-ac_add_options --allow-addon-sideload
-ac_add_options --with-unsigned-addon-scopes=app,system
+# Extension signing is enforced (no unsigned scopes / sideloading).
 
 # Client settings
 ac_add_options --disable-parental-controls
 ac_add_options --disable-crashreporter
 ac_add_options --disable-updater
 ac_add_options --enable-geckodriver
-ac_add_options --without-wasm-sandboxed-libraries
 #ac_add_options --disable-default-browser-agent
 export MOZ_SOURCE_CHANGESET=${changeset}
 mk_add_options MOZ_CRASHREPORTER=0
@@ -63,13 +59,11 @@ mk_add_options MOZ_SERVICES_HEALTHREPORT=0
 mk_add_options MOZ_TELEMETRY_REPORTING=
 export MOZ_CRASHREPORTER=0
 export MOZ_DATA_REPORTING=0
-export MOZ_REQUIRE_SIGNING=
 export MOZ_TELEMETRY_REPORTING=
 export MOZ_PACKAGE_JSSHELL=1
 
 # API Keys
-ac_add_options --with-google-location-service-api-keyfile=@TOPSRCDIR@/ga
-ac_add_options --with-google-safebrowsing-api-keyfile=@TOPSRCDIR@/ga
+# None: Mercury ships without Google (or other) API keys.
 
 # Branding
 ac_add_options --with-app-name=mercury
@@ -82,18 +76,18 @@ ac_add_options --with-distribution-id=com.alex313031.mercury
 # Make flags (set to number of CPU cores)
 mk_add_options MOZ_MAKE_FLAGS="-j16"
 
-# Change to actual location of SDK
+# macOS SDK for cross-compiling. Firefox 160 requires macOS SDK 26.5 or newer.
+# Set MERCURY_MACOS_SDK to the SDK path (default: $HOME/macos-sdk/MacOSX26.5.sdk).
 ## https://github.com/bitcoin-core/apple-sdk-tools
 ## https://firefox-source-docs.mozilla.org/widget/cocoa/sdks.html
-ac_add_options --with-macos-sdk=/home/alex/temp/MacOSX.sdk
+MERCURY_MACOS_SDK="${MERCURY_MACOS_SDK:-$HOME/macos-sdk/MacOSX26.5.sdk}"
+ac_add_options --with-macos-sdk="${MERCURY_MACOS_SDK}"
 
 # Autoclobber
 mk_add_options AUTOCLOBBER=1
 export AUTOCLOBBER=1
 
-# Set -Copt-level=3
-export OPT_LEVEL="3"
-ac_add_options OPT_LEVEL="3"
+# Set Rust -Copt-level=3 (C/C++ use -O3 via --enable-optimize and CFLAGS)
 export RUSTC_OPT_LEVEL="3"
 ac_add_options RUSTC_OPT_LEVEL="3"
 
