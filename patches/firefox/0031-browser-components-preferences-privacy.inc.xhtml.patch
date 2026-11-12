@@ -1,0 +1,12 @@
+--- a/browser/components/preferences/privacy.inc.xhtml
++++ b/browser/components/preferences/privacy.inc.xhtml
+@@ -397,6 +397,9 @@
+ <html:setting-group id="nonTechnicalPrivacyGroup" groupid="nonTechnicalPrivacy" data-category="panePrivacy" hidden="true" data-srd-groupid="nonTechnicalPrivacy2"/>
+ <html:setting-group groupid="nonTechnicalPrivacy2" data-category="panePrivacy" hidden="true" data-srd-migrated=""/>
+ 
++<!-- Mercury: Hardened mode -->
++<html:setting-group groupid="mercuryHardened" data-category="panePrivacy" hidden="true" data-srd-migrated=""/>
++
+ <!-- Firefox VPN - IP Protection -->
+ <html:setting-group groupid="ipprotection" data-category="panePrivacy" data-subcategory="vpn" hidden="true" data-srd-migrated=""></html:setting-group>
+ 

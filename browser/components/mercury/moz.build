@@ -2,7 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# Mercury-only: notifies the user when a newer Mercury release is published.
+# Mercury-only modules:
+# - MercuryUpdateCheck: notifies the user when a newer Mercury release is
+#   published.
+# - MercuryHardened: the optional Hardened mode switch in Settings.
 MOZ_SRC_FILES += [
+    "MercuryHardened.sys.mjs",
     "MercuryUpdateCheck.sys.mjs",
 ]

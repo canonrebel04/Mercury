@@ -451,7 +451,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3909,3 +4027,155 @@
+@@ -3909,3 +4027,196 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -607,3 +607,44 @@
 +// Firefox no longer offers to translate pages on its own. Use the translate
 +// button in the address bar, or turn the offer back on in Settings.
 +pref("browser.translations.automaticallyPopup", false);
++
++// MERCURY: PRIVACY OPTIONS (see docs/PRIVACY-OPTIONS.md)
++// Low-cost protections that are on by default. None of them measurably
++// slows browsing.
++// Fingerprinting protection (FPP) in normal windows, not just private ones.
++// Mozilla ships per-site fixes for it through Remote Settings. Defaults (not
++// user values), so tracking protection still shows "Standard".
++pref("privacy.fingerprintingProtection", true);
++// Strip known tracking parameters (fbclid, mc_eid, ...) from links in normal
++// and private windows (Firefox only does this in Strict mode).
++pref("privacy.query_stripping.enabled", true);
++pref("privacy.query_stripping.enabled.pbmode", true);
++// WebGPU off (exposes GPU adapter details; little uses it yet). Linux
++// release builds already have it off; this covers Windows and macOS.
++pref("dom.webgpu.enabled", false);
++// Cross-origin requests send only the origin as referrer, even if the page
++// asks for more.
++pref("network.http.referer.XOriginTrimmingPolicy", 2);
++// If a proxy is configured, WebRTC must use it too (no IP leak around it).
++pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
++// No OCSP requests (they tell the certificate authority which sites you
++// visit). Revocation is checked locally with CRLite, which enforces in
++// Firefox 159 and 160 (security.pki.crlite_mode=2). Stapled OCSP responses are still
++// checked. Trade-off: certificates from private or enterprise CAs (not in
++// CRLite) are no longer checked for revocation.
++pref("security.OCSP.enabled", 0);
++// No JavaScript inside PDFs opened in the built-in viewer.
++pref("pdfjs.enableScripting", false);
++// Delete temporary files opened with external apps when Mercury exits
++// (already the default outside macOS).
++pref("browser.helperApps.deleteTempFileOnExit", true);
++
++// Hardened mode: one switch in Settings > Privacy & Security that turns on
++// stricter, slower, sometimes site-breaking protections. Off by default.
++// See browser/components/mercury/MercuryHardened.sys.mjs for the list.
++pref("mercury.hardened.enabled", false);
++// DNS-over-HTTPS resolver used by Hardened mode, unless you picked a provider
++// in Settings. Quad9 (Switzerland, non-profit). Alternatives:
++// https://dns.mullvad.net/dns-query, https://dns10.quad9.net/dns-query
++// (Quad9 without malware blocking).
++pref("mercury.hardened.doh.uri", "https://dns.quad9.net/dns-query");
