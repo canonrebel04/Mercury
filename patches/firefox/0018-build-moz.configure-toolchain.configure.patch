@@ -9,7 +9,7 @@
      else:
          return ["-O"]
  
-@@ -2097,7 +2097,7 @@
+@@ -2090,7 +2090,7 @@
              and linker.KIND == "lld"
              and target.kernel != "WINNT"
          ):
@@ -18,7 +18,7 @@
          return flags
  
      return linker_ldflags
-@@ -3897,8 +3897,13 @@
+@@ -3876,8 +3876,13 @@
  set_config("MMX_FLAGS", ["-mmmx"])
  set_config("SSE_FLAGS", ["-msse"])
  set_config("SSE2_FLAGS", ["-msse2"])

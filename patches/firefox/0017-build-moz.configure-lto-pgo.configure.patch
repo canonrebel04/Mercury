@@ -1,6 +1,6 @@
 --- a/build/moz.configure/lto-pgo.configure
 +++ b/build/moz.configure/lto-pgo.configure
-@@ -419,11 +419,11 @@
+@@ -424,11 +424,11 @@
      # binary size growth while still getting good performance.
      # (For hot functions, PGO will put a multiplier on this limit.)
      if c_compiler.type == "clang-cl":

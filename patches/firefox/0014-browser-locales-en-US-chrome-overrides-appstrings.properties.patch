@@ -38,8 +38,8 @@
 +proxyConnectFailure=Mercury is configured to use a proxy server that is refusing connections.
  contentEncodingError=The page you are trying to view cannot be shown because it uses an invalid or unsupported form of compression.
  unsafeContentType=The page you are trying to view cannot be shown because it is contained in a file type that may not be safe to open. Please contact the website owners to inform them of this problem.
- externalProtocolTitle=External Protocol Request
-@@ -43,9 +43,9 @@
+ malwareBlocked=The site at %S has been reported as an attack site and has been blocked based on your security preferences.
+@@ -37,9 +37,9 @@
  xfoBlocked=This page has an X-Frame-Options policy that prevents it from being loaded in this context.
  corruptedContentErrorv2=The site at %S has experienced a network protocol violation that cannot be repaired.
  ## LOCALIZATION NOTE (sslv3Used) - Do not translate "%S".

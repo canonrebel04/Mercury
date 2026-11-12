@@ -1,6 +1,6 @@
 --- a/browser/components/customizableui/CustomizableUI.sys.mjs
 +++ b/browser/components/customizableui/CustomizableUI.sys.mjs
-@@ -362,15 +362,12 @@
+@@ -363,15 +363,12 @@
        "back-button",
        "forward-button",
        "stop-reload-button",
@@ -19,7 +19,7 @@
        lazy.ippEnabled ? "ipprotection-button" : null,
        "fxa-toolbar-menu-button",
        lazy.resetPBMToolbarButtonEnabled ? "reset-pbm-toolbar-button" : null,
-@@ -775,18 +772,6 @@
+@@ -777,18 +774,6 @@
        }
      }
  
@@ -38,7 +38,7 @@
      // Unified Extensions addon button migration, which puts any browser action
      // buttons in the overflow menu into the addons panel instead.
      if (currentVersion < 19) {
-@@ -1071,19 +1056,6 @@
+@@ -1073,19 +1058,6 @@
        return;
      }
  

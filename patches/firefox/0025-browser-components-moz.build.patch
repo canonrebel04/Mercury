@@ -1,6 +1,6 @@
 --- a/browser/components/moz.build
 +++ b/browser/components/moz.build
-@@ -83,6 +83,9 @@
+@@ -85,6 +85,9 @@
  
  DIRS += ["build"]
  

@@ -1,6 +1,6 @@
 --- a/browser/components/BrowserGlue.sys.mjs
 +++ b/browser/components/BrowserGlue.sys.mjs
-@@ -40,6 +40,8 @@
+@@ -39,6 +39,8 @@
    LoginBreaches:
      "moz-src:///browser/components/aboutlogins/LoginBreaches.sys.mjs",
    LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
@@ -9,7 +9,7 @@
    MigrationUtils:
      "moz-src:///browser/components/migration/MigrationUtils.sys.mjs",
    NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-@@ -1206,6 +1208,15 @@
+@@ -1180,6 +1182,15 @@
          task: () => Services.sysinfo.diskInfo,
        },
  

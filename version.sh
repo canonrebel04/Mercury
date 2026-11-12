@@ -49,8 +49,8 @@ printf "${bold}${GRE}Script to Rebase/Sync Mozilla repo.${c0}\n" &&
 printf "\n" &&
 printf "${YEL}Rebasing/Syncing with the mozilla-firefox/firefox git repository...${c0}\n" &&
 
-# Firefox release tag Mercury is based on (Firefox 159.0.1).
-MERCURY_BRANCH="FIREFOX_159_0_1_RELEASE"
+# Firefox release tag Mercury is based on (Firefox 160.0).
+MERCURY_BRANCH="FIREFOX_160_0_RELEASE"
 export MERCURY_BRANCH &&
 
 cd "${HG_SRC_DIR}" &&

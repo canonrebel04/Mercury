@@ -1,6 +1,6 @@
 --- a/moz.build
 +++ b/moz.build
-@@ -396,3 +396,5 @@
+@@ -398,3 +398,5 @@
          ],
          force=True,
      )

@@ -78,7 +78,7 @@ export MOZ_MACBUNDLE_NAME="Mercury.app"
 # Make flags (set to number of CPU cores)
 mk_add_options MOZ_MAKE_FLAGS="-j16"
 
-# macOS SDK for cross-compiling. Firefox 159 requires macOS SDK 26.5 or newer.
+# macOS SDK for cross-compiling. Firefox 160 requires macOS SDK 26.5 or newer.
 # Set MERCURY_MACOS_SDK to the SDK path (default: $HOME/macos-sdk/MacOSX26.5.sdk).
 ## https://github.com/bitcoin-core/apple-sdk-tools
 ## https://firefox-source-docs.mozilla.org/widget/cocoa/sdks.html
