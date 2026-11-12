@@ -7,9 +7,12 @@
       ]
     },
     "SearchEngines": {
+      "Default": "DuckDuckGo",
       "Remove": [
+        "Google",
         "Bing",
-        "eBay"
+        "eBay",
+        "Perplexity"
       ]
     }
   }
