@@ -29,6 +29,9 @@ All of Firefox's AI features are included but off by default, and no AI model is
 
 Translations (Firefox's local, private translation engine) stay available, but Mercury doesn't offer to translate pages automatically. Use the translate button in the address bar, or turn the offer on in Settings.
 
+### MCP browser control (experimental)
+LLM clients (Claude Desktop, Cursor, ...) can drive Mercury through a small optional [MCP server](mcp/README.md). It's off unless you start Mercury with `mercury-browser --mcp`, which turns on Firefox's built-in Remote Agent on `127.0.0.1` with a separate profile. While it's on, the address bar shows Firefox's striped "remote control" robot indicator, and any program on your computer can control that browser. Without `--mcp` nothing is added to the browser and nothing listens. See the [security notes](mcp/README.md#security).
+
 ## Patches <img src="https://raw.githubusercontent.com/Alex313031/Mercury/main/logos/patches.png" width="28">
 See > [PATCHES.md](docs/PATCHES.md)
 
