@@ -1,6 +1,6 @@
 --- a/modules/libpref/init/all.js
 +++ b/modules/libpref/init/all.js
-@@ -3070,7 +3070,9 @@
+@@ -3068,7 +3068,9 @@
  // All the Geolocation preferences are here.
  //
  #if !defined(ANDROID) && !defined(XP_WIN)
@@ -11,7 +11,7 @@
  
    // Timeout to wait before sending the location request.
    pref("geo.provider.network.timeToWaitBeforeSending", 5000);
-@@ -3291,21 +3293,16 @@
+@@ -3270,21 +3272,16 @@
  pref("captivedetect.maxRetryCount", 5);
  
  // The tables used for Safebrowsing phishing and malware checks
@@ -39,7 +39,7 @@
  
  // Tables for anti-tracking features
  pref("urlclassifier.trackingAnnotationTable", "moztest-track-simple,ads-track-digest256,social-track-digest256,analytics-track-digest256,content-track-digest256");
-@@ -3337,14 +3334,16 @@
+@@ -3316,14 +3313,16 @@
  pref("urlclassifier.features.antifraud.annotate.allowlistTables", "mozstd-trackwhite-digest256");
  
  // These tables will never trigger a gethash call.
@@ -58,7 +58,7 @@
  
  // The migration for this pref disables both allow-list categories (convenience
  // and baseline) for users in ETP "strict" and "custom" mode.
-@@ -3382,7 +3381,7 @@
+@@ -3361,7 +3360,7 @@
  pref("browser.safebrowsing.downloads.enabled", true);
  pref("browser.safebrowsing.downloads.remote.enabled", true);
  pref("browser.safebrowsing.downloads.remote.timeout_ms", 15000);
@@ -67,7 +67,7 @@
  pref("browser.safebrowsing.downloads.remote.block_dangerous",            true);
  pref("browser.safebrowsing.downloads.remote.block_dangerous_host",       true);
  pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", true);
-@@ -3391,40 +3390,8 @@
+@@ -3370,40 +3369,8 @@
  // Android SafeBrowsing's configuration is in ContentBlocking.java, keep in sync.
  #ifndef MOZ_WIDGET_ANDROID
  

@@ -1,6 +1,6 @@
 --- a/toolkit/components/search/SearchEngineSelector.sys.mjs
 +++ b/toolkit/components/search/SearchEngineSelector.sys.mjs
-@@ -32,6 +32,30 @@
+@@ -39,6 +39,30 @@
  });
  
  /**
@@ -43,7 +43,7 @@
          continue;
        }
        let searchHost = new URL(config.base.urls.search.base).hostname;
-@@ -166,7 +193,10 @@
+@@ -167,7 +194,10 @@
     */
    async findContextualSearchEngineById(id) {
      for (let config of this.#configuration) {
@@ -55,13 +55,13 @@
          continue;
        }
        if (config.identifier == id) {
-@@ -233,6 +263,21 @@
-       e => !e.optional
-     );
+@@ -257,6 +287,21 @@
+       );
+     }
  
 +    // Mercury: never offer Google, even if a remote search-config update
-+    // brings it back, and make DuckDuckGo the default (normal and private
-+    // windows) in every region.
++    // brings it back (covers both v2 and the new v3 config path), and make
++    // DuckDuckGo the default (normal and private windows) in every region.
 +    refinedSearchConfig.engines = refinedSearchConfig.engines.filter(
 +      e => !mercuryIsBlockedEngine(e.identifier, e.urls?.search?.base)
 +    );
