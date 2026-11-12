@@ -1,6 +1,6 @@
 --- a/browser/components/BrowserGlue.sys.mjs
 +++ b/browser/components/BrowserGlue.sys.mjs
-@@ -40,6 +40,10 @@
+@@ -39,6 +39,10 @@
    LoginBreaches:
      "moz-src:///browser/components/aboutlogins/LoginBreaches.sys.mjs",
    LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
@@ -11,7 +11,7 @@
    MigrationUtils:
      "moz-src:///browser/components/migration/MigrationUtils.sys.mjs",
    NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-@@ -410,6 +414,18 @@
+@@ -404,6 +408,18 @@
      // handle any UI migration
      this._migrateUI();
  
@@ -30,7 +30,7 @@
      if (!Services.prefs.prefHasUserValue(PREF_PDFJS_ISDEFAULT_CACHE_STATE)) {
        lazy.PdfJs.checkIsDefault(this._isNewProfile);
      }
-@@ -1206,6 +1222,15 @@
+@@ -1180,6 +1196,15 @@
          task: () => Services.sysinfo.diskInfo,
        },
  
