@@ -38,7 +38,7 @@ the end), and `policies/policies.json`.
 | Web-compat interventions and shims for YouTube/Google sites, including the Google Analytics no-op shim | They only apply on those sites. The shim replaces Google Analytics with a stub, which helps privacy. |
 | DoH rollout heuristics (`toolkit/components/doh`) | In regions where Mozilla turns on DNS-over-HTTPS by default, Firefox looks up `www.google.com` / YouTube safe-search hostnames through your normal DNS resolver to detect parental controls. That's a DNS query to your resolver, not a connection to Google. Choosing a DoH mode yourself in Settings skips the rollout and its heuristics. |
 | Captive-portal / connectivity checks | They go to Mozilla (`firefox-portal-detection.com`, `detectportal.firefox.com`), not Google. |
-| `search-config-v2.json` dump and `top-sites.json` dump | The bundled data files still contain Google/YouTube entries. Patch 0026 filters Google at runtime, and the top-sites dump isn't used (`useRemoteSetting=false`). |
+| `search-config-v2.json` / `search-config-v3` dumps and `top-sites.json` dump | The bundled data files still contain Google/YouTube entries. Patch 0026 filters Google at runtime for both the v2 path and 160's new v3 path (`browser.search.configV3.featureGate`, off by default upstream). The top-sites dump isn't used (`useRemoteSetting=false`). |
 | `toolkit/content/gmp-sources/widevinecdm*.json` | Firefox's fallback download list for Widevine (Google URLs). It's only used after you turn on DRM and only if Mozilla's update server can't be reached. |
 
 ## Widevine / DRM
@@ -59,3 +59,10 @@ the end), and `policies/policies.json`.
 - **OpenH264** (Cisco's H.264 codec for WebRTC calls) is also off by default. You
   can turn it on in about:addons > Plugins. Without it, video calls use
   VP8/VP9.
+
+## Firefox 160
+
+160 turned on Smart Window resume cards (`browser.smartwindow.resumeCards.enabled`)
+and added HTTP telemetry for Akamai WAF responses
+(`network.http.akamai_waf_telemetry.enabled`, default on). Mercury sets both
+to false, in line with the existing "AI off" and "no telemetry" defaults.
