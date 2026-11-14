@@ -237,6 +237,18 @@ try {
   assert.equal(await m.content(gpuScript), false);
   ok("pages see the real timezone and no WebGPU");
 
+  // Verify the shipped search configuration on a fresh US profile.
+  const engines = await m.chrome(`
+    return (async () => {
+      const { SearchService: search } = ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs");
+      await search.init();
+      return (await search.getEngines()).map(e => e.name);
+    })();`);
+  assert.ok(engines.includes("DuckDuckGo"), JSON.stringify(engines));
+  assert.ok(engines.some(n => n.startsWith("Wikipedia")), JSON.stringify(engines));
+  assert.ok(!engines.some(n => /google|bing|ebay|perplexity/i.test(n)), JSON.stringify(engines));
+  ok("search: DuckDuckGo and Wikipedia present; removed engines absent", engines.join(", "));
+
   // --- 2. flip Hardened mode on ---------------------------------------------
   await m.chrome(`Services.prefs.setBoolPref("mercury.hardened.enabled", true);`);
   await sleep(300);
