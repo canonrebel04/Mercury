@@ -57,7 +57,10 @@ ac_add_options --enable-geckodriver
 ac_add_options --disable-maintenance-service
 ac_add_options --disable-bits-download
 #ac_add_options --disable-default-browser-agent
-export MOZ_SOURCE_CHANGESET=${changeset}
+# ${changeset} is a Mercurial leftover and is empty on git checkouts.
+# An empty MOZ_SOURCE_CHANGESET makes build/variables.py call hg and fail.
+# Use the Firefox source tree's git HEAD (override by exporting it first).
+export MOZ_SOURCE_CHANGESET=${MOZ_SOURCE_CHANGESET:-$(git rev-parse HEAD)}
 mk_add_options MOZ_CRASHREPORTER=0
 mk_add_options MOZ_DATA_REPORTING=0
 mk_add_options MOZ_SERVICES_HEALTHREPORT=0
