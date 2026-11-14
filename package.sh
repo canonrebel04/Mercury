@@ -44,6 +44,17 @@ cd ${HG_SRC_DIR} &&
 
 ./mach package -v &&
 
-printf "${GRE}${bold}Done. ${YEL}${bold}You can find a tarball package of the release in:\n" &&
-printf "${PWD}/obj.../dist/Mercury....tar.bz2\n" &&
-tput sgr0
+printf "${GRE}${bold}Done. ${YEL}${bold}You can find a tarball package of the release in:\n"
+pkg=""
+for cand in "${HG_SRC_DIR}"/obj-*/dist/mercury-*.tar.xz; do
+	if [ -f "$cand" ]; then
+		pkg=$cand
+		break
+	fi
+done
+if [ -n "$pkg" ]; then
+	printf "%s\n" "$pkg"
+else
+	printf "${HG_SRC_DIR}/obj-*/dist/mercury-*.tar.xz\n"
+fi
+tput sgr0 2>/dev/null || true

@@ -27,7 +27,7 @@ makeWinDir () {
 	printf "\n" &&
 	printf "${YEL}Bootstrapping Mozilla Repo...\n" &&
 	printf "\n" &&
-	tput sgr0 &&
+	tput sgr0 2>/dev/null || true &&
 	curl -fsSLO https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py &&
 	python3 bootstrap.py --vcs=git
 }
@@ -40,7 +40,7 @@ makeLinuxDir () {
 	printf "\n" &&
 	printf "${YEL}Bootstrapping Mozilla Repo...\n" &&
 	printf "\n" &&
-	tput sgr0 &&
+	tput sgr0 2>/dev/null || true &&
 	curl -fsSLO https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py &&
 	python3 bootstrap.py --vcs=git
 }
@@ -53,7 +53,7 @@ makeMacDir () {
 	printf "\n" &&
 	printf "${YEL}Bootstrapping Mozilla Repo...\n" &&
 	printf "\n" &&
-	tput sgr0 &&
+	tput sgr0 2>/dev/null || true &&
 	curl -fsSLO https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py &&
 	python3 bootstrap.py --vcs=git
 }
@@ -61,4 +61,4 @@ case $1 in
 	--mac) makeMacDir; exit 0;;
 esac
 
-tput sgr0
+tput sgr0 2>/dev/null || true

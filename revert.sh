@@ -61,4 +61,4 @@ git checkout --force -- . &&
 
 printf "\n" &&
 printf "${GRE}Done! ${YEL}You can now run ./setup.sh or make changes.\n" &&
-tput sgr0
+tput sgr0 2>/dev/null || true

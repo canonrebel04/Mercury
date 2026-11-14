@@ -305,4 +305,4 @@ printf "\n" &&
 printf "${YEL}Look in this file to see the aliases and what they're for.\n" &&
 printf "\n" &&
 printf "${GRE}Enjoy Mercury!\n" &&
-tput sgr0
+tput sgr0 2>/dev/null || true

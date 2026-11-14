@@ -47,4 +47,4 @@ cd ${HG_SRC_DIR} &&
 printf "\n" &&
 printf "${GRE}${bold}Build Completed!\n" &&
 printf "${GRE}${bold}You can now run \`./package.sh\` to generate installation packages.\n" &&
-tput sgr0
+tput sgr0 2>/dev/null || true

@@ -73,4 +73,4 @@ printf "${GRE}Running \`./mach bootstrap\`...${c0}\n" &&
 
 printf "\n" &&
 printf "${GRE}Done! ${YEL}You can now run ./setup.sh\n" &&
-tput sgr0
+tput sgr0 2>/dev/null || true
