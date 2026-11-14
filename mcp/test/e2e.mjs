@@ -39,7 +39,57 @@ function ok(name, detail = "") {
   console.log(`  ok  ${name}${detail ? ` - ${detail}` : ""}`);
 }
 
-// --- 0. without --mcp nothing listens -------------------------------------
+// Probe a port for Firefox's Remote Agent (WebDriver BiDi), not just any socket.
+function upgradeTo(port, headers = {}) {
+  return new Promise(res => {
+    const req = request({ host: "127.0.0.1", port, path: "/session", agent: false, timeout: 10000, headers: {
+      Connection: "Upgrade", Upgrade: "websocket", "Sec-WebSocket-Version": "13",
+      "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==", ...headers } });
+    req.on("upgrade", (r, sock) => { sock.destroy(); res(101); });
+    req.on("response", r => { r.resume(); res(r.statusCode); });
+    req.on("error", () => res(0));
+    req.on("timeout", () => { req.destroy(); res(-1); });
+    req.end();
+  });
+}
+
+function httpGet(port, path) {
+  return new Promise(res => {
+    const req = request({ host: "127.0.0.1", port, path, agent: false, timeout: 3000, method: "GET" }, r => {
+      let body = "";
+      r.setEncoding("utf8");
+      r.on("data", c => (body += c));
+      r.on("end", () => res({ status: r.statusCode, body, headers: r.headers }));
+    });
+    req.on("error", () => res({ status: 0, body: "", headers: {} }));
+    req.on("timeout", () => { req.destroy(); res({ status: -1, body: "", headers: {} }); });
+    req.end();
+  });
+}
+
+function looksLikeRemoteAgent(upgradeStatus, http) {
+  if (upgradeStatus === 101) return true;
+  // The Remote Agent answers HTTP on /session (often 405/426) and /status as JSON.
+  const body = (http?.body || "").toLowerCase();
+  const ctype = String(http?.headers?.["content-type"] || "").toLowerCase();
+  if (http?.status > 0 && (ctype.includes("json") || /webdriver|bidi|remote agent|stacktrace/.test(body))) {
+    return true;
+  }
+  return false;
+}
+
+function browserListenPorts(ssOut) {
+  const ports = new Set();
+  for (const line of ssOut.split("\n")) {
+    if (!/firefox|mercury/.test(line)) continue;
+    for (const m of line.matchAll(/(?:127\.0\.0\.1|\[::1\]|0\.0\.0\.0|\*):(\d+)/g)) {
+      ports.add(Number(m[1]));
+    }
+  }
+  return [...ports];
+}
+
+// --- 0. without --mcp the Remote Agent is off --------------------------------
 {
   const plainProfile = join(work, "plain-profile");
   const { mkdirSync } = await import("node:fs");
@@ -51,19 +101,31 @@ function ok(name, detail = "") {
     detached: true,
   });
   await sleep(8000);
-  assert.ok(!existsSync(join(plainProfile, "WebDriverBiDiServer.json")));
-  let listening = "(ss not available)";
+  assert.ok(
+    !existsSync(join(plainProfile, "WebDriverBiDiServer.json")),
+    "WebDriverBiDiServer.json was created without --mcp"
+  );
+  let detail = "(ss not available; json file absent)";
   try {
     const out = execFileSync("ss", ["-ltnpH"], { encoding: "utf8" });
-    listening = out.split("\n").filter(l => /firefox|mercury/.test(l));
-    assert.deepEqual(listening, [], `browser opened a listening socket without --mcp:\n${listening}`);
-    listening = "no listening TCP sockets";
+    const ports = browserListenPorts(out);
+    for (const port of ports) {
+      const st = await upgradeTo(port, {});
+      const http = await httpGet(port, "/session");
+      assert.ok(
+        !looksLikeRemoteAgent(st, http),
+        `Remote Agent answered on 127.0.0.1:${port} without --mcp (upgrade ${st}, http ${http.status})`
+      );
+    }
+    detail = ports.length
+      ? `internal sockets on ${ports.join(",")}, no Remote Agent`
+      : "no listening TCP sockets";
   } catch (e) {
     if (e.code !== "ENOENT") throw e;
   }
   try { process.kill(-plain.pid, "SIGTERM"); } catch {}
   await sleep(1500);
-  ok("default launch (no --mcp): Remote Agent off", listening);
+  ok("default launch (no --mcp): Remote Agent off", detail);
 }
 
 // --- 1. launch the browser via the wrapper --------------------------------
@@ -100,22 +162,10 @@ ok("automation profile is private (0700)");
 assert.match(browserErr, /anyone on this machine can control/);
 
 // --- 2. security checks on the Remote Agent itself --------------------------
-function upgrade(headers) {
-  return new Promise(res => {
-    const req = request({ host: "127.0.0.1", port: ws_port, path: "/session", agent: false, timeout: 10000, headers: {
-      Connection: "Upgrade", Upgrade: "websocket", "Sec-WebSocket-Version": "13",
-      "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==", ...headers } });
-    req.on("upgrade", (r, sock) => { sock.destroy(); res(101); });
-    req.on("response", r => { r.resume(); res(r.statusCode); });
-    req.on("error", () => res(0));
-    req.on("timeout", () => { req.destroy(); res(-1); });
-    req.end();
-  });
-}
-{ const st = await upgrade({ Origin: "https://evil.example" }); assert.ok(st >= 400, `status ${st}`); }
+{ const st = await upgradeTo(ws_port, { Origin: "https://evil.example" }); assert.ok(st >= 400, `status ${st}`); }
 ok("web page Origin is refused by the Remote Agent");
-{ const st = await upgrade({ Host: `evil.example:${ws_port}` }); assert.ok(st >= 400, `status ${st}`); }
-{ const st = await upgrade({}); assert.equal(st, 101); }
+{ const st = await upgradeTo(ws_port, { Host: `evil.example:${ws_port}` }); assert.ok(st >= 400, `status ${st}`); }
+{ const st = await upgradeTo(ws_port, {}); assert.equal(st, 101); }
 ok("non-loopback Host header (DNS rebinding) is refused");
 
 // --- 3. MCP client helper ---------------------------------------------------
