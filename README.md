@@ -13,6 +13,26 @@ Mercury's changes to upstream Firefox files live as small patches in [`patches/f
 ### Update notifications
 Mercury has no auto-updater. Once a day it asks the GitHub Releases API (`api.github.com/repos/canonrebel04/Mercury/releases/latest`) whether a newer release exists and, if so, shows a bar with a link to the download page. Nothing is downloaded or installed, and no cookies or telemetry are sent. To turn it off, set `mercury.updatecheck.enabled` to `false` in `about:config`.
 
+## Install on Arch
+
+Once a `vX.Y` GitHub Release is published, Arch and CachyOS users can install the AVX2 (x86-64-v3) binary package:
+
+```sh
+paru -S mercury-browser-bin
+# or: yay -S mercury-browser-bin
+```
+
+Or add the self-hosted pacman repo and use `pacman -Syu`:
+
+```ini
+# /etc/pacman.conf
+[mercury]
+SigLevel = Optional TrustAll
+Server = https://github.com/canonrebel04/Mercury/releases/download/pacman-repo
+```
+
+See [packaging/arch/README.md](packaging/arch/README.md) for signed-repo setup, how releases are published, and what to do if you still have the unmaintained `mercury-browser-avx2-bin` (Firefox 129) package.
+
 ## Patches <img src="https://raw.githubusercontent.com/Alex313031/Mercury/main/logos/patches.png" width="28">
 See > [PATCHES.md](docs/PATCHES.md)
 
