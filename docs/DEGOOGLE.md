@@ -9,8 +9,8 @@ the end), and `policies/policies.json`.
 
 | Touchpoint | What Mercury does |
 |---|---|
-| Google search engine | Patch 0026 (`SearchEngineSelector.sys.mjs`) filters every engine whose id is `google*` or whose search URL is on `google.<tld>`. That covers remote search-config updates and contextual search. `policies.json` also removes "Google". |
-| Default search engine | DuckDuckGo in every region, in normal and private windows (patch 0026 plus `SearchEngines.Default`). Search suggestions follow the default engine (`ac.duckduckgo.com`). |
+| Google, Bing, eBay and Perplexity search engines | Patch 0026 (`SearchEngineSelector.sys.mjs`) filters every engine whose id is `google*`, `bing*`, `ebay*` or `perplexity*`, or whose search URL is on `google.<tld>`, `bing.com`, `ebay.<tld>` or `perplexity.ai`. That covers remote search-config updates and contextual search, for both config v2 and v3. The US default list after this is DuckDuckGo and Wikipedia (en). YouTube remains as a search engine (it is not in the default US list). Other region-specific engines (Ecosia, Qwant, Startpage, Yahoo JAPAN, Wikipedia locales, etc.) are left alone. |
+| Default search engine | DuckDuckGo in every region, in normal and private windows (patch 0026). Search suggestions follow the default engine (`ac.duckduckgo.com`). |
 | Google search-shortcut tiles on the new tab | `improvesearch.topSiteSearchShortcuts` off. |
 | Google Lens ("Search image with Google Lens") | `browser.search.visualSearch.featureGate` off. The Google engine that provided it is gone too. |
 | Safe Browsing `google`, `google4` and `google5` providers | Removed from `all.js` (patch 0027), along with every `safebrowsing.google.com` / `safebrowsing.googleapis.com` / `developers.google.com` URL and the `goog-*` lists. Malware/phishing/download checks are off. |
@@ -23,6 +23,14 @@ the end), and `policies/policies.json`.
 | `play.google.com` links in the protections report | Blanked; the mobile-app card and VPN banner are hidden. |
 | WebRTC `allow_old_setParameters.allowlist` (`*.google.com`) | Set to empty. Upstream only uses it on Nightly. |
 | `mail.google.com` in `privacy.trackingprotection.emailtracking.webapp.domains` | Removed. The list only labels telemetry (email-tracker counts on webmail pages), so blocking isn't affected. |
+
+`policies.json` still lists those engines under `SearchEngines.Remove` and sets
+`SearchEngines.Default` to DuckDuckGo. That policy has applied on regular
+(non-ESR) Firefox since 139, but `SearchEngines.Remove` only hides
+application-provided engines — they can still show up in
+`SearchService.getEngines()`, and a remote search-config update can bring them
+back. Patch 0026 is what actually drops them from the config.
+
 
 ## Kept, and why
 
