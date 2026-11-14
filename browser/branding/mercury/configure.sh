@@ -8,10 +8,6 @@ MOZ_APP_BASENAME="Mercury"
 
 MOZ_APP_DISPLAYNAME=Mercury
 
-MOZ_APP_UA_NAME=Mercury
-
-MOZ_APP_PROFILE=mercury
-
 MOZ_APP_REMOTINGNAME=com.alex313031.mercury
 
 MOZ_MACBUNDLE_ID=com.alex313031.mercury
@@ -22,8 +18,5 @@ MOZ_MACBUNDLE_NAME="Mercury.app"
 
 MOZ_SOURCE_REPO=https://github.com/canonrebel04/Mercury
 
-MOZ_APP_VENDOR=Alex313031
-
 MOZ_APP_CODENAME=hydrargyrum
 
-MOZ_DEVTOOLS=all

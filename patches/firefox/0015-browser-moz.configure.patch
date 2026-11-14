@@ -1,6 +1,6 @@
 --- a/browser/moz.configure
 +++ b/browser/moz.configure
-@@ -3,15 +3,15 @@
+@@ -3,15 +3,18 @@
  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
  imply_option("MOZ_PLACES", True)
@@ -18,5 +18,8 @@
 -imply_option("MOZ_APP_VENDOR", "Mozilla")
 +imply_option("MOZ_APP_VENDOR", "Alex313031")
  imply_option("MOZ_APP_ID", "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}")
++# Firefox 160: these are project_flags and cannot be set in branding configure.sh
++imply_option("MOZ_APP_UA_NAME", "Mercury")
++imply_option("MOZ_APP_PROFILE", "mercury")
  # Include the DevTools client, not just the server (which is the default)
  imply_option("MOZ_DEVTOOLS", "all")
