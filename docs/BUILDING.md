@@ -7,6 +7,11 @@ _**The scripts assume the Mercury source is at $HOME/Mercury/ and Mozilla source
 - `tot.sh` syncs the Mozilla tree to trunk (`main`, Nightly) and `revert.sh` reverts all local changes in it.
 - `setup.sh` applies Mercury's patches from `patches/firefox/` (failing loudly if one doesn't apply) and copies Mercury-only files over the Mozilla tree. *NOTE: Use the --help flag to see options for Linux and Windows*
 - To build, run `./build.sh` (--help for help). *The -j# variable can be changed to limit or increase the number of jobs (generally should be the number of CPU cores on your machine)*
+- The default build uses PGO + LTO. The profiling run serves the training corpus on ports **8888** and **8000** (and **8001** if you use an extended corpus). If those ports are already taken on your machine, leave the defaults and set these instead before `./build.sh`:
+  - `MERCURY_PGO_PORT` (default 8888)
+  - `MERCURY_PGO_SP3_PORT` (default 8000)
+  - `MERCURY_PGO_JS3_PORT` (default 8001, extended corpus only)
+  Example: `export MERCURY_PGO_PORT=18888 MERCURY_PGO_SP3_PORT=18000`
 
 
 ### macOS

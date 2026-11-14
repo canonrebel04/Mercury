@@ -1,0 +1,103 @@
+--- a/build/pgo/profileserver.py
++++ b/build/pgo/profileserver.py
+@@ -17,7 +17,24 @@
+ from mozprofile.permissions import ServerLocations
+ from mozrunner import CLI, FirefoxRunner
+ 
+-PORT = 8888
++# Mercury: allow overriding the PGO HTTP ports when 8888/8000/8001 are already
++# in use on the build machine. Defaults are unchanged.
++def _pgo_port(env_name, default):
++    raw = os.environ.get(env_name)
++    if not raw:
++        return default
++    try:
++        port = int(raw)
++    except ValueError:
++        raise SystemExit(f"{env_name} must be an integer port, got {raw!r}")
++    if not (1 <= port <= 65535):
++        raise SystemExit(f"{env_name} must be in 1..65535, got {port}")
++    return port
++
++
++PORT = _pgo_port("MERCURY_PGO_PORT", 8888)
++SP3_PORT = _pgo_port("MERCURY_PGO_SP3_PORT", 8000)
++JS3_PORT = _pgo_port("MERCURY_PGO_JS3_PORT", 8001)
+ 
+ PATH_MAPPINGS = {
+     "/webkit/PerformanceTests": "third_party/webkit/PerformanceTests",
+@@ -111,14 +128,14 @@
+     # Speedometer3 must run in its own server. The benchmark assumes that it
+     # is in a root path, and will fail if it's not.
+     sp3_httpd = MozHttpd(
+-        port=8000,
++        port=SP3_PORT,
+         docroot=os.path.join(
+             build.topsrcdir, "third_party", "webkit", "PerformanceTests", "Speedometer3"
+         ),
+         path_mappings=path_mappings,
+     )
+     sp3_httpd.start(block=False)
+-    print("started SP3 server on port 8000")
++    print("started SP3 server on port %d" % SP3_PORT)
+ 
+     if has_extended_corpus:
+         js3_dir = os.path.join(extended_corpus_dir, "JetStream")
+@@ -130,11 +147,11 @@
+         # JetStream3 must run in its own server. The benchmark assumes that it
+         # is in a root path, and will fail if it's not.
+         js3_httpd = MozHttpd(
+-            port=8001,
++            port=JS3_PORT,
+             docroot=js3_dir,
+         )
+         js3_httpd.start(block=False)
+-        print("started JS3 server on port 8001")
++        print("started JS3 server on port %d" % JS3_PORT)
+ 
+     locations = ServerLocations()
+     locations.add_host(host="127.0.0.1", port=PORT, options="primary,privileged")
+@@ -230,8 +247,8 @@
+                 env["UPLOAD_PATH"], "profile-run-2.log"
+             )
+         cmdargs = [
+-            "http://localhost:%d/index.html?extendedCorpus=%s"
+-            % (PORT, str(has_extended_corpus).lower())
++            "http://localhost:%d/index.html?extendedCorpus=%s&sp3Port=%d&js3Port=%d"
++            % (PORT, str(has_extended_corpus).lower(), SP3_PORT, JS3_PORT)
+         ]
+         runner = FirefoxRunner(
+             profile=profile,
+--- a/build/pgo/index.html
++++ b/build/pgo/index.html
+@@ -8,8 +8,10 @@
+   var defaultTimeout = 2 * 1000;
+   var extendedTimeout = 2 * 60 * 1000;
+   var superExtendedTimeout = 5 * 60 * 1000;
+-  var hasExtendedCorpus =
+-    new URLSearchParams(location.search).get("extendedCorpus") == "true";
++  var searchParams = new URLSearchParams(location.search);
++  var hasExtendedCorpus = searchParams.get("extendedCorpus") == "true";
++  var sp3Port = searchParams.get("sp3Port") || "8000";
++  var js3Port = searchParams.get("js3Port") || "8001";
+ 
+   function waitTimeout(time) {
+     return new Promise(resolve => {
+@@ -123,7 +125,7 @@
+   items.push(
+     new Item("webkit/PerformanceTests/Speedometer/index.html", extendedTimeout),
+     new Item(
+-      "http://localhost:8000/index.html?startAutomatically=true",
++      "http://localhost:" + sp3Port + "/index.html?startAutomatically=true",
+       extendedTimeout
+     ),
+     new Item(
+@@ -136,7 +138,7 @@
+   if (hasExtendedCorpus) {
+     items.push(
+       new Item(
+-        "http://localhost:8001/index.html?startAutomatically=true&testIterationCount=3&worstCaseCount=1",
++        "http://localhost:" + js3Port + "/index.html?startAutomatically=true&testIterationCount=3&worstCaseCount=1",
+         superExtendedTimeout
+       )
+     );
