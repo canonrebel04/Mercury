@@ -3,7 +3,7 @@ _**The scripts assume the Mercury source is at $HOME/Mercury/ and Mozilla source
 
 - In general we follow build instructions at https://firefox-source-docs.mozilla.org/setup/linux_build.html
 - `bootstrap.sh` can be used to download the Mozilla tree for the first time.
-- `version.sh` syncs the Mozilla tree to the Firefox release tag Mercury is based on (currently `FIREFOX_160_0_RELEASE`).
+- `version.sh` syncs the Mozilla tree to the Firefox release tag Mercury is based on (currently `FIREFOX_160_0_1_RELEASE`).
 - `tot.sh` syncs the Mozilla tree to trunk (`main`, Nightly) and `revert.sh` reverts all local changes in it.
 - `setup.sh` applies Mercury's patches from `patches/firefox/` (failing loudly if one doesn't apply) and copies Mercury-only files over the Mozilla tree. *NOTE: Use the --help flag to see options for Linux and Windows*
 - To build, run `./build.sh` (--help for help). *The -j# variable can be changed to limit or increase the number of jobs (generally should be the number of CPU cores on your machine)*
