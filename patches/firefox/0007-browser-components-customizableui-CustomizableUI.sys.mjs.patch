@@ -1,0 +1,60 @@
+--- a/browser/components/customizableui/CustomizableUI.sys.mjs
++++ b/browser/components/customizableui/CustomizableUI.sys.mjs
+@@ -363,15 +363,12 @@
+       "back-button",
+       "forward-button",
+       "stop-reload-button",
+-      Services.policies.isAllowed("removeHomeButtonByDefault")
+-        ? null
+-        : "home-button",
+-      "spring",
++      "home-button",
+       "vertical-spacer",
+       "urlbar-container",
+-      "spring",
+       "downloads-button",
+-      AppConstants.MOZ_DEV_EDITION ? "developer-button" : null,
++      "developer-button",
++      "unified-extensions-button",
+       lazy.ippEnabled ? "ipprotection-button" : null,
+       "fxa-toolbar-menu-button",
+       lazy.resetPBMToolbarButtonEnabled ? "reset-pbm-toolbar-button" : null,
+@@ -777,18 +774,6 @@
+       }
+     }
+ 
+-    // Add firefox-view if not present
+-    if (currentVersion < 18) {
+-      let tabstripPlacements =
+-        gSavedState.placements[CustomizableUI.AREA_TABSTRIP];
+-      if (
+-        tabstripPlacements &&
+-        !tabstripPlacements.includes("firefox-view-button")
+-      ) {
+-        tabstripPlacements.unshift("firefox-view-button");
+-      }
+-    }
+-
+     // Unified Extensions addon button migration, which puts any browser action
+     // buttons in the overflow menu into the addons panel instead.
+     if (currentVersion < 19) {
+@@ -1073,19 +1058,6 @@
+       return;
+     }
+ 
+-    // Remove the home button if it hasn't been used and is set to about:home
+-    if (currentVersion < 1) {
+-      let homePage = lazy.HomePage.get();
+-      if (
+-        placements.includes("home-button") &&
+-        !Services.prefs.getBoolPref(kPrefHomeButtonUsed) &&
+-        (homePage == "about:home" || homePage == "about:blank") &&
+-        Services.policies.isAllowed("removeHomeButtonByDefault")
+-      ) {
+-        placements.splice(placements.indexOf("home-button"), 1);
+-      }
+-    }
+-
+     // Remove the library button if it hasn't been used
+     if (currentVersion < 2) {
+       if (

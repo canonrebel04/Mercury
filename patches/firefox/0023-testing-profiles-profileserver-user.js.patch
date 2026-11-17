@@ -1,0 +1,8 @@
+--- a/testing/profiles/profileserver/user.js
++++ b/testing/profiles/profileserver/user.js
+@@ -8,3 +8,5 @@
+ user_pref("dom.timeout.enable_budget_timer_throttling", false);
+ // Turn off update
+ user_pref("app.update.disabledForTesting", true);
++// Alex313031: Fix PGO bug
++user_pref("gfx.webrender.software", true);

@@ -1,0 +1,10 @@
+--- a/browser/installer/windows/app.tag
++++ b/browser/installer/windows/app.tag
+@@ -1,4 +1,4 @@
+ ;!@Install@!UTF-8!
+-Title="Mozilla Firefox"
++Title="Mercury"
+ RunProgram="setup.exe"
+-;!@InstallEnd@!
+\ No newline at end of file
++;!@InstallEnd@!

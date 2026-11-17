@@ -1,0 +1,11 @@
+--- a/netwerk/protocol/http/nsHttpHandler.cpp
++++ b/netwerk/protocol/http/nsHttpHandler.cpp
+@@ -1071,7 +1071,7 @@
+   mUserAgent += '/';
+   mUserAgent += mProductSub;
+ 
+-  bool isFirefox = mAppName.EqualsLiteral("Firefox");
++  bool isFirefox = true;
+   if (isFirefox || mCompatFirefoxEnabled) {
+     // "Firefox/x.y" (compatibility) app token
+     mUserAgent += ' ';

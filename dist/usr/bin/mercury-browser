@@ -53,17 +53,20 @@ while [ $# -gt 0 ]; do
 done
 
 # Allow users to override command-line options with a file.
+# The file is split on whitespace into an array, so its contents are never
+# glob-expanded or re-split later on.
+MERCURY_USER_FLAGS=()
 if [[ -f ~/.mercury/mercury-flags.conf ]]; then
-   MERCURY_USER_FLAGS="$(cat ~/.mercury/mercury-flags.conf)"
+   read -r -a MERCURY_USER_FLAGS < <(tr '\n' ' ' < ~/.mercury/mercury-flags.conf)
 fi
 
 # Launch executable
 if [ $want_temp_profile -eq 1 ] ; then
-  TEMP_PROFILE=`mktemp -d` &&
+  TEMP_PROFILE="$(mktemp -d)" &&
   echo "Note: Using temporary profile: $TEMP_PROFILE"
-  /usr/lib/mercury/mercury --profile $TEMP_PROFILE $MERCURY_USER_FLAGS $@
+  /usr/lib/mercury/mercury --profile "$TEMP_PROFILE" "${MERCURY_USER_FLAGS[@]}" "$@"
 fi
 
 if [ $want_temp_profile -eq 0 ] ; then
-  /usr/lib/mercury/mercury $MERCURY_USER_FLAGS $@
+  /usr/lib/mercury/mercury "${MERCURY_USER_FLAGS[@]}" "$@"
 fi

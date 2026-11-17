@@ -37,7 +37,7 @@ fi
 printf "\n" &&
 printf "${bold}${GRE}Script to run Mercury in dev mode.${c0}\n" &&
 printf "\n" &&
-tput sgr0 &&
+tput sgr0 2>/dev/null || true &&
 
 cd ${HG_SRC_DIR} &&
 

@@ -1,0 +1,11 @@
+--- a/build/application.ini.in
++++ b/build/application.ini.in
+@@ -20,7 +20,7 @@
+ Name=@MOZ_APP_BASENAME@
+ RemotingName=@MOZ_APP_REMOTINGNAME@
+ #ifdef MOZ_APP_DISPLAYNAME
+-CodeName=@MOZ_APP_DISPLAYNAME@
++CodeName=hydrargyrum
+ #endif
+ Version=@MOZ_APP_VERSION@
+ #ifdef MOZ_APP_PROFILE

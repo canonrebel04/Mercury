@@ -1,0 +1,11 @@
+--- a/python/mozbuild/mozbuild/frontend/context.py
++++ b/python/mozbuild/mozbuild/frontend/context.py
+@@ -698,7 +698,7 @@
+                     if context.config.substs.get("CC_TYPE") == "clang-cl"
+                     else []
+                 )
+-                + ["-ffp-contract=off"],
++                + ["-ffp-contract=fast"],
+                 ("CXXFLAGS", "CFLAGS"),
+             ),
+         )

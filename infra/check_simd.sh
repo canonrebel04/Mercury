@@ -24,8 +24,8 @@ clear &&
 check_result() { # Message calls
     local ret="$1"
     local msg="$2"
-    [ "$ret" -ne 0 ] && { printf " ${RED}FAIL:" && tput sgr0 && echo " $msg"; }
-    printf " ${GRE}SUCCESS:" && tput sgr0 && echo " $msg"
+    [ "$ret" -ne 0 ] && { printf " ${RED}FAIL:" && tput sgr0 2>/dev/null || true && echo " $msg"; }
+    printf " ${GRE}SUCCESS:" && tput sgr0 2>/dev/null || true && echo " $msg"
 }
 
 get_cpuinfo() { # return details of the first CPU only
@@ -111,13 +111,13 @@ check_host() {
     printf " ${YEL}Checking host CPU instruction extensions...${c0}\n"; echo
     common_checks
 	printf "\n" &&
-    printf " ${YEL}If your CPU has AVX, you can build/run $program${c0}\n" && tput sgr0;
+    printf " ${YEL}If your CPU has AVX, you can build/run $program${c0}\n" && tput sgr0 2>/dev/null || true;
 }
 
 main() {
     case "$1" in
         host) check_host ;;
-        *) printf " ${RED}ERROR: Invalid type specified: '$1'\n" 2>&1 && tput sgr0; exit 1 ;;
+        *) printf " ${RED}ERROR: Invalid type specified: '$1'\n" 2>&1 && tput sgr0 2>/dev/null || true; exit 1 ;;
     esac
 }
 
