@@ -1,0 +1,36 @@
+--- a/toolkit/modules/GMPInstallManager.sys.mjs
++++ b/toolkit/modules/GMPInstallManager.sys.mjs
+@@ -292,6 +292,16 @@
+       return { usedFallback: true, addons: [] };
+     }
+ 
++    // Mercury: don't contact any update server (Mozilla's aus5, and through it
++    // Google's Widevine CDN or Cisco's OpenH264 host) unless the user has
++    // actually turned a plugin on. Widevine counts only while DRM
++    // (media.eme.enabled) is on; OpenH264 only while it is enabled in
++    // about:addons.
++    if (!this._mercuryAnyPluginWanted()) {
++      log.info("Mercury: no GMP plugin is enabled; not checking for updates");
++      return { usedFallback: true, addons: [] };
++    }
++
+     this._deferred = Promise.withResolvers();
+     let deferredPromise = this._deferred.promise;
+ 
+@@ -531,6 +541,16 @@
+   get _isEMEEnabled() {
+     return GMPPrefs.getBool(GMPPrefs.KEY_EME_ENABLED, true);
+   },
++  _mercuryAnyPluginWanted() {
++    return GMP_PLUGIN_IDS.some(
++      id =>
++        this._isAddonEnabled(id) &&
++        !GMPUtils.isPluginHidden({
++          id,
++          isEME: id == WIDEVINE_L1_ID || id == WIDEVINE_L3_ID,
++        })
++    );
++  },
+   _isAddonEnabled(aAddon) {
+     return GMPPrefs.getBool(GMPPrefs.KEY_PLUGIN_ENABLED, true, aAddon);
+   },
