@@ -110,7 +110,7 @@ else
   if [[ -n $notes_file ]]; then
     notes_args=(--notes-file "$notes_file")
   else
-    notes_args=(--notes "Mercury $version (AVX2 / x86-64-v3 Linux tarball). Arch users: paru -S mercury-browser-bin, or see packaging/arch/README.md.")
+    notes_args=(--notes "Mercury $version (AVX2 / x86-64-v3 Linux tarball). Arch users: paru -S mercury-browser-v3-bin, or see packaging/arch/README.md.")
   fi
   draft_args=()
   [[ $draft -eq 1 ]] && draft_args=(--draft)

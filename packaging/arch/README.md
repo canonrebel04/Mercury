@@ -7,14 +7,19 @@ tarball from `./package.sh` to a GitHub Release tagged `vX.Y` (for
 example `v160.0`). That tag format is what the in-browser update
 notifier already expects.
 
-The package name is `mercury-browser-bin`. It does not collide with the
-older `mercury-browser-avx2-bin` AUR package (Alex313031's Mercury
-129.0.2, last updated 2025-01-25, maintainer `saxophone_dev`, already
-labeled unmaintained and vulnerable). That package is **not orphaned**.
-To take it over so existing users migrate automatically: comment on the
-AUR page asking `saxophone_dev` to transfer it; if there is no reply
-after about two weeks, file an Orphan Request on the same page. Do not
-submit a second package under that name.
+The package name is `mercury-browser-v3-bin` (AVX2 / x86-64-v3).
+`mercury-browser-bin` was taken on 14 November 2026 by a `999-1`
+placeholder that tells people to switch to Firefox, so this package
+does not use that name and does not conflict with it.
+
+It also does not collide with the older `mercury-browser-avx2-bin` AUR
+package (Alex313031's Mercury 129.0.2, last updated 2025-01-25,
+maintainer `saxophone_dev`, already labeled unmaintained and
+vulnerable). That package is **not orphaned**. To take it over so
+existing users migrate automatically: comment on the AUR page asking
+`saxophone_dev` to transfer it; if there is no reply after about two
+weeks, file an Orphan Request on the same page. Do not submit a second
+package under that name.
 
 ## One-time setup
 
@@ -33,14 +38,14 @@ submit a second package under that name.
    ```
 
    The first run of the publish workflow creates the AUR repo by
-   pushing `mercury-browser-bin`. You can also seed it yourself:
+   pushing `mercury-browser-v3-bin`. You can also seed it yourself:
 
    ```sh
-   git clone ssh://aur@aur.archlinux.org/mercury-browser-bin.git
+   git clone ssh://aur@aur.archlinux.org/mercury-browser-v3-bin.git
    cp packaging/arch/PKGBUILD packaging/arch/.SRCINFO \
       packaging/arch/mercury-browser.sh packaging/arch/mercury-browser.desktop \
-      packaging/arch/mercury-browser-bin.install mercury-browser-bin/
-   cd mercury-browser-bin && git add . && git commit -m "Initial import" && git push
+      packaging/arch/mercury-browser-v3-bin.install mercury-browser-v3-bin/
+   cd mercury-browser-v3-bin && git add . && git commit -m "Initial import" && git push
    ```
 
    Do not push until you are ready for the package to go live.
@@ -92,8 +97,8 @@ To build the pacman package locally (CachyOS already has `makepkg`):
 AUR:
 
 ```sh
-paru -S mercury-browser-bin
-# or: yay -S mercury-browser-bin
+paru -S mercury-browser-v3-bin
+# or: yay -S mercury-browser-v3-bin
 ```
 
 Self-hosted repo, unsigned:
@@ -118,7 +123,7 @@ SigLevel = Required TrustedOnly
 Server = https://github.com/canonrebel04/Mercury/releases/download/pacman-repo
 ```
 
-Then `sudo pacman -Syu mercury-browser-bin`.
+Then `sudo pacman -Syu mercury-browser-v3-bin`.
 
 If you still have the old vulnerable package:
 

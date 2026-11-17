@@ -18,8 +18,8 @@ Mercury has no auto-updater. Once a day it asks the GitHub Releases API (`api.gi
 Once a `vX.Y` GitHub Release is published, Arch and CachyOS users can install the AVX2 (x86-64-v3) binary package:
 
 ```sh
-paru -S mercury-browser-bin
-# or: yay -S mercury-browser-bin
+paru -S mercury-browser-v3-bin
+# or: yay -S mercury-browser-v3-bin
 ```
 
 Or add the self-hosted pacman repo and use `pacman -Syu`:

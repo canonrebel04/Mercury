@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build mercury-browser-bin as a .pkg.tar.zst, optionally sign it, run
+# Build mercury-browser-v3-bin as a .pkg.tar.zst, optionally sign it, run
 # repo-add, and upload the database plus package to the GitHub Release
 # tag "pacman-repo". That tag is always a prerelease so it never becomes
 # /releases/latest (the in-browser update notifier uses that endpoint).
@@ -70,7 +70,7 @@ trap '[[ $clean_work -eq 1 ]] && rm -rf "$workdir"' EXIT
 
 # Isolate packaging files so we can drop a local tarball beside the PKGBUILD.
 cp -a "$script_dir/PKGBUILD" "$script_dir/mercury-browser.sh" \
-  "$script_dir/mercury-browser.desktop" "$script_dir/mercury-browser-bin.install" \
+  "$script_dir/mercury-browser.desktop" "$script_dir/mercury-browser-v3-bin.install" \
   "$workdir/"
 if [[ -f $script_dir/.SRCINFO ]]; then
   cp -a "$script_dir/.SRCINFO" "$workdir/"
@@ -137,7 +137,7 @@ fi
 makepkg "${makepkg_flags[@]}"
 
 shopt -s nullglob
-packages=(mercury-browser-bin-*.pkg.tar.zst)
+packages=(mercury-browser-v3-bin-*.pkg.tar.zst)
 shopt -u nullglob
 [[ ${#packages[@]} -gt 0 ]] || { echo "build-repo.sh: makepkg did not produce a package" >&2; exit 1; }
 
@@ -146,7 +146,7 @@ mkdir -p "$repodir"
 cp -a "${packages[@]}" "$repodir/"
 # Include signatures if present.
 shopt -s nullglob
-for sig in mercury-browser-bin-*.pkg.tar.zst.sig; do
+for sig in mercury-browser-v3-bin-*.pkg.tar.zst.sig; do
   cp -a "$sig" "$repodir/"
 done
 shopt -u nullglob
@@ -155,7 +155,7 @@ if [[ -f $workdir/mercury-repo.pubkey.asc ]]; then
 fi
 
 cd "$repodir"
-pkgfile="$(ls -1 mercury-browser-bin-*.pkg.tar.zst | head -1)"
+pkgfile="$(ls -1 mercury-browser-v3-bin-*.pkg.tar.zst | head -1)"
 if [[ -n $keyid ]]; then
   repo-add -s -k "$keyid" mercury.db.tar.gz "$pkgfile"
 else
@@ -175,7 +175,7 @@ if [[ $do_upload -eq 1 ]]; then
       --repo "$repo_name" \
       --prerelease \
       --title "Pacman repository" \
-      --notes "Rolling Arch package database for mercury-browser-bin. This pre-release is not a browser version and must not be treated as latest."
+      --notes "Rolling Arch package database for mercury-browser-v3-bin. This pre-release is not a browser version and must not be treated as latest."
   fi
   # Upload every file in the repo dir, replacing previous assets of the same name.
   shopt -s nullglob

@@ -49,12 +49,12 @@ def write_srcinfo(dest: pathlib.Path, version: str, tarball_sum: str, arch_dir: 
     desktop = sha256_file(arch_dir / "mercury-browser.desktop")
     url = f"{REPO_URL}/releases/download/v{version}/mercury-{version}.en-US.linux-x86_64.tar.xz"
     dest.write_text(
-        "pkgbase = mercury-browser-bin\n"
+        "pkgbase = mercury-browser-v3-bin\n"
         "\tpkgdesc = Privacy-focused Firefox fork with compiler optimizations (binary release; requires AVX2 / x86-64-v3)\n"
         f"\tpkgver = {version}\n"
         "\tpkgrel = 1\n"
         f"\turl = {REPO_URL}\n"
-        "\tinstall = mercury-browser-bin.install\n"
+        "\tinstall = mercury-browser-v3-bin.install\n"
         "\tarch = x86_64\n"
         "\tlicense = MPL-2.0\n"
         "\tdepends = bash\n"
@@ -86,7 +86,7 @@ def write_srcinfo(dest: pathlib.Path, version: str, tarball_sum: str, arch_dir: 
         f"\tsha256sums = {launcher}\n"
         f"\tsha256sums = {desktop}\n"
         "\n"
-        "pkgname = mercury-browser-bin\n"
+        "pkgname = mercury-browser-v3-bin\n"
     )
 
 

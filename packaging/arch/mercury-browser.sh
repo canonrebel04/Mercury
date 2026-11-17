@@ -1,5 +1,5 @@
 #!/bin/bash
-# Wrapper for the /opt/mercury tree installed by mercury-browser-bin.
+# Wrapper for the /opt/mercury tree installed by mercury-browser-v3-bin.
 # Copyright (c) 2024 The Chromium Authors, Mozilla, and Alex313031.
 
 export MERCURY_WRAPPER="$(readlink -f "$0")"
