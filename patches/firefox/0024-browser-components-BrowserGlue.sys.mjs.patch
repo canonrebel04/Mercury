@@ -1,15 +1,36 @@
 --- a/browser/components/BrowserGlue.sys.mjs
 +++ b/browser/components/BrowserGlue.sys.mjs
-@@ -39,6 +39,8 @@
+@@ -39,6 +39,10 @@
    LoginBreaches:
      "moz-src:///browser/components/aboutlogins/LoginBreaches.sys.mjs",
    LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
++  MercuryHardened:
++    "moz-src:///browser/components/mercury/MercuryHardened.sys.mjs",
 +  MercuryUpdateCheck:
 +    "moz-src:///browser/components/mercury/MercuryUpdateCheck.sys.mjs",
    MigrationUtils:
      "moz-src:///browser/components/migration/MigrationUtils.sys.mjs",
    NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-@@ -1180,6 +1182,15 @@
+@@ -404,6 +408,18 @@
+     // handle any UI migration
+     this._migrateUI();
+ 
++    // Mercury: Hardened mode. One pref observer; the module only loads when
++    // the switch is flipped or its saved state needs applying or restoring.
++    Services.prefs.addObserver("mercury.hardened.enabled", () =>
++      lazy.MercuryHardened.sync()
++    );
++    if (
++      Services.prefs.getBoolPref("mercury.hardened.enabled", false) !=
++      Services.prefs.prefHasUserValue("mercury.hardened.state")
++    ) {
++      lazy.MercuryHardened.sync();
++    }
++
+     if (!Services.prefs.prefHasUserValue(PREF_PDFJS_ISDEFAULT_CACHE_STATE)) {
+       lazy.PdfJs.checkIsDefault(this._isNewProfile);
+     }
+@@ -1180,6 +1196,15 @@
          task: () => Services.sysinfo.diskInfo,
        },
  

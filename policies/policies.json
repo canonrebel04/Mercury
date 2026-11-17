@@ -6,6 +6,11 @@
         "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi"
       ]
     },
+    "ExtensionSettings": {
+      "uBlock0@raymondhill.net": {
+        "private_browsing": true
+      }
+    },
     "SearchEngines": {
       "Default": "DuckDuckGo",
       "Remove": [

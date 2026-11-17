@@ -19,6 +19,11 @@ Mercury removes Google from the browser, like ungoogled-chromium and LibreWolf: 
 ### DRM (Widevine)
 DRM is off by default, and Mercury makes no requests to Google or Mozilla's plugin server while it's off. To watch DRM video (Netflix, Spotify, ...), turn on Settings > General > "Play DRM-controlled content". **This downloads Google's Widevine CDM from Google's servers.** Widevine is made by Google, so there's no other source. Details are in [DEGOOGLE.md](docs/DEGOOGLE.md#widevine--drm).
 
+### Privacy
+Mercury turns on Firefox's cheap privacy protections by default: fingerprinting protection and tracking-parameter stripping in normal windows, cross-site referer trimming, no WebGPU, no WebRTC IP leaks when you use a proxy, no OCSP requests (CRLite checks revocation instead), no scripts in PDFs, and uBlock Origin in private windows too. None of these has a measurable speed cost, and tracking protection still reads "Standard".
+
+For more, turn on **Settings > Privacy & Security > Hardened mode** (off by default; pref `mercury.hardened.enabled`). It switches on ResistFingerprinting (UTC timezone, letterboxing, canvas prompt, limited fonts), deletes cookies and site data on close (your exceptions are kept), Strict tracking protection, HTTPS-Only, DNS over HTTPS with Quad9 by default (never Google), no speculative connections and punycode domains. It may break some sites; restart after switching. Turning it off restores only what it changed and you didn't. Details, trade-offs and tests: [PRIVACY-OPTIONS.md](docs/PRIVACY-OPTIONS.md).
+
 ### Optional AI features
 All of Firefox's AI features are included but off by default, and no AI model is downloaded until you turn a feature on. Go to Settings > AI controls and switch off "Block AI enhancements" (makes them all available), or turn on one feature at a time:
 - AI chatbot sidebar and "Ask chatbot" menu items (pick any provider; none is preselected)
