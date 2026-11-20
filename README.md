@@ -37,6 +37,26 @@ Translations (Firefox's local, private translation engine) stay available, but M
 ### MCP browser control (experimental)
 LLM clients (Claude Desktop, Cursor, ...) can drive Mercury through a small optional [MCP server](mcp/README.md). It's off unless you start Mercury with `mercury-browser --mcp`, which turns on Firefox's built-in Remote Agent on `127.0.0.1` with a separate profile. While it's on, the address bar shows Firefox's striped "remote control" robot indicator, and any program on your computer can control that browser. Without `--mcp` nothing is added to the browser and nothing listens. See the [security notes](mcp/README.md#security).
 
+## Install on Arch
+
+Once a `vX.Y` GitHub Release is published, Arch and CachyOS users can install the AVX2 (x86-64-v3) binary package:
+
+```sh
+paru -S mercury-browser-v3-bin
+# or: yay -S mercury-browser-v3-bin
+```
+
+Or add the self-hosted pacman repo and use `pacman -Syu`:
+
+```ini
+# /etc/pacman.conf
+[mercury]
+SigLevel = Optional TrustAll
+Server = https://github.com/canonrebel04/Mercury/releases/download/pacman-repo
+```
+
+See [packaging/arch/README.md](packaging/arch/README.md) for signed-repo setup, how releases are published, and what to do if you still have the unmaintained `mercury-browser-avx2-bin` (Firefox 129) package.
+
 ## Patches <img src="https://raw.githubusercontent.com/Alex313031/Mercury/main/logos/patches.png" width="28">
 See > [PATCHES.md](docs/PATCHES.md)
 
