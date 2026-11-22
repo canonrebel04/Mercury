@@ -164,6 +164,7 @@ const userValues = names => `return ${JSON.stringify(names)}.filter(n => Service
 
 const DEFAULT_ON = {
   "privacy.fingerprintingProtection": true,
+  "privacy.fingerprintingProtection.overrides": "-JSMathFdlibm,-NavigatorHWConcurrencyTiered,-CanvasRandomization",
   "privacy.query_stripping.enabled": true,
   "privacy.query_stripping.enabled.pbmode": true,
   "dom.webgpu.enabled": false,
@@ -179,6 +180,7 @@ const DEFAULT_ON = {
 const HARDENED = {
   "privacy.resistFingerprinting": true,
   "privacy.resistFingerprinting.letterboxing": true,
+  "privacy.fingerprintingProtection.overrides": "",
   "browser.contentblocking.category": "strict",
   "privacy.sanitize.sanitizeOnShutdown": true,
   "privacy.clearOnShutdown_v2.cookiesAndStorage": true,
@@ -190,6 +192,12 @@ const HARDENED = {
   "network.trr.uri": "https://dns.quad9.net/dns-query",
   "browser.urlbar.speculativeConnect.enabled": false,
   "browser.places.speculativeConnect.enabled": false,
+  "network.http.speculative-parallel-limit": 0,
+  "network.dns.disablePrefetch": true,
+  "network.dns.disablePrefetchFromHTTPS": true,
+  "network.prefetch-next": false,
+  "network.predictor.enabled": false,
+  "network.predictor.enable-prefetch": false,
   "network.IDN_show_punycode": true,
 };
 const GROUP = Object.keys(HARDENED);
@@ -267,11 +275,16 @@ try {
     "privacy.query_stripping.enabled",
     "mercury.hardened.state",
   ]));
-  // The sanitizer migration leaves its own (harmless) v2 values behind, and
-  // Firefox keeps the category it matched ("standard") as a user value, as
-  // it was before.
+  // The sanitizer migration leaves its own (harmless) v2 values behind,
+  // Firefox keeps the category it matched ("standard") as a user value, and
+  // uBlock Origin's networkPredictionEnabled=false sets the 3 prefetch prefs.
+  const UBO_PREFS = new Set([
+    "network.http.speculative-parallel-limit",
+    "network.dns.disablePrefetch",
+    "network.prefetch-next",
+  ]);
   assert.deepEqual(
-    leftovers.filter(n => !n.startsWith("privacy.clearOnShutdown_v2.") && n != "browser.contentblocking.category"),
+    leftovers.filter(n => !n.startsWith("privacy.clearOnShutdown_v2.") && n != "browser.contentblocking.category" && !UBO_PREFS.has(n)),
     []
   );
   const afterOff = await m.chrome(readPrefs(Object.keys(DEFAULT_ON)));

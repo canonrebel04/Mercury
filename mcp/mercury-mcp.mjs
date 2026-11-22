@@ -56,8 +56,23 @@ function parseArgs(argv) {
     }
   }
   if (!opts.profile) {
-    const xdg = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
-    opts.profile = join(xdg, "mercury-mcp", "profile");
+    if (process.platform === "win32") {
+      const localAppData =
+        process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
+      opts.profile = join(localAppData, "mercury-mcp", "profile");
+    } else if (process.platform === "darwin") {
+      opts.profile = join(
+        homedir(),
+        "Library",
+        "Application Support",
+        "mercury-mcp",
+        "profile"
+      );
+    } else {
+      const xdg =
+        process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
+      opts.profile = join(xdg, "mercury-mcp", "profile");
+    }
   }
   return opts;
 }

@@ -11,3 +11,8 @@ thumbs.db
 /release/
 # Dolphin file manager
 .directory
+# Local Arch makepkg outputs
+packaging/arch/pkg/
+packaging/arch/src/
+packaging/arch/*.tar.xz
+packaging/arch/*.pkg.tar.zst

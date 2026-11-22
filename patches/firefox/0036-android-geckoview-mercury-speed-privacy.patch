@@ -1,0 +1,204 @@
+--- a/mobile/android/app/geckoview-prefs.js
++++ b/mobile/android/app/geckoview-prefs.js
+@@ -387,3 +387,100 @@
+ pref("browser.ipProtection.enabled", true);
+ pref("browser.ipProtection.guardian.endpoint", "https://vpn.mozilla.org/");
+ pref("toolkit.ipProtection.android.authProvider", "fxa");
++
++// MERCURY ANDROID: SPEED, GPU, PRIVACY, AND DE-GOOGLE DEFAULTS
++// WebRender, shader disk cache, accelerated 2D Canvas, and font/image decoding
++pref("gfx.webrender.all", true);
++pref("gfx.webrender.precache-shaders", true);
++pref("gfx.webrender.program-binary-disk", true);
++pref("gfx.webrender.compositor", true);
++pref("gfx.webrender.batching.lookback", 20);
++pref("gfx.webrender.svg-shapes.ellipses", true);
++pref("gfx.webrender.svg-shapes.strokes", true);
++pref("gfx.webrender.svg-shapes.gradients", true);
++pref("gfx.webrender.svg-shapes.blend", true);
++pref("gfx.webrender.svg-text", true);
++pref("gfx.webrender.svg-text.fill-opacity", true);
++pref("gfx.webrender.svg-simple-clips", true);
++pref("gfx.webrender.svg-mask-propagates-activity", true);
++pref("gfx.webrender.svg-images.opacity", true);
++pref("gfx.webrender.svg-filter-effects.also-convert-css-filters", true);
++pref("gfx.canvas.accelerated", true);
++pref("gfx.canvas.accelerated.cache-items", 8192);
++pref("gfx.canvas.accelerated.cache-size", 512);
++pref("gfx.canvas.accelerated.reserve-empty-cache", 64);
++pref("gfx.canvas.accelerated.gpu-path-size", 16);
++pref("gfx.canvas.accelerated.profile-frames", 0);
++pref("gfx.content.skia-font-cache-size", 32);
++pref("image.mem.decode_bytes_at_a_time", 65536);
++pref("image.avif.use-dav1d", true);
++
++// Layout, ScriptLoader & SpiderMonkey JIT responsiveness
++pref("nglayout.initialpaint.delay", 0);
++pref("nglayout.initialpaint.delay_in_oopif", 0);
++pref("content.notify.ontimer", true);
++pref("content.notify.interval", 100000);
++pref("content.notify.backoffcount", -1);
++pref("dom.event.pointer.boundary.dispatch_when_layout_change", false);
++pref("javascript.options.wasm_simd", true);
++pref("javascript.options.wasm_relaxed_simd", true);
++pref("javascript.options.wasm_branch_hinting", true);
++pref("javascript.options.blinterp.threshold", 5);
++pref("javascript.options.baselinejit.threshold", 25);
++pref("javascript.options.ion.threshold", 500);
++pref("javascript.options.ion.frequent_bailout_threshold", 15);
++pref("javascript.options.baselinejit.offthread_compilation_strategy", 3);
++pref("javascript.options.experimental.self_hosted_cache", true);
++pref("javascript.options.experimental.inline_simple_field_initializers", true);
++pref("javascript.options.mem.gc_parallel_marking", true);
++pref("dom.script_loader.external_scripts.speculate_async.enabled", true);
++pref("dom.script_loader.external_scripts.speculate_non_parser_inserted.enabled", true);
++pref("dom.script_loader.experimental.navigation_cache", true);
++pref("dom.script_loader.disk_cache_delay_ms", 3000);
++pref("dom.script_loader.delazification.max_size", -1);
++
++// Fast networking & speculative preconnect
++pref("network.http.max-connections", 1800);
++pref("network.http.max-persistent-connections-per-server", 10);
++pref("network.http.pacing.requests.enabled", false);
++pref("network.http.rcwn.enabled", false);
++pref("network.http.active_tab_priority", true);
++pref("network.dnsCacheEntries", 10000);
++pref("network.dnsCacheExpiration", 86400);
++pref("network.dnsCacheExpirationGracePeriod", 240);
++pref("network.dns.max_high_priority_threads", 40);
++pref("network.dns.copy_string_before_call", false);
++pref("network.dns.skip_ipv6_when_no_addresses", true);
++pref("network.ssl_tokens_cache_capacity", 20480);
++pref("network.http.speculative-parallel-limit", 20);
++pref("network.dns.disablePrefetch", false);
++pref("network.dns.disablePrefetchFromHTTPS", false);
++pref("network.early-hints.enabled", true);
++pref("network.early-hints.preconnect.enabled", true);
++
++// Privacy & De-Google (low-cost defaults; keep JS Math & multi-core workers fast)
++pref("privacy.donottrackheader.enabled", true);
++pref("privacy.globalprivacycontrol.enabled", true);
++pref("privacy.fingerprintingProtection", true);
++pref("privacy.fingerprintingProtection.overrides", "-JSMathFdlibm,-NavigatorHWConcurrencyTiered,-CanvasRandomization");
++pref("privacy.resistFingerprinting.randomization.canvas.use_siphash", true);
++pref("browser.send_pings", false);
++pref("privacy.query_stripping.enabled", true);
++pref("privacy.query_stripping.enabled.pbmode", true);
++pref("network.http.referer.XOriginTrimmingPolicy", 2);
++pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
++pref("security.OCSP.enabled", 0);
++pref("webgl.enable-debug-renderer-info", false);
++pref("beacon.enabled", false);
++pref("dom.battery.enabled", false);
++pref("dom.gamepad.enabled", false);
++pref("network.auth.subresource-http-auth-allow", 1);
++pref("pdfjs.enableScripting", false);
++pref("datareporting.healthreport.uploadEnabled", false);
++pref("datareporting.policy.dataSubmissionEnabled", false);
++pref("toolkit.telemetry.enabled", false);
++pref("toolkit.telemetry.server", "data:,");
++pref("app.shield.optoutstudies.enabled", false);
++pref("browser.safebrowsing.malware.enabled", false);
++pref("browser.safebrowsing.phishing.enabled", false);
++pref("geo.provider.network.url", "");
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
+@@ -11,11 +11,11 @@
+      * Enables custom extension collection feature, This feature does not only depend on this flag. It requires the AMO
+      * collection override to be enabled which is behind the Secret Settings.
+      */
+-    val customExtensionCollectionFeature = Config.channel.isNightlyOrDebug || Config.channel.isBeta
++    val customExtensionCollectionFeature = true
+ 
+     /** Pull-to-refresh allows you to pull the web content down far enough to have the page to reload. */
+     const val PULL_TO_REFRESH_ENABLED = true
+ 
+     /** Allows users to enable Firefox Suggest. */
+-    const val FX_SUGGEST = true
++    const val FX_SUGGEST = false
+ 
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
+@@ -109,25 +109,25 @@
+                 .experimentDelegate(NimbusExperimentDelegate())
+                 .contentBlocking(
+                     policy.toContentBlockingSetting(
+-                        queryParameterStripping = false,
+-                        queryParameterStrippingPrivateBrowsing = false,
++                        queryParameterStripping = true,
++                        queryParameterStrippingPrivateBrowsing = true,
+                         queryParameterStrippingAllowList = "",
+                         queryParameterStrippingStripList = "",
+                         allowListBaselineTrackingProtection =
+                             context.components.settings.strictAllowListBaselineTrackingProtection,
+                         allowListConvenienceTrackingProtection =
+                             context.components.settings.strictAllowListConvenienceTrackingProtection,
+-                        safeBrowsingGlobalCacheEnabled = Config.channel.isNightlyOrDebug,
+-                        safeBrowsingRealTimeEnabled = Config.channel.isNightlyOrDebug,
+-                        safeBrowsingRealTimeSimulationEnabled = Config.channel.isNightlyOrDebug,
++                        safeBrowsingGlobalCacheEnabled = false,
++                        safeBrowsingRealTimeEnabled = false,
++                        safeBrowsingRealTimeSimulationEnabled = false,
+                         safeBrowsingRealTimeSimulationHitProbability = 5,
+                         safeBrowsingRealTimeSimulationCacheTTLSec = 300,
+                         safeBrowsingRealTimeSimulationNegativeCacheEnabled = false,
+                         safeBrowsingRealTimeSimulationNegativeCacheTTLSec = 300,
+                     )
+                 )
+                 .consoleOutput(context.components.settings.enableGeckoLogs)
+                 .debugLogging(Config.channel.isDebug || context.components.settings.enableGeckoLogs)
+-                .aboutConfigEnabled(Config.channel.isBeta || Config.channel.isNightlyOrDebug)
++                .aboutConfigEnabled(true)
+                 .extensionsProcessEnabled(true)
+                 .extensionsWebAPIEnabled(true)
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
+@@ -740,9 +740,7 @@
+         val preferenceAmoCollectionOverride =
+             findPreference<Preference>(getPreferenceKey(R.string.pref_key_override_amo_collection))
+ 
+-        val show =
+-            (customExtensionCollectionFeature &&
+-                (settings.amoCollectionOverrideConfigured() || settings.showSecretDebugMenuThisSession))
++        val show = customExtensionCollectionFeature
+         preferenceAmoCollectionOverride?.apply {
+             isVisible = show
+             summary = settings.overrideAmoCollection.ifEmpty { null }
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
+@@ -201,7 +201,7 @@
+         lazyFeatureFlagBooleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
+             featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
+-            defaultValue = { homescreenSections[HomeScreenSection.POCKET] == true },
++            defaultValue = { false },
+         )
+ 
+     /** Indicates what simple toolbar shortcut key is currently selected. */
+@@ -726,7 +726,7 @@
+     var isTelemetryEnabled by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_telemetry),
+-            default = true,
++            default = false,
+         )
+ 
+     var isMarketingTelemetryEnabled by
+@@ -883,7 +883,7 @@
+     var isRolloutsEnabled by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_rollouts),
+-            default = { appContext.components.nimbus.sdk.rolloutParticipation },
++            default = { false },
+         )
+ 
+     /**
+@@ -2382,7 +2382,7 @@
+     var showContileFeature by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_enable_contile),
+-            default = true,
++            default = false,
+         )
+ 
+     /** Blocklist used to filter items from the home screen that have previously been removed. */

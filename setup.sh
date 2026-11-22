@@ -35,6 +35,8 @@ displayHelp () {
 	printf "${bold}${YEL}  Use the --mac-cross flag to to copy the MacOS x64 cross-compile mozconfig${c0}\n" &&
 	printf "${bold}${YEL}  Use the --mac-arm-cross flag to to copy the MacOS arm64 cross-compile mozconfig${c0}\n" &&
 	printf "${bold}${YEL}  Use the --arm64 or --raspi flag to make a Linux arm64 build${c0}\n" &&
+	printf "${bold}${YEL}  Use the --android flag to make an Android ARM64 (GeckoView + Fenix) build${c0}\n" &&
+	printf "${bold}${YEL}  Use the --android-x86_64 flag to make an Android x86_64 build${c0}\n" &&
 	printf "${bold}${YEL}  Use the --help or -h flag to show this help${c0}\n" &&
 	printf "\n"
 }
@@ -286,6 +288,28 @@ case $1 in
 esac
 case $1 in
 	--raspi) copyLinuxArm64;
+esac
+
+copyAndroidArm64 () {
+	printf "\n" &&
+	printf "${GRE}Copying Android ARM64 (GeckoView + Fenix) mozconfig${c0}\n" &&
+	printf "\n" &&
+	applyPatch "${MERCURY_SRC_DIR}/patches/optional/ffp-contract-fast.patch" &&
+	cp -v ./mozconfigs/mozconfig-android-arm64 "${HG_SRC_DIR}/mozconfig"
+}
+case $1 in
+	--android) copyAndroidArm64;
+esac
+
+copyAndroidX86_64 () {
+	printf "\n" &&
+	printf "${GRE}Copying Android x86_64 (GeckoView + Fenix) mozconfig${c0}\n" &&
+	printf "\n" &&
+	applyPatch "${MERCURY_SRC_DIR}/patches/optional/ffp-contract-fast.patch" &&
+	cp -v ./mozconfigs/mozconfig-android-x86_64 "${HG_SRC_DIR}/mozconfig"
+}
+case $1 in
+	--android-x86_64) copyAndroidX86_64;
 esac
 
 printf "\n" &&

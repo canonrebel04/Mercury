@@ -55,7 +55,7 @@ export MOZ_TELEMETRY_REPORTING=
 export MOZ_PACKAGE_JSSHELL=1
 
 # Installer
-export WIN32_REDIST_DIR="/c/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC/14.38.33130/x64/Microsoft.VC143.CRT"
+ac_add_options --with-redist
 
 # API Keys
 # None: Mercury ships without Google (or other) API keys.
@@ -77,10 +77,10 @@ mk_add_options AUTOCLOBBER=1
 export AUTOCLOBBER=1
 
 # Compiler, Linker, and Rust flags
-export CFLAGS="-mavx -maes /clang:-Og /arch:AVX"
-export CPPFLAGS="-mavx -maes /clang:-Og /arch:AVX"
-export CXXFLAGS="-mavx -maes /clang:-Og /arch:AVX"
-export LDFLAGS="-Wl,-O0 -mavx -maes"
+export CFLAGS="-mavx -maes -clang:-Og -arch:AVX"
+export CPPFLAGS="-mavx -maes -clang:-Og -arch:AVX"
+export CXXFLAGS="-mavx -maes -clang:-Og -arch:AVX"
+export LDFLAGS="-mllvm:-mattr=+avx,+aes"
 #export MOZ_LTO_LDFLAGS="-mllvm:-polly"
 export RUSTFLAGS="-C target-feature=+avx"
 export VERBOSE=1

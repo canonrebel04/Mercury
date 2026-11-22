@@ -40,21 +40,28 @@ printf "\n" &&
 printf "${YEL}Packaging Mercury..\n" &&
 printf "${GRE}\n" &&
 
-cd ${HG_SRC_DIR} &&
+cd "${HG_SRC_DIR}" || die "Failed to cd to ${HG_SRC_DIR}"
 
-./mach package -v &&
+./mach package -v
+pkg_status=$?
+tput sgr0 2>/dev/null || true
+if [ $pkg_status -ne 0 ]; then
+	die "${RED}Packaging failed with exit code ${pkg_status}${c0}"
+fi
 
-printf "${GRE}${bold}Done. ${YEL}${bold}You can find a tarball package of the release in:\n"
-pkg=""
-for cand in "${HG_SRC_DIR}"/obj-*/dist/mercury-*.tar.xz; do
+printf "${GRE}${bold}Done. ${YEL}${bold}You can find the generated package(s) in:\n"
+found_pkg=0
+for cand in \
+	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.tar.xz \
+	"${HG_SRC_DIR}"/obj-*/dist/install/sea/mercury-*.installer.exe \
+	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.win64.zip \
+	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.dmg; do
 	if [ -f "$cand" ]; then
-		pkg=$cand
-		break
+		printf "%s\n" "$cand"
+		found_pkg=1
 	fi
 done
-if [ -n "$pkg" ]; then
-	printf "%s\n" "$pkg"
-else
-	printf "${HG_SRC_DIR}/obj-*/dist/mercury-*.tar.xz\n"
+if [ $found_pkg -eq 0 ]; then
+	printf "${HG_SRC_DIR}/obj-*/dist/\n"
 fi
 tput sgr0 2>/dev/null || true

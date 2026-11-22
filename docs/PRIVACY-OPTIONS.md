@@ -17,6 +17,7 @@ protection as "Standard", because only defaults change.
 | Pref / policy | Value | What it does |
 |---|---|---|
 | `privacy.fingerprintingProtection` | `true` | Firefox's fingerprinting protection (FPP) in normal windows too, not only private ones (#1) |
+| `privacy.fingerprintingProtection.overrides` | `"-JSMathFdlibm,-NavigatorHWConcurrencyTiered"` | Keeps FPP canvas/screen protections while avoiding software `fdlibm` slowdown on JS `Math.*` and `hardwareConcurrency` throttling in normal windows (Hardened mode clears this) |
 | `dom.webgpu.enabled` | `false` | WebGPU off (#5) |
 | `network.http.referer.XOriginTrimmingPolicy` | `2` | Other sites only get the origin (`https://example.com/`) as referer (#10) |
 | `media.peerconnection.ice.proxy_only_if_behind_proxy` | `true` | When a proxy is set, WebRTC goes through it and can't leak your IP (#11) |
@@ -54,7 +55,7 @@ When it's on:
 | Tracking protection: Strict | `browser.contentblocking.category` |
 | HTTPS-Only mode | `dom.security.https_only_mode` |
 | DNS over HTTPS, "Increased protection" (falls back to normal DNS if DoH fails). Default provider Quad9 (`https://dns.quad9.net/dns-query`), never Google. If you already chose a provider or "Max protection", that choice is kept. To use another provider by default, set `mercury.hardened.doh.uri` (e.g. `https://dns.mullvad.net/dns-query`) or pick one in Settings > Privacy & Security > DNS over HTTPS. | `network.trr.mode=2`, `network.trr.uri`, `network.trr.custom_uri` |
-| No speculative connections from the address bar or bookmarks | `browser.urlbar.speculativeConnect.enabled`, `browser.places.speculativeConnect.enabled` |
+| No speculative connections from the address bar or bookmarks, and no DNS/link prefetching | `browser.urlbar.speculativeConnect.enabled`, `browser.places.speculativeConnect.enabled`, `network.http.speculative-parallel-limit=0`, `network.dns.disablePrefetch`, `network.prefetch-next`, `network.predictor.enabled` |
 | Internationalized domains shown as punycode (`xn--...`) | `network.IDN_show_punycode` |
 
 How it works (`browser/components/mercury/MercuryHardened.sys.mjs`):

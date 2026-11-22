@@ -14,10 +14,25 @@ _**The scripts assume the Mercury source is at $HOME/Mercury/ and Mozilla source
   Example: `export MERCURY_PGO_PORT=18888 MERCURY_PGO_SP3_PORT=18000`
 
 
+### Windows (Native & Cross-Compile from Linux)
+- **Cross-compiling from Linux (`--cross-avx2` / `--cross`):**
+  - Target is `x86_64-pc-windows-msvc` using `clang-cl` + `lld-link` and Mozilla's bootstrapped Windows SDK/MSVC sysroot (`vs`), `dxc`, `wine`, and `nsis`.
+  - Install the Rust Windows target once: `rustup target add x86_64-pc-windows-msvc`
+  - Run `./setup.sh --cross-avx2` (or `--cross`), then `./build.sh` and `./package.sh`.
+  - Outputs in `$HG_SRC_DIR/obj-x86_64-pc-windows-msvc/dist/`:
+    - Installer: `install/sea/mercury-<version>.en-US.win64.installer.exe`
+    - Portable zip: `mercury-<version>.en-US.win64.zip`
+- **Native Windows build (MozillaBuild + VS 2022+):**
+  - Run `./setup.sh --win-avx2` (or `--win`, `--win-sse4`, `--win-sse3`), then `./build.sh` and `./package.sh`.
+  - `--with-redist` is enabled in the Windows mozconfigs so MSVC CRT DLLs are automatically bundled.
+
 ### macOS
 - Firefox 160 requires the **macOS 26.5 SDK or newer** (Xcode 26.5+ for native builds).
 - Cross-compiling from Linux (`./setup.sh --mac-cross` / `--mac-arm-cross`): put the SDK somewhere and export `MERCURY_MACOS_SDK=/path/to/MacOSX26.5.sdk` before building. If unset, the mozconfigs use `$HOME/macos-sdk/MacOSX26.5.sdk`. See https://firefox-source-docs.mozilla.org/widget/cocoa/sdks.html.
 - The macOS app icon (`browser/branding/mercury/Assets.car`) can only be compiled on a Mac: run `infra/make_assets_car.sh` there and commit the result. Until then `setup.sh` makes the build use `firefox.icns` only.
+
+### Android
+- Mercury for Android builds GeckoView + Fenix directly from `$HG_SRC_DIR/mobile/android/` using `./setup.sh --android` (arm64-v8a) or `./android/build-android.sh`. See [ANDROID.md](ANDROID.md) for details.
 
 
 *Happy Mercury Building!*

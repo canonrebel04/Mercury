@@ -31,7 +31,7 @@ pkgbase = mercury-browser-v3-bin
 	source = mercury-160.0.1.en-US.linux-x86_64.tar.xz::https://github.com/canonrebel04/Mercury/releases/download/v160.0.1/mercury-160.0.1.en-US.linux-x86_64.tar.xz
 	source = mercury-browser.sh
 	source = mercury-browser.desktop
-	sha256sums = 29e4eb37f404c6a4d470f2d28d2387874f4969720fa3b21221c81fc0c1693d8a
+	sha256sums = f515122db89def2def404d6de25d055aa86048f6e1a28fb3fabbae58b1b96e71
 	sha256sums = 277c3f2fcf97a354e3a8b31d8414277e4538492e85595731dc2b85784ba23677
 	sha256sums = e2e5bea954b0ca456c069aa9f8e89fae5ba474426c46df6e47e6930962459771
 

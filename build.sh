@@ -40,11 +40,16 @@ printf "\n" &&
 printf "${GRE}Building Mercury...\n" &&
 printf "${CYA}\n" &&
 
-cd ${HG_SRC_DIR} &&
+cd "${HG_SRC_DIR}" || die "Failed to cd to ${HG_SRC_DIR}"
 
-./mach build -v &&
+./mach build -v
+build_status=$?
+tput sgr0 2>/dev/null || true
+if [ $build_status -ne 0 ]; then
+	die "${RED}Build failed with exit code ${build_status}${c0}"
+fi
 
-printf "\n" &&
-printf "${GRE}${bold}Build Completed!\n" &&
-printf "${GRE}${bold}You can now run \`./package.sh\` to generate installation packages.\n" &&
+printf "\n"
+printf "${GRE}${bold}Build Completed!\n"
+printf "${GRE}${bold}You can now run \`./package.sh\` to generate installation packages.\n"
 tput sgr0 2>/dev/null || true

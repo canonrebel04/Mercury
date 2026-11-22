@@ -1,6 +1,6 @@
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -150,9 +150,124 @@
+@@ -150,9 +150,194 @@
  // should no longer be used directly. Instead, getAppUpdateAutoEnabled and
  // getAppUpdateAutoEnabled from UpdateUtils.sys.mjs should be used.
  #ifndef XP_WIN
@@ -41,14 +41,31 @@
 +// Enable AutoScrolling and Smooth Scroll by default
 +pref("general.autoScroll", true);
 +pref("general.smoothScroll", true);
-+// Force enable GPU accelerated compositing.
++// Force enable GPU accelerated compositing and shader disk cache.
 +pref("layers.acceleration.force-enabled", true);
++pref("gfx.webrender.all", true);
++pref("gfx.webrender.precache-shaders", true);
++pref("gfx.webrender.program-binary-disk", true);
++pref("gfx.webrender.compositor", true);
++pref("gfx.webrender.batching.lookback", 20);
++pref("gfx.webrender.svg-shapes.ellipses", true);
++pref("gfx.webrender.svg-shapes.strokes", true);
++pref("gfx.webrender.svg-shapes.gradients", true);
++pref("gfx.webrender.svg-shapes.blend", true);
++pref("gfx.webrender.svg-text", true);
++pref("gfx.webrender.svg-text.fill-opacity", true);
++pref("gfx.webrender.svg-simple-clips", true);
++pref("gfx.webrender.svg-mask-propagates-activity", true);
++pref("gfx.webrender.svg-images.opacity", true);
++pref("gfx.webrender.svg-filter-effects.also-convert-css-filters", true);
++pref("gfx.canvas.accelerated", true);
 +// Always show menu bar and view image info.
 +// pref("ui.key.menuAccessKeyFocuses", false);
 +pref("browser.menu.showViewImageInfo", true);
-+// Disable overlay scrollbars on Linux.
++// Disable overlay scrollbars and enable Vulkan HW video decode on Linux.
 +#if defined(XP_LINUX)
 +  pref("widget.gtk.overlay-scrollbars.enabled", false);
++  pref("media.hardware-video-decoding-vulkan.enabled", true);
 +#endif
 +// Enable AVIF
 +pref("image.avif.enabled", true);
@@ -68,20 +85,62 @@
 +// Allow offline apps
 +pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
 +
-+// Betterfox Fastfox.js
++// Betterfox Fastfox.js + Mercury Speed Tuning
 +pref("nglayout.initialpaint.delay", 0); // default=5; used to be 250
 +pref("nglayout.initialpaint.delay_in_oopif", 0); // default=5
++pref("content.notify.ontimer", true);
 +pref("content.notify.interval", 100000); // (.10s); default=120000 (.12s)
++pref("content.notify.backoffcount", -1);
 +pref("layout.css.grid-template-masonry-value.enabled", true);
 +pref("dom.enable_web_task_scheduling", true);
 +pref("layout.css.has-selector.enabled", true);
-+pref("gfx.canvas.accelerated.cache-items", 4096); // default=2048; alt=8192
++pref("gfx.canvas.accelerated.cache-items", 8192); // upstream Firefox 160 default=8192
 +pref("gfx.canvas.accelerated.cache-size", 512); // default=256; alt=1024
-+pref("gfx.content.skia-font-cache-size", 20); // default=5; Chrome=20
++pref("gfx.canvas.accelerated.reserve-empty-cache", 64); // default=36 MB
++pref("gfx.canvas.accelerated.gpu-path-size", 16); // default=4 MB; larger GPU vertex buffer for heavy 2D canvas graphs
++pref("gfx.canvas.accelerated.profile-frames", 0); // never disable GPU Canvas2D acceleration on dynamic animated canvases
++pref("gfx.content.skia-font-cache-size", 32); // default=5; Chrome=20
++pref("layout.frame_rate", -1); // auto-detect 240Hz/high-refresh monitor
++pref("widget.wayland.vsync.enabled", true);
++pref("layout.display-list.build-twice", false);
++pref("layout.display-list.retain", true);
++pref("layout.display-list.retain.sc", true);
++pref("dom.event.pointer.boundary.dispatch_when_layout_change", false);
++pref("general.smoothScroll.msdPhysics.enabled", true);
 +pref("media.memory_cache_max_size", 65536); // default=8192; AF=65536; alt=131072
 +pref("media.cache_readahead_limit", 7200); // 120 min; default=60; stop reading ahead when our buffered data is this many seconds ahead of the current playback
 +pref("media.cache_resume_threshold", 3600); // 60 min; default=30; when a network connection is suspended, don't resume it until the amount of buffered data falls below this threshold
-+pref("image.mem.decode_bytes_at_a_time", 32768); // default=16384; alt=65536; chunk size for calls to the image decoders
++pref("image.mem.decode_bytes_at_a_time", 65536); // default=16384; chunk size for calls to the image decoders
++pref("image.mem.surfacecache.max_size_kb", 2097152);
++pref("image.mem.surfacecache.min_expiration_ms", 120000);
++pref("image.avif.use-dav1d", true);
++// SpiderMonkey JIT, Self-Hosted Cache & GC tuning
++pref("javascript.options.wasm_simd", true);
++pref("javascript.options.wasm_relaxed_simd", true);
++pref("javascript.options.wasm_branch_hinting", true);
++pref("javascript.options.blinterp.threshold", 5); // default=10
++pref("javascript.options.baselinejit.threshold", 25); // default=100
++pref("javascript.options.ion.threshold", 500); // default=1500
++pref("javascript.options.ion.frequent_bailout_threshold", 15); // default=10
++pref("javascript.options.baselinejit.offthread_compilation_strategy", 3); // eager + on-demand OMT baseline
++pref("javascript.options.experimental.self_hosted_cache", true);
++pref("javascript.options.experimental.inline_simple_field_initializers", true);
++pref("javascript.options.mem.nursery.max_kb", 65536); // 64 MB max nursery
++pref("javascript.options.mem.gc_parallel_marking", true);
++pref("javascript.options.compact_on_user_inactive_delay", 60000);
++// Next.js / React / Bundler ScriptLoader off-thread parsing & Stencil cache
++pref("dom.script_loader.external_scripts.speculate_async.enabled", true);
++pref("dom.script_loader.external_scripts.speculate_non_parser_inserted.enabled", true);
++pref("dom.script_loader.experimental.navigation_cache", true);
++pref("dom.script_loader.disk_cache_delay_ms", 3000);
++pref("dom.script_loader.delazification.max_size", -1);
++// Process reuse & SessionStore write throttling
++pref("dom.ipc.processReuse.unusedGraceMs", 5000);
++pref("dom.ipc.processPrelaunch.delayMs", 250);
++pref("browser.sessionstore.interval", 60000);
++pref("browser.cache.disk.index.min_unwritten_changes", 600);
++pref("browser.cache.disk.index.min_dump_interval_ms", 30000);
++// Necko networking, DNS & SSD cache tuning
 +pref("network.buffer.cache.size", 262144); // 256 kb; default=32768 (32 kb)
 +pref("network.buffer.cache.count", 128); // default=24
 +pref("network.http.max-connections", 1800); // default=900
@@ -89,15 +148,26 @@
 +pref("network.http.max-urgent-start-excessive-connections-per-host", 5); // default=3
 +pref("network.websocket.max-connections", 400); // default=200
 +pref("network.http.pacing.requests.enabled", false);
++pref("network.http.rcwn.enabled", false); // SSD/NVMe: avoid racing disk cache with redundant network requests
++pref("network.http.active_tab_priority", true);
 +pref("network.dnsCacheEntries", 10000); // default=400
 +pref("network.dnsCacheExpiration", 86400); // keep entries for 1 day; alt=3600 (1 hour)
-+pref("network.dns.max_high_priority_threads", 8); // default=5
++pref("network.dnsCacheExpirationGracePeriod", 240);
++pref("network.dns.max_high_priority_threads", 40); // restore Firefox 160 default (was throttled to 8)
++pref("network.dns.max_any_priority_threads", 24);
++pref("network.dns.copy_string_before_call", false);
++pref("network.dns.skip_ipv6_when_no_addresses", true);
 +pref("network.ssl_tokens_cache_capacity", 20480); // default=2048; more TLS token caching (fast reconnects)
-+pref("network.http.speculative-parallel-limit", 0);
-+pref("network.dns.disablePrefetch", true);
-+pref("network.prefetch-next", false);
-+pref("network.predictor.enabled", false);
-+pref("network.predictor.enable-prefetch", false);
++// Fast speculative preconnect & DNS prefetch in normal mode (Hardened mode turns these off).
++pref("network.http.speculative-parallel-limit", 20);
++pref("network.dns.disablePrefetch", false);
++pref("network.dns.disablePrefetchFromHTTPS", false);
++pref("network.prefetch-next", true);
++pref("network.predictor.enabled", true);
++pref("network.predictor.enable-prefetch", true);
++pref("network.predictor.enable-hover-on-ssl", true);
++pref("network.early-hints.enabled", true);
++pref("network.early-hints.preconnect.enabled", true);
 +// No Google API keys are compiled into Mercury, so turn off everything that
 +// would talk to Google Safe Browsing or Google geolocation.
 +// Mozilla-hosted lists (provider "mozilla": tracking protection/shavar, and
@@ -451,7 +521,7 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3909,3 +4027,196 @@
+@@ -3909,3 +4041,207 @@
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -612,9 +682,20 @@
 +// Low-cost protections that are on by default. None of them measurably
 +// slows browsing.
 +// Fingerprinting protection (FPP) in normal windows, not just private ones.
-+// Mozilla ships per-site fixes for it through Remote Settings. Defaults (not
-+// user values), so tracking protection still shows "Standard".
++// Keep canvas randomization and screen/touch normalization in normal windows,
++// but don't force software fdlibm for JS Math.* or cap
++// navigator.hardwareConcurrency on multi-core CPUs (Hardened mode clears
++// this override and turns on full RFP).
 +pref("privacy.fingerprintingProtection", true);
++pref("privacy.fingerprintingProtection.overrides", "-JSMathFdlibm,-NavigatorHWConcurrencyTiered,-CanvasRandomization");
++pref("privacy.resistFingerprinting.randomization.canvas.use_siphash", true);
++pref("beacon.enabled", false);
++pref("browser.send_pings", false);
++pref("webgl.enable-debug-renderer-info", false);
++pref("dom.battery.enabled", false);
++pref("dom.gamepad.enabled", false);
++pref("device.sensors.enabled", false);
++pref("network.auth.subresource-http-auth-allow", 1);
 +// Strip known tracking parameters (fbclid, mc_eid, ...) from links in normal
 +// and private windows (Firefox only does this in Strict mode).
 +pref("privacy.query_stripping.enabled", true);

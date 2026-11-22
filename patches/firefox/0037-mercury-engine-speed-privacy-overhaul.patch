@@ -1,0 +1,274 @@
+--- a/dom/canvas/DrawTargetWebgl.h
++++ b/dom/canvas/DrawTargetWebgl.h
+@@ -454,7 +454,11 @@
+ 
+   bool DrawCircleAccel(const Point& aCenter, float aRadius,
+                        const Pattern& aPattern, const DrawOptions& aOptions,
+                        const StrokeOptions* aStrokeOptions = nullptr);
++  bool StrokeCurveAccel(const Point& aP0, const Point& aC1, const Point& aC2,
++                        const Point& aP3, const Pattern& aPattern,
++                        const StrokeOptions& aStrokeOptions,
++                        const DrawOptions& aOptions);
+ 
+   bool DrawGlyphsAccel(ScaledFont* aFont, const GlyphBuffer& aBuffer,
+                        const Pattern& aPattern, const DrawOptions& aOptions,
+--- a/dom/canvas/DrawTargetWebgl.cpp
++++ b/dom/canvas/DrawTargetWebgl.cpp
+@@ -5211,7 +5211,7 @@
+     }
+ 
+     // Finally, draw the uploaded vertex data.
+-    mCurrentTarget->mProfile.OnCacheMiss();
++    mCurrentTarget->mProfile.OnUncachedDraw();
+     return DrawRectAccel(Rect(aIntBounds.TopLeft(), Size(1, 1)), aPattern,
+                          aOptions, Nothing(), nullptr, false, true, true, false,
+                          nullptr, &vertexRange);
+@@ -5549,15 +5549,163 @@
+ bool SharedContextWebgl::DrawCircleAccel(const Point& aCenter, float aRadius,
+                                          const Pattern& aPattern,
+                                          const DrawOptions& aOptions,
+                                          const StrokeOptions* aStrokeOptions) {
++  // Mercury fast-path: directly tessellate solid-color filled circles into
++  // mPathVertexBuffer via AAStroke without WGR quantization or PathCache
++  // heap allocations/evictions (eliminates cache churn on animated radii).
++  if (!aStrokeOptions && mPathVertexCapacity > 0 &&
++      aPattern.GetType() == PatternType::COLOR &&
++      aOptions.mAntialiasMode != AntialiasMode::NONE &&
++      SupportsPattern(aPattern)) {
++    const Matrix& currentTransform = mCurrentTarget->GetTransform();
++    auto scaleFactors = currentTransform.ScaleFactors();
++    if (scaleFactors.AreScalesSame() && scaleFactors.xScale > 0.0f) {
++      Point center = currentTransform.TransformPoint(aCenter);
++      float radius = aRadius * scaleFactors.xScale;
++      if (radius > 0.0f && std::isfinite(radius) &&
++          std::isfinite(center.x) && std::isfinite(center.y)) {
++        Rect bounds(center.x - radius - 1.0f, center.y - radius - 1.0f,
++                    2.0f * radius + 2.0f, 2.0f * radius + 2.0f);
++        IntRect viewport(IntPoint(), mViewportSize);
++        IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
++        if (intBounds.IsEmpty()) {
++          return true;
++        }
++        WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
++        size_t outputBufferCapacity =
++            outputBuffer ? mPathVertexCapacity / sizeof(WGR::OutputVertex) : 0;
++        AAStroke::VertexBuffer vb = AAStroke::aa_stroke_filled_circle(
++            center.x - float(intBounds.x), center.y - float(intBounds.y),
++            radius, (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
++        if (vb.len > 0 && (!outputBuffer || vb.len <= outputBufferCapacity)) {
++          const uint8_t* vbData =
++              vb.data ? (const uint8_t*)vb.data : (const uint8_t*)outputBuffer;
++          uint32_t vertexBytes = uint32_t(
++              std::min(vb.len * sizeof(WGR::OutputVertex), size_t(UINT32_MAX)));
++          if (vertexBytes > mPathVertexCapacity - mPathVertexOffset &&
++              vertexBytes <= mPathVertexCapacity - sizeof(kRectVertexData)) {
++            if (mPathCache) {
++              mPathCache->ClearVertexRanges();
++            }
++            ResetPathVertexBuffer();
++          }
++          if (vertexBytes <= mPathVertexCapacity - mPathVertexOffset) {
++            PathVertexRange vertexRange(
++                uint32_t(mPathVertexOffset / sizeof(WGR::OutputVertex)),
++                uint32_t(vb.len));
++            mWebgl->BufferSubData(LOCAL_GL_ARRAY_BUFFER, mPathVertexOffset,
++                                  vertexBytes, vbData,
++                                  /* unsynchronized */ true);
++            mPathVertexOffset += vertexBytes;
++            AAStroke::aa_stroke_vertex_buffer_release(vb);
++            mCurrentTarget->mProfile.OnUncachedDraw();
++            return DrawRectAccel(Rect(intBounds.TopLeft(), Size(1, 1)),
++                                 aPattern, aOptions, Nothing(), nullptr, false,
++                                 true, true, false, nullptr, &vertexRange);
++          }
++        }
++        AAStroke::aa_stroke_vertex_buffer_release(vb);
++      }
++    }
++  }
+   // Cache a unit circle and transform it to avoid creating a path repeatedly.
+   if (!mUnitCirclePath) {
+     mUnitCirclePath = MakePathForCircle(*mCurrentTarget, Point(0, 0), 1);
+   }
+   // Scale and translate the circle to the desired shape.
+   Matrix circleXform(aRadius, 0, 0, aRadius, aCenter.x, aCenter.y);
+   return DrawPathAccel(mUnitCirclePath, aPattern, aOptions, aStrokeOptions,
+                        true, nullptr, true, &circleXform);
+ }
++
++// Mercury fast-path: directly tessellate single open Bezier curves into
++// mPathVertexBuffer via AAStroke, bypassing WGR::PathBuilder and PathCache.
++bool SharedContextWebgl::StrokeCurveAccel(const Point& aP0, const Point& aC1,
++                                          const Point& aC2, const Point& aP3,
++                                          const Pattern& aPattern,
++                                          const StrokeOptions& aStrokeOptions,
++                                          const DrawOptions& aOptions) {
++  if (!mPathAAStroke || mPathVertexCapacity == 0 ||
++      aOptions.mAntialiasMode == AntialiasMode::NONE ||
++      SupportsAAStroke(aPattern, aOptions, aStrokeOptions, true) !=
++          AAStrokeMode::Geometry) {
++    return false;
++  }
++  const Matrix& currentTransform = mCurrentTarget->GetTransform();
++  auto scaleFactors = currentTransform.ScaleFactors();
++  if (!scaleFactors.AreScalesSame() || scaleFactors.xScale <= 0.0f) {
++    return false;
++  }
++  float strokeWidth = aStrokeOptions.mLineWidth * scaleFactors.xScale;
++  if (strokeWidth <= 0.0f || !std::isfinite(strokeWidth) ||
++      aStrokeOptions.mMiterLimit <= 0.0f ||
++      !std::isfinite(aStrokeOptions.mMiterLimit)) {
++    return false;
++  }
++  Point p0 = currentTransform.TransformPoint(aP0);
++  Point c1 = currentTransform.TransformPoint(aC1);
++  Point c2 = currentTransform.TransformPoint(aC2);
++  Point p3 = currentTransform.TransformPoint(aP3);
++  float pad = strokeWidth + 2.0f;
++  float minX = std::min({p0.x, c1.x, c2.x, p3.x}) - pad;
++  float minY = std::min({p0.y, c1.y, c2.y, p3.y}) - pad;
++  float maxX = std::max({p0.x, c1.x, c2.x, p3.x}) + pad;
++  float maxY = std::max({p0.y, c1.y, c2.y, p3.y}) + pad;
++  Rect bounds(minX, minY, maxX - minX, maxY - minY);
++  if (!RectInsidePrecisionLimits(bounds)) {
++    return false;
++  }
++  IntRect viewport(IntPoint(), mViewportSize);
++  IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
++  if (intBounds.IsEmpty()) {
++    return true;
++  }
++  WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
++  size_t outputBufferCapacity =
++      outputBuffer ? mPathVertexCapacity / sizeof(WGR::OutputVertex) : 0;
++  AAStroke::StrokeStyle style = {strokeWidth,
++                                 ToAAStrokeLineCap(aStrokeOptions.mLineCap),
++                                 ToAAStrokeLineJoin(aStrokeOptions.mLineJoin),
++                                 aStrokeOptions.mMiterLimit};
++  AAStroke::Stroker* stroker = AAStroke::aa_stroke_new(
++      &style, (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
++  Point origin(float(intBounds.x), float(intBounds.y));
++  AAStroke::aa_stroke_move_to(stroker, p0.x - origin.x, p0.y - origin.y, false);
++  AAStroke::aa_stroke_curve_to(stroker, c1.x - origin.x, c1.y - origin.y,
++                               c2.x - origin.x, c2.y - origin.y,
++                               p3.x - origin.x, p3.y - origin.y, true);
++  AAStroke::VertexBuffer vb = AAStroke::aa_stroke_finish(stroker);
++  AAStroke::aa_stroke_release(stroker);
++  if (!vb.len || (outputBuffer && vb.len > outputBufferCapacity)) {
++    AAStroke::aa_stroke_vertex_buffer_release(vb);
++    return false;
++  }
++  const uint8_t* vbData =
++      vb.data ? (const uint8_t*)vb.data : (const uint8_t*)outputBuffer;
++  uint32_t vertexBytes = uint32_t(
++      std::min(vb.len * sizeof(WGR::OutputVertex), size_t(UINT32_MAX)));
++  if (vertexBytes > mPathVertexCapacity - mPathVertexOffset &&
++      vertexBytes <= mPathVertexCapacity - sizeof(kRectVertexData)) {
++    if (mPathCache) {
++      mPathCache->ClearVertexRanges();
++    }
++    ResetPathVertexBuffer();
++  }
++  if (vertexBytes > mPathVertexCapacity - mPathVertexOffset) {
++    AAStroke::aa_stroke_vertex_buffer_release(vb);
++    return false;
++  }
++  PathVertexRange vertexRange(
++      uint32_t(mPathVertexOffset / sizeof(WGR::OutputVertex)),
++      uint32_t(vb.len));
++  mWebgl->BufferSubData(LOCAL_GL_ARRAY_BUFFER, mPathVertexOffset, vertexBytes,
++                        vbData, /* unsynchronized */ true);
++  mPathVertexOffset += vertexBytes;
++  AAStroke::aa_stroke_vertex_buffer_release(vb);
++  mCurrentTarget->mProfile.OnUncachedDraw();
++  return DrawRectAccel(Rect(intBounds.TopLeft(), Size(1, 1)), aPattern,
++                       aOptions, Nothing(), nullptr, false, true, true, false,
++                       nullptr, &vertexRange);
++}
+ 
+ void DrawTargetWebgl::DrawCircle(const Point& aOrigin, float aRadius,
+@@ -5846,21 +5977,50 @@
+   int numVerbs = skiaPath.countVerbs();
+   bool allowStrokeAlpha = false;
+   if (numVerbs >= 2 && numVerbs <= 3) {
+     uint8_t verbs[3];
+     skiaPath.getVerbs({verbs, numVerbs});
+-    if (verbs[0] == SkPath::kMove_Verb && verbs[1] == SkPath::kLine_Verb &&
+-        (numVerbs < 3 || verbs[2] == SkPath::kClose_Verb)) {
+-      bool closed = numVerbs >= 3;
+-      Point start = SkPointToPoint(skiaPath.getPoint(0));
+-      Point end = SkPointToPoint(skiaPath.getPoint(1));
+-      if (StrokeLineAccel(start, end, aPattern, aStrokeOptions, aOptions,
+-                          closed)) {
+-        if (closed) {
+-          StrokeLineAccel(end, start, aPattern, aStrokeOptions, aOptions, true);
++    if (verbs[0] == SkPath::kMove_Verb &&
++        (numVerbs < 3 || verbs[2] == SkPath::kClose_Verb)) {
++      if (verbs[1] == SkPath::kLine_Verb) {
++        bool closed = numVerbs >= 3;
++        Point start = SkPointToPoint(skiaPath.getPoint(0));
++        Point end = SkPointToPoint(skiaPath.getPoint(1));
++        if (StrokeLineAccel(start, end, aPattern, aStrokeOptions, aOptions,
++                            closed)) {
++          if (closed) {
++            StrokeLineAccel(end, start, aPattern, aStrokeOptions, aOptions, true);
++          }
++          return;
+         }
+-        return;
++        // If accelerated line drawing failed, just treat it as a path.
++        allowStrokeAlpha = true;
++      } else if (verbs[1] == SkPath::kQuad_Verb && numVerbs == 2) {
++        Point p0 = SkPointToPoint(skiaPath.getPoint(0));
++        Point q1 = SkPointToPoint(skiaPath.getPoint(1));
++        Point p3 = SkPointToPoint(skiaPath.getPoint(2));
++        Point c1 = p0 + (q1 - p0) * (2.0f / 3.0f);
++        Point c2 = p3 + (q1 - p3) * (2.0f / 3.0f);
++        if (ShouldAccelPath(aOptions, &aStrokeOptions) &&
++            mSharedContext->StrokeCurveAccel(p0, c1, c2, p3, aPattern,
++                                             aStrokeOptions, aOptions)) {
++          return;
++        }
++        allowStrokeAlpha = true;
++      } else if (verbs[1] == SkPath::kCubic_Verb && numVerbs == 2) {
++        Point p0 = SkPointToPoint(skiaPath.getPoint(0));
++        Point c1 = SkPointToPoint(skiaPath.getPoint(1));
++        Point c2 = SkPointToPoint(skiaPath.getPoint(2));
++        Point p3 = SkPointToPoint(skiaPath.getPoint(3));
++        if (ShouldAccelPath(aOptions, &aStrokeOptions) &&
++            mSharedContext->StrokeCurveAccel(p0, c1, c2, p3, aPattern,
++                                             aStrokeOptions, aOptions)) {
++          return;
++        }
++        allowStrokeAlpha = true;
++      } else if (verbs[1] == SkPath::kQuad_Verb ||
++                 verbs[1] == SkPath::kConic_Verb ||
++                 verbs[1] == SkPath::kCubic_Verb) {
++        allowStrokeAlpha = true;
+       }
+-      // If accelerated line drawing failed, just treat it as a path.
+-      allowStrokeAlpha = true;
+     }
+   }
+--- a/toolkit/components/resistfingerprinting/nsRFPService.cpp
++++ b/toolkit/components/resistfingerprinting/nsRFPService.cpp
+@@ -1700,17 +1700,14 @@
+     aCanvasKey.SetLength(32);
+-    aCanvasKey.ClearAndRetainStorage();
+ 
+     // Finally, we use the hash result, image hash data, and the second half of
+     // the random key to generate the 256 bits canvas key.
+     uint64_t digest = static_cast<uint64_t>(hashResult) << 32 | imageHashData;
+     non_crypto::XorShift128PlusRNG rng(
+         digest, *reinterpret_cast<uint64_t*>(randomKey.Elements() + 16));
+ 
++    uint8_t* dst = aCanvasKey.Elements();
+     for (size_t i = 0; i < 4; ++i) {
+       uint64_t val = rng.next();
+-      for (size_t j = 0; j < 8; ++j) {
+-        uint8_t data = static_cast<uint8_t>((val >> (j * 8)) & 0xFF);
+-        aCanvasKey.InsertElementAt((i * 8) + j, data);
+-      }
++      memcpy(dst + (i * 8), &val, sizeof(val));
+     }
+   } else {

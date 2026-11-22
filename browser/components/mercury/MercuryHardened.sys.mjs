@@ -47,6 +47,7 @@ export function hardenedPrefs(prefs) {
     // rounded window sizes, ...) plus letterboxing.
     ["privacy.resistFingerprinting", true],
     ["privacy.resistFingerprinting.letterboxing", true],
+    ["privacy.fingerprintingProtection.overrides", ""],
     // Strict Enhanced Tracking Protection.
     [CB_CATEGORY, "strict"],
     // Delete cookies, site data and cache when Mercury closes. History,
@@ -66,9 +67,15 @@ export function hardenedPrefs(prefs) {
     ["network.trr.uri", dohURI, keepUserDoHProvider],
     ["network.trr.custom_uri", dohURI, keepUserDoHProvider],
     // No connections to sites before you pick them in the address bar or
-    // bookmarks.
+    // bookmarks, and no speculative prefetch/preconnect.
     ["browser.urlbar.speculativeConnect.enabled", false],
     ["browser.places.speculativeConnect.enabled", false],
+    ["network.http.speculative-parallel-limit", 0],
+    ["network.dns.disablePrefetch", true],
+    ["network.dns.disablePrefetchFromHTTPS", true],
+    ["network.prefetch-next", false],
+    ["network.predictor.enabled", false],
+    ["network.predictor.enable-prefetch", false],
     // Show internationalized domain names as punycode (anti-spoofing).
     ["network.IDN_show_punycode", true],
   ];

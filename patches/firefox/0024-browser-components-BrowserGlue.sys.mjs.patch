@@ -30,7 +30,25 @@
      if (!Services.prefs.prefHasUserValue(PREF_PDFJS_ISDEFAULT_CACHE_STATE)) {
        lazy.PdfJs.checkIsDefault(this._isNewProfile);
      }
-@@ -1180,6 +1196,15 @@
+@@ -1096,8 +1108,17 @@
+       },
+ 
+       {
+         name: "ASRouterNewTabHook.createInstance",
++        condition:
++          Services.prefs.getBoolPref(
++            "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons",
++            false
++          ) ||
++          Services.prefs.getBoolPref(
++            "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
++            false
++          ),
+         task: () => {
+           lazy.ASRouterNewTabHook.createInstance(lazy.ASRouterDefaultConfig());
+         },
+       },
+@@ -1180,6 +1197,15 @@
          task: () => Services.sysinfo.diskInfo,
        },
  
