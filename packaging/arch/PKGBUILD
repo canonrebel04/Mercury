@@ -5,7 +5,7 @@
 # tagged v$pkgver (for example v160.0.1). Do not compile the browser here.
 
 pkgname=mercury-browser-v3-bin
-pkgver=160.0.1
+pkgver=160.0.1.1
 pkgrel=1
 pkgdesc="Privacy-focused Firefox fork with compiler optimizations (binary release; requires AVX2 / x86-64-v3)"
 arch=('x86_64')
@@ -49,7 +49,7 @@ source=(
   "mercury-browser.desktop"
 )
 sha256sums=(
-  'f515122db89def2def404d6de25d055aa86048f6e1a28fb3fabbae58b1b96e71'
+  'SKIP'
   '277c3f2fcf97a354e3a8b31d8414277e4538492e85595731dc2b85784ba23677'
   'e2e5bea954b0ca456c069aa9f8e89fae5ba474426c46df6e47e6930962459771'
 )

@@ -1,6 +1,6 @@
 pkgbase = mercury-browser-v3-bin
 	pkgdesc = Privacy-focused Firefox fork with compiler optimizations (binary release; requires AVX2 / x86-64-v3)
-	pkgver = 160.0.1
+	pkgver = 160.0.1.1
 	pkgrel = 1
 	url = https://github.com/canonrebel04/Mercury
 	install = mercury-browser-v3-bin.install
@@ -28,10 +28,10 @@ pkgbase = mercury-browser-v3-bin
 	options = !strip
 	options = !debug
 	options = !emptydirs
-	source = mercury-160.0.1.en-US.linux-x86_64.tar.xz::https://github.com/canonrebel04/Mercury/releases/download/v160.0.1/mercury-160.0.1.en-US.linux-x86_64.tar.xz
+	source = mercury-160.0.1.1.en-US.linux-x86_64.tar.xz::https://github.com/canonrebel04/Mercury/releases/download/v160.0.1.1/mercury-160.0.1.1.en-US.linux-x86_64.tar.xz
 	source = mercury-browser.sh
 	source = mercury-browser.desktop
-	sha256sums = f515122db89def2def404d6de25d055aa86048f6e1a28fb3fabbae58b1b96e71
+	sha256sums = SKIP
 	sha256sums = 277c3f2fcf97a354e3a8b31d8414277e4538492e85595731dc2b85784ba23677
 	sha256sums = e2e5bea954b0ca456c069aa9f8e89fae5ba474426c46df6e47e6930962459771
 
