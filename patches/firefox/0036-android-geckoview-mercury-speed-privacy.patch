@@ -132,10 +132,10 @@ index 9a7364d..6600385 100644
      private fun buildEnvironment(
          region: RegionState,
 diff --git a/mobile/android/app/geckoview-prefs.js b/mobile/android/app/geckoview-prefs.js
-index 3cf841d..be01a6e 100644
+index 3cf841d..f1a6e8e 100644
 --- a/mobile/android/app/geckoview-prefs.js
 +++ b/mobile/android/app/geckoview-prefs.js
-@@ -383,7 +383,178 @@ pref("xpinstall.signatures.required", true);
+@@ -383,7 +383,188 @@ pref("xpinstall.signatures.required", true);
  pref("xpinstall.whitelist.add", "https://addons.mozilla.org");
  pref("xpinstall.whitelist.fileRequest", false);
  
@@ -231,7 +231,8 @@ index 3cf841d..be01a6e 100644
 +pref("privacy.globalprivacycontrol.enabled", true);
 +pref("privacy.fingerprintingProtection", true);
 +pref("privacy.fingerprintingProtection.pbmode", true);
-+pref("privacy.fingerprintingProtection.overrides", "+EfficientCanvasRandomization,-CanvasRandomization,+FontVisibilityLangPack,+ScreenAvailToResolution,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse,+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+Gamepad,+DeviceSensors,+AudioSampleRate,+MediaDevices,+SpeechSynthesis,+NetworkConnection,+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+VideoElementPlaybackQuality,-JSMathFdlibm,-CSSPrefersColorScheme");
++pref("privacy.fingerprintingProtection.overrides", "+EfficientCanvasRandomization,-CanvasRandomization,+CanvasExtractionFromThirdPartiesIsBlocked,+FontVisibilityLangPack,+ScreenAvailToResolution,+WindowScreenXY,+WindowInnerScreenXY,+ScreenPixelDepth,+MouseEventScreenPoint,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse,+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+WebGLRandomization,+WebGLRenderCapability,+Gamepad,+DeviceSensors,+AudioSampleRate,+AudioContext,+MediaDevices,+MediaCapabilities,+WebCodecs,+SpeechSynthesis,+NetworkConnection,+DiskStorageLimit,+UseStandinsForNativeColors,+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+CSSPrefersReducedTransparency,+CSSInvertedColors,+VideoElementPlaybackQuality,+PdfjsSpoof,-JSMathFdlibm,-CSSPrefersColorScheme");
++pref("privacy.fingerprintingProtection.remoteOverrides.enabled", false);
 +pref("privacy.resistFingerprinting.randomization.canvas.use_siphash", true);
 +
 +// AdGuard Ad & Tracker Blocking DNS-over-HTTPS + ECH
@@ -249,6 +250,13 @@ index 3cf841d..be01a6e 100644
 +
 +// Active Bounce Tracking Purge, LNA Defense, Schemeful SameSite, No 0-RTT
 +pref("privacy.bounceTrackingProtection.mode", 1);
++pref("privacy.bounceTrackingProtection.bounceTrackingGracePeriodSec", 300);
++pref("privacy.bounceTrackingProtection.bounceTrackingPurgeTimerPeriodSec", 600);
++pref("dom.storage_access.auto_grants", false);
++pref("dom.storage_access.headers.enabled", false);
++pref("permissions.isolateBy.userContext", true);
++pref("network.connectivity-service.enabled", false);
++pref("network.captive-portal-service.enabled", false);
 +pref("network.lna.blocking", true);
 +pref("network.lna.block_trackers", true);
 +pref("network.lna.block_insecure_contexts", true);
@@ -266,6 +274,8 @@ index 3cf841d..be01a6e 100644
 +pref("beacon.enabled", false);
 +pref("privacy.query_stripping.enabled", true);
 +pref("privacy.query_stripping.enabled.pbmode", true);
++pref("privacy.query_stripping.redirect", true);
++pref("privacy.query_stripping.strip_list", "utm_source utm_medium utm_campaign utm_term utm_content utm_id utm_cid utm_name utm_reader utm_referrer utm_social utm_social-type utm_pubreferrer utm_swu utm_brand utm_channel utm_place gclid gclsrc dclid gbraid wbraid _ga _gl srsltid fbclid igshid igsh fb_action_ids msclkid twclid ttclid rdt_cid li_fat_id sc_cid epik sccid mtm_campaign tw_source tw_campaign mc_cid mc_eid mkt_tok _hsenc _hsmi hsa_acc hsa_cam hsa_grp hsa_ad hsa_src hsa_tgt hsa_kw hsa_mt hsa_net hsa_ver yclid ymclid _openstat __s vero_id vero_conv oly_anon_id oly_enc_id wickedid pk_campaign");
 +pref("privacy.query_stripping.strip_on_share.enabled", true);
 +pref("network.http.referer.XOriginTrimmingPolicy", 2);
 +pref("network.http.referer.disallowCrossSiteRelaxingDefault", true);
@@ -767,10 +777,26 @@ index 256b98f..e4bc5af 100644
 -fun Settings.crashReportOption(): CrashReportOption = CrashReportOption.fromLabel(crashReportChoice)
 +fun Settings.crashReportOption(): CrashReportOption = CrashReportOption.Never
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
-index 1edcf54..771cb70 100644
+index 1edcf54..6977132 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
-@@ -109,17 +109,17 @@ object GeckoProvider {
+@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
+ import mozilla.components.browser.engine.gecko.autofill.GeckoAutocompleteStorageDelegate
+ import mozilla.components.browser.engine.gecko.crash.GeckoCrashPullDelegate
+ import mozilla.components.browser.engine.gecko.ext.toContentBlockingSetting
++import mozilla.components.concept.engine.EngineSession.BounceTrackingProtectionMode
+ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+ import mozilla.components.concept.storage.CreditCardsAddressesStorage
+ import mozilla.components.concept.storage.LoginsStorage
+@@ -22,6 +23,7 @@ import org.mozilla.fenix.Config
+ import org.mozilla.fenix.components.appstate.AppAction
+ import org.mozilla.fenix.ext.components
+ import org.mozilla.fenix.nimbus.FxNimbus
++import org.mozilla.fenix.settings.mercury.MercurySettingsFragment
+ import org.mozilla.geckoview.GeckoRuntime
+ import org.mozilla.geckoview.GeckoRuntimeSettings
+ 
+@@ -109,17 +111,18 @@ object GeckoProvider {
                  .experimentDelegate(NimbusExperimentDelegate())
                  .contentBlocking(
                      policy.toContentBlockingSetting(
@@ -779,7 +805,9 @@ index 1edcf54..771cb70 100644
 +                        queryParameterStripping = context.components.settings.mercuryQueryStripping,
 +                        queryParameterStrippingPrivateBrowsing = context.components.settings.mercuryQueryStripping,
                          queryParameterStrippingAllowList = "",
-                         queryParameterStrippingStripList = "",
+-                        queryParameterStrippingStripList = "",
++                        queryParameterStrippingStripList = MercurySettingsFragment.QUERY_STRIPPING_STRIP_LIST,
++                        bounceTrackingProtectionMode = BounceTrackingProtectionMode.ENABLED,
                          allowListBaselineTrackingProtection =
                              context.components.settings.strictAllowListBaselineTrackingProtection,
                          allowListConvenienceTrackingProtection =
@@ -793,7 +821,7 @@ index 1edcf54..771cb70 100644
                          safeBrowsingRealTimeSimulationHitProbability = 5,
                          safeBrowsingRealTimeSimulationCacheTTLSec = 300,
                          safeBrowsingRealTimeSimulationNegativeCacheEnabled = false,
-@@ -128,7 +128,7 @@ object GeckoProvider {
+@@ -128,7 +131,7 @@ object GeckoProvider {
                  )
                  .consoleOutput(context.components.settings.enableGeckoLogs)
                  .debugLogging(Config.channel.isDebug || context.components.settings.enableGeckoLogs)

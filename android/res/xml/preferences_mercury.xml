@@ -65,6 +65,27 @@
             android:title="@string/mercury_query_stripping_title"
             android:summary="@string/mercury_query_stripping_summary" />
 
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_redirect_query_stripping"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_redirect_query_stripping_title"
+            android:summary="@string/mercury_redirect_query_stripping_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_block_storage_access_autogrants"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_block_storage_access_autogrants_title"
+            android:summary="@string/mercury_block_storage_access_autogrants_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_captive_portal"
+            app:iconSpaceReserved="false"
+            android:defaultValue="false"
+            android:title="@string/mercury_captive_portal_title"
+            android:summary="@string/mercury_captive_portal_summary" />
+
         <androidx.preference.ListPreference
             android:key="@string/pref_key_mercury_doh_provider"
             app:iconSpaceReserved="false"

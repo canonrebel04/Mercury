@@ -115,6 +115,33 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
             }
         }
 
+        findSwitch(R.string.pref_key_mercury_redirect_query_stripping)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("privacy.query_stripping.redirect", newValue as Boolean)
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_block_storage_access_autogrants)?.setOnPreferenceChangeListener { _, newValue ->
+            val block = newValue as Boolean
+            setGeckoPrefs(
+                listOf(
+                    SetBrowserPreference.setBoolPref("dom.storage_access.auto_grants", !block, Branch.USER),
+                    SetBrowserPreference.setBoolPref("dom.storage_access.headers.enabled", !block, Branch.USER),
+                ),
+            )
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_captive_portal)?.setOnPreferenceChangeListener { _, newValue ->
+            val enabled = newValue as Boolean
+            setGeckoPrefs(
+                listOf(
+                    SetBrowserPreference.setBoolPref("network.captive-portal-service.enabled", enabled, Branch.USER),
+                    SetBrowserPreference.setBoolPref("network.connectivity-service.enabled", enabled, Branch.USER),
+                ),
+            )
+            true
+        }
+
         findList(R.string.pref_key_mercury_doh_provider)?.apply {
             value = currentDohPresetValue()
             setOnPreferenceChangeListener { _, newValue ->
@@ -206,6 +233,11 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
 
         val prefNames =
             listOf(
+                "privacy.query_stripping.redirect",
+                "dom.storage_access.auto_grants",
+                "dom.storage_access.headers.enabled",
+                "network.captive-portal-service.enabled",
+                "network.connectivity-service.enabled",
                 "media.peerconnection.enabled",
                 "webgl.disabled",
                 "media.eme.enabled",
@@ -220,6 +252,21 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
             onSuccess = { prefs ->
                 if (!isAdded) return@getBrowserPrefs
                 val byName = prefs.associateBy { it.pref }
+                (byName["privacy.query_stripping.redirect"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_redirect_query_stripping)?.isChecked = it
+                }
+                val autoGrants = byName["dom.storage_access.auto_grants"]?.value as? Boolean
+                val saHeaders = byName["dom.storage_access.headers.enabled"]?.value as? Boolean
+                if (autoGrants != null || saHeaders != null) {
+                    findSwitch(R.string.pref_key_mercury_block_storage_access_autogrants)?.isChecked =
+                        (autoGrants == false) && (saHeaders != true)
+                }
+                val captivePortal = byName["network.captive-portal-service.enabled"]?.value as? Boolean
+                val connectivity = byName["network.connectivity-service.enabled"]?.value as? Boolean
+                if (captivePortal != null || connectivity != null) {
+                    findSwitch(R.string.pref_key_mercury_captive_portal)?.isChecked =
+                        (captivePortal == true) || (connectivity == true)
+                }
                 (byName["media.peerconnection.enabled"]?.value as? Boolean)?.let {
                     findSwitch(R.string.pref_key_mercury_webrtc)?.isChecked = it
                 }
@@ -565,12 +612,23 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
         const val RFP_PRESERVE_THEME_OVERRIDE = "-CSSPrefersColorScheme"
 
         const val CROWD_BLEND_OVERRIDES =
-            "+EfficientCanvasRandomization,-CanvasRandomization,+FontVisibilityLangPack," +
-                "+ScreenAvailToResolution,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse," +
-                "+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+Gamepad,+DeviceSensors," +
-                "+AudioSampleRate,+MediaDevices,+SpeechSynthesis,+NetworkConnection,+CSSColorInfo," +
-                "+CSSVideoDynamicRange,+CSSPointerCapabilities,+VideoElementPlaybackQuality," +
-                "-JSMathFdlibm,-CSSPrefersColorScheme"
+            "+EfficientCanvasRandomization,-CanvasRandomization,+CanvasExtractionFromThirdPartiesIsBlocked," +
+                "+FontVisibilityLangPack,+ScreenAvailToResolution,+WindowScreenXY,+WindowInnerScreenXY," +
+                "+ScreenPixelDepth,+MouseEventScreenPoint,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse," +
+                "+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+WebGLRandomization,+WebGLRenderCapability," +
+                "+Gamepad,+DeviceSensors,+AudioSampleRate,+AudioContext,+MediaDevices,+MediaCapabilities," +
+                "+WebCodecs,+SpeechSynthesis,+NetworkConnection,+DiskStorageLimit,+UseStandinsForNativeColors," +
+                "+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+CSSPrefersReducedTransparency," +
+                "+CSSInvertedColors,+VideoElementPlaybackQuality,+PdfjsSpoof,-JSMathFdlibm,-CSSPrefersColorScheme"
+
+        const val QUERY_STRIPPING_STRIP_LIST =
+            "utm_source utm_medium utm_campaign utm_term utm_content utm_id utm_cid utm_name utm_reader " +
+                "utm_referrer utm_social utm_social-type utm_pubreferrer utm_swu utm_brand utm_channel " +
+                "utm_place gclid gclsrc dclid gbraid wbraid _ga _gl srsltid fbclid igshid igsh " +
+                "fb_action_ids msclkid twclid ttclid rdt_cid li_fat_id sc_cid epik sccid mtm_campaign " +
+                "tw_source tw_campaign mc_cid mc_eid mkt_tok _hsenc _hsmi hsa_acc hsa_cam hsa_grp " +
+                "hsa_ad hsa_src hsa_tgt hsa_kw hsa_mt hsa_net hsa_ver yclid ymclid _openstat __s " +
+                "vero_id vero_conv oly_anon_id oly_enc_id wickedid pk_campaign"
 
         private val KNOWN_DOH_URIS =
             setOf(

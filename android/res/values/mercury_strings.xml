@@ -15,6 +15,9 @@
     <string name="pref_key_mercury_https_only" translatable="false">pref_key_mercury_https_only</string>
     <string name="pref_key_mercury_strict_etp" translatable="false">pref_key_mercury_strict_etp</string>
     <string name="pref_key_mercury_query_stripping" translatable="false">pref_key_mercury_query_stripping</string>
+    <string name="pref_key_mercury_redirect_query_stripping" translatable="false">pref_key_mercury_redirect_query_stripping</string>
+    <string name="pref_key_mercury_block_storage_access_autogrants" translatable="false">pref_key_mercury_block_storage_access_autogrants</string>
+    <string name="pref_key_mercury_captive_portal" translatable="false">pref_key_mercury_captive_portal</string>
     <string name="pref_key_mercury_doh_provider" translatable="false">pref_key_mercury_doh_provider</string>
     <string name="pref_key_mercury_open_doh" translatable="false">pref_key_mercury_open_doh</string>
     <string name="pref_key_mercury_open_etp" translatable="false">pref_key_mercury_open_etp</string>
@@ -75,7 +78,16 @@
     <string name="mercury_strict_etp_summary">Blocks known trackers, social trackers, cryptominers, fingerprinters, and bounce trackers</string>
 
     <string name="mercury_query_stripping_title">Query Parameter Stripping</string>
-    <string name="mercury_query_stripping_summary">Automatically removes cross-site tracking parameters (fbclid, gclid, utm_*, etc.) from URLs</string>
+    <string name="mercury_query_stripping_summary">Automatically removes 65 curated cross-site tracking parameters (fbclid, gclid, utm_*, etc.) from URLs</string>
+
+    <string name="mercury_redirect_query_stripping_title">Redirect Query Parameter Stripping</string>
+    <string name="mercury_redirect_query_stripping_summary">Strip tracking query parameters across intermediate HTTP redirect chains</string>
+
+    <string name="mercury_block_storage_access_autogrants_title">Block Silent Storage Access Auto-Grants</string>
+    <string name="mercury_block_storage_access_autogrants_summary">Block heuristic Storage Access API auto-grants and Sec-Fetch-Storage-Access headers</string>
+
+    <string name="mercury_captive_portal_title">Captive Portal Detection (Hotel/Airport Wi-Fi)</string>
+    <string name="mercury_captive_portal_summary">Off by default to eliminate background connectivity probes; enable temporarily on captive Wi-Fi networks</string>
 
     <string name="mercury_doh_provider_title">DNS-over-HTTPS Provider</string>
     <string name="mercury_doh_provider_dialog_title">Select DNS-over-HTTPS Provider</string>
