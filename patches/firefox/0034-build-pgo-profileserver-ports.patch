@@ -1,6 +1,43 @@
+diff --git a/build/pgo/index.html b/build/pgo/index.html
+index c6255ea..cc6e37c 100644
+--- a/build/pgo/index.html
++++ b/build/pgo/index.html
+@@ -8,8 +8,10 @@
+   var defaultTimeout = 2 * 1000;
+   var extendedTimeout = 2 * 60 * 1000;
+   var superExtendedTimeout = 5 * 60 * 1000;
+-  var hasExtendedCorpus =
+-    new URLSearchParams(location.search).get("extendedCorpus") == "true";
++  var searchParams = new URLSearchParams(location.search);
++  var hasExtendedCorpus = searchParams.get("extendedCorpus") == "true";
++  var sp3Port = searchParams.get("sp3Port") || "8000";
++  var js3Port = searchParams.get("js3Port") || "8001";
+ 
+   // How long to keep an item open after it signals that it is done, so that
+   // trailing work such as painting still gets profiled.
+@@ -213,7 +215,7 @@
+       "benchmark"
+     ),
+     new Item(
+-      "http://localhost:8000/index.html?startAutomatically=true",
++      "http://localhost:" + sp3Port + "/index.html?startAutomatically=true",
+       extendedTimeout,
+       "benchmark"
+     ),
+@@ -228,7 +230,7 @@
+   if (hasExtendedCorpus) {
+     items.push(
+       new Item(
+-        "http://localhost:8001/index.html?startAutomatically=true&testIterationCount=3&worstCaseCount=1",
++        "http://localhost:" + js3Port + "/index.html?startAutomatically=true&testIterationCount=3&worstCaseCount=1",
+         superExtendedTimeout,
+         "benchmark"
+       )
+diff --git a/build/pgo/profileserver.py b/build/pgo/profileserver.py
+index 93ec87e..e89d186 100644
 --- a/build/pgo/profileserver.py
 +++ b/build/pgo/profileserver.py
-@@ -17,7 +17,24 @@
+@@ -18,7 +18,24 @@ from mozprofile import FirefoxProfile, Preferences
  from mozprofile.permissions import ServerLocations
  from mozrunner import CLI, FirefoxRunner
  
@@ -26,16 +63,17 @@
  
  PATH_MAPPINGS = {
      "/webkit/PerformanceTests": "third_party/webkit/PerformanceTests",
-@@ -111,14 +128,14 @@
-     # Speedometer3 must run in its own server. The benchmark assumes that it
+@@ -173,7 +190,7 @@ if __name__ == "__main__":
      # is in a root path, and will fail if it's not.
+     sp3_dir = os.path.join(webkit_dir, "Speedometer3")
      sp3_httpd = MozHttpd(
 -        port=8000,
 +        port=SP3_PORT,
-         docroot=os.path.join(
-             build.topsrcdir, "third_party", "webkit", "PerformanceTests", "Speedometer3"
-         ),
+         docroot=sp3_dir,
          path_mappings=path_mappings,
+         urlhandlers=[
+@@ -185,7 +202,7 @@ if __name__ == "__main__":
+         ],
      )
      sp3_httpd.start(block=False)
 -    print("started SP3 server on port 8000")
@@ -43,13 +81,17 @@
  
      if has_extended_corpus:
          js3_dir = os.path.join(extended_corpus_dir, "JetStream")
-@@ -130,11 +147,11 @@
+@@ -197,7 +214,7 @@ if __name__ == "__main__":
          # JetStream3 must run in its own server. The benchmark assumes that it
          # is in a root path, and will fail if it's not.
          js3_httpd = MozHttpd(
 -            port=8001,
 +            port=JS3_PORT,
              docroot=js3_dir,
+             urlhandlers=[
+                 benchmark_done_handler(
+@@ -208,7 +225,7 @@ if __name__ == "__main__":
+             ],
          )
          js3_httpd.start(block=False)
 -        print("started JS3 server on port 8001")
@@ -57,7 +99,7 @@
  
      locations = ServerLocations()
      locations.add_host(host="127.0.0.1", port=PORT, options="primary,privileged")
-@@ -230,8 +247,8 @@
+@@ -304,8 +321,8 @@ if __name__ == "__main__":
                  env["UPLOAD_PATH"], "profile-run-2.log"
              )
          cmdargs = [
@@ -68,36 +110,3 @@
          ]
          runner = FirefoxRunner(
              profile=profile,
---- a/build/pgo/index.html
-+++ b/build/pgo/index.html
-@@ -8,8 +8,10 @@
-   var defaultTimeout = 2 * 1000;
-   var extendedTimeout = 2 * 60 * 1000;
-   var superExtendedTimeout = 5 * 60 * 1000;
--  var hasExtendedCorpus =
--    new URLSearchParams(location.search).get("extendedCorpus") == "true";
-+  var searchParams = new URLSearchParams(location.search);
-+  var hasExtendedCorpus = searchParams.get("extendedCorpus") == "true";
-+  var sp3Port = searchParams.get("sp3Port") || "8000";
-+  var js3Port = searchParams.get("js3Port") || "8001";
- 
-   function waitTimeout(time) {
-     return new Promise(resolve => {
-@@ -123,7 +125,7 @@
-   items.push(
-     new Item("webkit/PerformanceTests/Speedometer/index.html", extendedTimeout),
-     new Item(
--      "http://localhost:8000/index.html?startAutomatically=true",
-+      "http://localhost:" + sp3Port + "/index.html?startAutomatically=true",
-       extendedTimeout
-     ),
-     new Item(
-@@ -136,7 +138,7 @@
-   if (hasExtendedCorpus) {
-     items.push(
-       new Item(
--        "http://localhost:8001/index.html?startAutomatically=true&testIterationCount=3&worstCaseCount=1",
-+        "http://localhost:" + js3Port + "/index.html?startAutomatically=true&testIterationCount=3&worstCaseCount=1",
-         superExtendedTimeout
-       )
-     );

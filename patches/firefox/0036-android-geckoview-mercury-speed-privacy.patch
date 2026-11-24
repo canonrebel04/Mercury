@@ -1,5 +1,5 @@
 diff --git a/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt b/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt
-index 9a7364d..6600385 100644
+index 04bfba3..5cf0811 100644
 --- a/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt
 +++ b/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt
 @@ -6,6 +6,9 @@ package mozilla.components.feature.search.storage
@@ -12,30 +12,32 @@ index 9a7364d..6600385 100644
  import java.util.Locale
  import kotlin.coroutines.CoroutineContext
  import kotlinx.coroutines.withContext
-@@ -88,11 +91,17 @@ class SearchEngineSelectorRepository(
-                 val searchConfig = selector.filterEngineConfiguration(config)
-                 val iconsList = searchConfigIconsUpdateService.fetchIconsRecords(searchEngineSelectorConfig.service)
-                 val searchEngineList =
--                    buildSearchEngineList(
--                        searchConfig = searchConfig,
--                        iconsList = iconsList,
-+                    buildMercurySearchEngineList(
-+                        upstream =
-+                            buildSearchEngineList(
-+                                searchConfig = searchConfig,
-+                                iconsList = iconsList,
-+                            ),
-                     )
--                val defaultEngineId = searchConfig.appDefaultEngineId ?: searchConfig.engines.first().identifier
+@@ -92,19 +95,32 @@ class SearchEngineSelectorRepository(
+     ): Bundle =
+         withContext(coroutineContext) {
+             try {
+-                return@withContext if (searchEngineSelectorConfig.useSearchConfigV3) {
+-                    loadV3(region, locale, distribution)
+-                } else {
+-                    loadV2(region, locale, distribution)
+-                }
++                val upstream =
++                    if (searchEngineSelectorConfig.useSearchConfigV3) {
++                        loadV3(region, locale, distribution)
++                    } else {
++                        loadV2(region, locale, distribution)
++                    }
++                val searchEngineList = buildMercurySearchEngineList(upstream = upstream.list)
 +                val defaultEngineId =
 +                    searchEngineList.firstOrNull { it.id == "ddg" }?.id
 +                        ?: searchEngineList.firstOrNull()?.id
 +                        ?: "ddg"
- 
-                 return@withContext Bundle(
-                     list = searchEngineList,
-@@ -101,13 +110,92 @@ class SearchEngineSelectorRepository(
-                 )
++
++                return@withContext Bundle(
++                    list = searchEngineList,
++                    defaultSearchEngineId = defaultEngineId,
++                    searchEnvironmentId = upstream.searchEnvironmentId,
++                )
              } catch (_: Exception) {
                  logger.error("exception in SearchEngineSelectorRepository.load")
 +                val fallbackList = buildMercurySearchEngineList(emptyList())
@@ -49,8 +51,14 @@ index 9a7364d..6600385 100644
 -                list = emptyList(),
 -                defaultSearchEngineId = "",
 -                searchEnvironmentId = null,
-+        }
-+
+-            )
+         }
+ 
+     private fun loadV2(region: RegionState, locale: Locale, distribution: String?): Bundle {
+@@ -163,6 +179,84 @@ class SearchEngineSelectorRepository(
+         )
+     }
+ 
 +    private fun makeBadgeIcon(label: String, bgHex: String): Bitmap {
 +        val size = 64
 +        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -115,7 +123,7 @@ index 9a7364d..6600385 100644
 +                suggestUrl = null,
 +                trendingUrl = null,
 +                isGeneral = true,
-             )
++            )
 +        }.toMutableList()
 +
 +        // Keep Wikipedia if present upstream; drop Google/Bing duplicates & eBay/Amazon/Perplexity
@@ -125,12 +133,13 @@ index 9a7364d..6600385 100644
 +            if (low.startsWith("wikipedia") && e.id !in usedIds && blockedPrefixes.none { low.startsWith(it) }) {
 +                result.add(e)
 +            }
-         }
++        }
 +        return result
 +    }
- 
++
      private fun buildEnvironment(
          region: RegionState,
+         locale: Locale,
 diff --git a/mobile/android/app/geckoview-prefs.js b/mobile/android/app/geckoview-prefs.js
 index 3cf841d..05bd11c 100644
 --- a/mobile/android/app/geckoview-prefs.js
@@ -348,7 +357,7 @@ index 3cf841d..05bd11c 100644
 +pref("network.predictor.enabled", true);
 +pref("network.predictor.enable-prefetch", true);
 diff --git a/mobile/android/fenix/app/build.gradle b/mobile/android/fenix/app/build.gradle
-index 03399d0..433f5f7 100644
+index 09fbed0..88b92ad 100644
 --- a/mobile/android/fenix/app/build.gradle
 +++ b/mobile/android/fenix/app/build.gradle
 @@ -47,7 +47,7 @@ android {
@@ -360,7 +369,7 @@ index 03399d0..433f5f7 100644
          minSdk config.minSdkVersion
          targetSdk config.targetSdkVersion
          versionCode 1
-@@ -109,7 +109,7 @@ android {
+@@ -110,7 +110,7 @@ android {
          debug {
              shrinkResources = false
              minifyEnabled = false
@@ -369,7 +378,7 @@ index 03399d0..433f5f7 100644
              resValue "bool", "IS_DEBUG", "true"
              pseudoLocalesEnabled = true
          }
-@@ -141,18 +141,10 @@ android {
+@@ -142,18 +142,10 @@ android {
          }
          release releaseTemplate >> {
              buildConfigField "boolean", "USE_RELEASE_VERSIONING", "true"
@@ -391,7 +400,7 @@ index 03399d0..433f5f7 100644
              ])
          }
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
-index dd13cf1..6c55566 100644
+index dffadf4..307e682 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
 @@ -11,13 +11,13 @@ object FeatureFlags {
@@ -410,16 +419,18 @@ index dd13cf1..6c55566 100644
  
      /**
       * Disables the Onboarding feature for debug builds by default. Set this to `true` if you need to access the
-@@ -25,5 +25,6 @@ object FeatureFlags {
+@@ -25,7 +25,8 @@ object FeatureFlags {
       *
       * ⚠️ DO NOT MODIFY THIS FLAG IN PRODUCTION.
       */
 -    val onboardingFeatureEnabled = !Config.channel.isDebug
 +    // Mercury: disable first-run onboarding carousel (ToS/Sync/Marketing) by default.
 +    val onboardingFeatureEnabled = false
- }
+ 
+     /** Enables haptic feedback during onboarding. */
+     val onboardingHapticsEnabled = Config.channel.isNightlyOrDebug
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt
-index 375166f..60a2f21 100644
+index c7a9683..58d1bad 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt
 @@ -63,6 +63,7 @@ import androidx.compose.ui.focus.focusRequester
@@ -451,10 +462,10 @@ index 375166f..60a2f21 100644
  
          OutlinedButton(
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt
-index 6774a4e..7845908 100644
+index e72e6b9..4f8a714 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt
-@@ -127,38 +127,21 @@ class Analytics(
+@@ -130,38 +130,21 @@ class Analytics(
                  null
              }
  
@@ -502,18 +513,18 @@ index 6774a4e..7845908 100644
      }
  
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
-index e3007a5..122461d 100644
+index f41f6dc..d37f884 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
-@@ -139,6 +139,7 @@ import org.mozilla.fenix.perf.StrictModeManager
- import org.mozilla.fenix.perf.lazyMonitored
+@@ -137,6 +137,7 @@ import org.mozilla.fenix.nimbus.FxNimbus
+ import org.mozilla.fenix.perf.StrictModeManager
  import org.mozilla.fenix.settings.advanced.getSelectedLocale
  import org.mozilla.fenix.settings.downloads.DownloadLocationManager
 +import org.mozilla.fenix.settings.mercury.MercurySettingsFragment
  import org.mozilla.fenix.share.DefaultSentFromFirefoxManager
  import org.mozilla.fenix.share.DefaultSentFromStorage
  import org.mozilla.fenix.share.SaveToPDFMiddleware
-@@ -192,14 +193,18 @@ class Core(
+@@ -190,14 +191,18 @@ class Core(
                  dohDefaultProviderUrl = context.components.settings.dohDefaultProviderUrl,
                  dohExceptionsList = context.components.settings.dohExceptionsList.toList(),
                  globalPrivacyControlEnabled = context.components.settings.shouldEnableGlobalPrivacyControl,
@@ -534,7 +545,7 @@ index e3007a5..122461d 100644
                  fetchPriorityEnabled = true,
                  parallelMarkingEnabled = FxNimbus.features.javascript.value().parallelMarkingEnabled,
                  certificateTransparencyMode = FxNimbus.features.pki.value().certificateTransparencyMode,
-@@ -221,42 +226,19 @@ class Core(
+@@ -219,42 +224,19 @@ class Core(
                  useContentBlockingDatabase = true,
              )
  
@@ -666,7 +677,7 @@ index 7ec39a4..51c7166 100644
  
      companion object {
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt
-index 5768a9f..136a2c5 100644
+index 13c2c6c..074ae45 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt
 @@ -40,6 +40,7 @@ import mozilla.components.service.fxa.store.SyncState
@@ -677,43 +688,42 @@ index 5768a9f..136a2c5 100644
  import org.mozilla.fenix.NavGraphDirections
  import org.mozilla.fenix.R
  import org.mozilla.fenix.components.menu.MenuAccessPoint
-@@ -67,17 +68,22 @@ class MozillaAccountMenuItemProvider(
+@@ -69,18 +70,25 @@ class MozillaAccountMenuItemProvider(
              )
              ?.let(::MenuItemIconDrawable)
              ?: MenuItemIconRes(iconsR.drawable.mozac_ic_avatar_warning_circle_fill_multicolor_24)
--    private val mutableItem = MutableStateFlow(syncStore.state.toMenuItem())
++    // Mercury: the account/Sync menu entry is hidden unless the user opts in.
 +    private val showSyncUi =
 +        (context.applicationContext as? FenixApplication)?.components?.settings?.mercuryShowSyncUi == true
 +
-+    private val mutableItem = MutableStateFlow<MenuItem?>(if (showSyncUi) syncStore.state.toMenuItem() else null)
+     private val mutableItems: MutableStateFlow<List<MenuItem>>? =
+-        if (target == MenuTarget.CustomizeMenu) {
++        if (target == MenuTarget.CustomizeMenu || !showSyncUi) {
+             null
+         } else {
+             MutableStateFlow(listOf(syncStore.state.toMenuItem()))
+         }
  
-     override val itemFlow: StateFlow<MenuItem?> = mutableItem.asStateFlow()
+     override val itemsFlow: StateFlow<List<MenuItem>> =
+-        mutableItems?.asStateFlow() ?: MutableStateFlow(listOf(DEFAULT_MENU_ITEM)).asStateFlow()
++        when {
++            !showSyncUi -> MutableStateFlow(emptyList<MenuItem>()).asStateFlow()
++            else -> mutableItems?.asStateFlow() ?: MutableStateFlow(listOf(DEFAULT_MENU_ITEM)).asStateFlow()
++        }
  
      init {
--        scope.launch {
--            syncStore.stateFlow
--                .distinctUntilChangedBy { it.account to it.accountState }
--                .collectLatest { state ->
--                    updateMenuItem(state)
--                }
-+        if (showSyncUi) {
-+            scope.launch {
-+                syncStore.stateFlow
-+                    .distinctUntilChangedBy { it.account to it.accountState }
-+                    .collectLatest { state ->
-+                        updateMenuItem(state)
-+                    }
-+            }
-         }
-     }
- 
+-        if (target != MenuTarget.CustomizeMenu) {
++        if (showSyncUi && target != MenuTarget.CustomizeMenu) {
+             scope.launch {
+                 syncStore.stateFlow
+                     .distinctUntilChangedBy { it.account to it.accountState }
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt
-index 25211dc..729fcad 100644
+index cf262ac..ed96677 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt
-@@ -549,12 +549,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
-                                 canGoForward = selectedTab?.content?.canGoForward ?: true,
+@@ -562,12 +562,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                  extensionsMenuItemDescription = extensionsMenuItemDescription,
+                                 pendingExtensionUpdatesDescription = pendingExtensionUpdatesDescription,
                                  scrollState = scrollState,
 -                                showBanner = shouldShowMenuBanner && !defaultBrowser,
 +                                showBanner = false,
@@ -728,10 +738,10 @@ index 25211dc..729fcad 100644
                                  onMozillaAccountButtonClick = {
                                      menuStore.dispatch(
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt
-index aec18f5..ecd7dc6 100644
+index 7c21920..c040a3c 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt
-@@ -149,6 +149,7 @@ fun MainMenu(
+@@ -151,6 +151,7 @@ fun MainMenu(
      webExtensionMenuCount: Int,
      showIPProtection: Boolean,
      showPasswords: Boolean,
@@ -739,7 +749,7 @@ index aec18f5..ecd7dc6 100644
      ipProtectionMenuState: IPProtectionMenuState,
      onMoreMenuClick: () -> Unit,
      onCustomizeReaderViewMenuClick: () -> Unit,
-@@ -317,11 +318,13 @@ fun MainMenu(
+@@ -322,11 +323,13 @@ fun MainMenu(
          )
  
          MenuGroup {
@@ -1418,10 +1428,10 @@ index 420b369..4f868d7 100644
      override fun userPostponedAndWithinCooldownPeriod(currentTimeMillis: Long): Boolean {
          val durationSinceLastPrompt = currentTimeMillis - settings.lastTermsOfUsePromptTimeInMillis
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-index c8f3815..4a048e6 100644
+index 5630e49..8981d42 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-@@ -170,14 +170,61 @@ class Settings(
+@@ -169,14 +169,61 @@ class Settings(
          /** DoH is disabled, corresponds to TRR_MODE_DISABLED (5) from GeckoView */
          private const val DOH_SETTINGS_OFF = 5
  
@@ -1484,7 +1494,7 @@ index c8f3815..4a048e6 100644
  
      override val preferences: SharedPreferences = appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
  
-@@ -201,7 +248,7 @@ class Settings(
+@@ -200,7 +247,7 @@ class Settings(
          lazyFeatureFlagBooleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
              featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
@@ -1493,7 +1503,7 @@ index c8f3815..4a048e6 100644
          )
  
      /** Indicates what simple toolbar shortcut key is currently selected. */
-@@ -256,7 +303,9 @@ class Settings(
+@@ -255,7 +302,9 @@ class Settings(
  
      /** Indicates whether or not the "Synced Tabs" section should be shown on the home screen. */
      val showSyncedTabs: Boolean
@@ -1504,7 +1514,7 @@ index c8f3815..4a048e6 100644
  
      /** Indicates whether or not the "Collections" section should be shown on the home screen. */
      val collections: Boolean
-@@ -714,7 +763,7 @@ class Settings(
+@@ -692,7 +741,7 @@ class Settings(
      var crashReportChoice by
          stringPreference(
              appContext.getPreferenceKey(R.string.pref_key_crash_reporting_choice),
@@ -1513,7 +1523,7 @@ index c8f3815..4a048e6 100644
          )
  
      val isRemoteDebuggingEnabled by
-@@ -723,17 +772,14 @@ class Settings(
+@@ -701,17 +750,14 @@ class Settings(
              default = false,
          )
  
@@ -1538,7 +1548,7 @@ index c8f3815..4a048e6 100644
  
      var hasMadeMarketingTelemetrySelection by
          booleanPreference(
-@@ -741,10 +787,11 @@ class Settings(
+@@ -719,10 +765,11 @@ class Settings(
              default = false,
          )
  
@@ -1551,7 +1561,7 @@ index c8f3815..4a048e6 100644
              persistDefaultIfNotExists = true,
          )
  
-@@ -785,11 +832,11 @@ class Settings(
+@@ -763,11 +810,11 @@ class Settings(
              default = { if (hasAcceptedTermsOfService) TOU_VERSION else 0 },
          )
  
@@ -1565,7 +1575,7 @@ index c8f3815..4a048e6 100644
          )
  
      /** Returns true if the nimbus flag for showing the terms of use drag handle is true. */
-@@ -852,18 +899,14 @@ class Settings(
+@@ -830,18 +877,14 @@ class Settings(
       * because this setting was added in early 2025 and we want to make sure that users who upgrade and had telemetry
       * disabled don't start sending the daily usage ping telemetry.
       */
@@ -1591,7 +1601,7 @@ index c8f3815..4a048e6 100644
  
      /**
       * This lets us know if the user has disabled experimentation manually so that we know if we should re-enable
-@@ -883,7 +926,7 @@ class Settings(
+@@ -861,7 +904,7 @@ class Settings(
      var isRolloutsEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_rollouts),
@@ -1600,7 +1610,7 @@ index c8f3815..4a048e6 100644
          )
  
      /**
-@@ -1087,14 +1130,14 @@ class Settings(
+@@ -1065,14 +1108,14 @@ class Settings(
      var isLnaBlockingEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_blocking_enabled),
@@ -1617,7 +1627,7 @@ index c8f3815..4a048e6 100644
          )
  
      /**
-@@ -1106,7 +1149,7 @@ class Settings(
+@@ -1084,7 +1127,7 @@ class Settings(
      var isLnaFeatureEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_feature_enabled),
@@ -1626,7 +1636,7 @@ index c8f3815..4a048e6 100644
          )
  
      /** Indicates whether isolated content processes are enabled or not. */
-@@ -1321,7 +1364,7 @@ class Settings(
+@@ -1299,7 +1342,7 @@ class Settings(
      var shouldEnableGlobalPrivacyControl by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_privacy_enable_global_privacy_control),
@@ -1635,7 +1645,7 @@ index c8f3815..4a048e6 100644
          )
  
      /**
-@@ -1352,13 +1395,13 @@ class Settings(
+@@ -1330,13 +1373,13 @@ class Settings(
      val useStandardTrackingProtection by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_tracking_protection_standard_option),
@@ -1651,7 +1661,7 @@ index c8f3815..4a048e6 100644
          )
  
      val useCustomTrackingProtection by
-@@ -1789,7 +1832,7 @@ class Settings(
+@@ -1767,7 +1810,7 @@ class Settings(
      val shouldShowSearchSuggestions by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions),
@@ -1660,7 +1670,7 @@ index c8f3815..4a048e6 100644
          )
  
      val shouldAutocompleteInAwesomebar by
-@@ -1814,14 +1857,14 @@ class Settings(
+@@ -1807,14 +1850,14 @@ class Settings(
      internal var trendingSearchSuggestionsEnabled by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_show_trending_search_suggestions),
@@ -1677,7 +1687,7 @@ index c8f3815..4a048e6 100644
          )
  
      var showSearchSuggestionsInPrivateOnboardingFinished by
-@@ -2382,7 +2425,7 @@ class Settings(
+@@ -2397,7 +2440,7 @@ class Settings(
      var showContileFeature by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_contile),
@@ -1686,7 +1696,7 @@ index c8f3815..4a048e6 100644
          )
  
      /** Blocklist used to filter items from the home screen that have previously been removed. */
-@@ -2512,12 +2555,10 @@ class Settings(
+@@ -2527,12 +2570,10 @@ class Settings(
              default = { FxNimbus.features.migrateOnboardingState.value().enabled },
          )
  
@@ -1703,7 +1713,7 @@ index c8f3815..4a048e6 100644
  
      var shouldUseMinimalBottomToolbarWhenEnteringText by
          booleanPreference(
-@@ -2773,10 +2814,11 @@ class Settings(
+@@ -2806,10 +2847,11 @@ class Settings(
          )
  
      /** Indicates whether Email Mask is enabled or not. */
@@ -1716,7 +1726,7 @@ index c8f3815..4a048e6 100644
          )
  
      /**
-@@ -3122,44 +3164,35 @@ class Settings(
+@@ -3166,44 +3208,35 @@ class Settings(
              default = false,
          )
  
@@ -1770,7 +1780,7 @@ index c8f3815..4a048e6 100644
  
      /** Stores a set of domains that are excluded from using DNS over HTTPS. */
 diff --git a/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml b/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml
-index ae5e7d1..208ea5e 100644
+index 05473c2..01595a5 100644
 --- a/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml
 +++ b/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml
 @@ -607,6 +607,13 @@
@@ -1799,10 +1809,10 @@ index ae5e7d1..208ea5e 100644
          android:id="@+id/dataChoicesFragment"
          android:name="org.mozilla.fenix.settings.datachoices.DataChoicesFragment"
 diff --git a/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json b/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json
-index d3370bf..268c73f 100644
+index cacb330..268c73f 100644
 --- a/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json
 +++ b/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json
-@@ -1,85 +1,3 @@
+@@ -1,897 +1,3 @@
  {
 -  "data": [
 -    {
@@ -1817,63 +1827,801 @@ index d3370bf..268c73f 100644
 -      ],
 -      "include_locales": [],
 -      "include_regions": [],
--      "exclude_experiments": [],
+-      "exclude_experiments": [
+-        "regional-default-shortcuts"
+-      ],
 -      "include_experiments": [],
 -      "id": "",
 -      "last_modified": 1
 -    },
 -    {
--      "url": "https://tenki.jp/",
+-      "url": "https://www.wikipedia.org/",
 -      "order": 1,
--      "title": "tenki.jp",
+-      "title": "Wikipedia",
 -      "schema": 1,
 -      "exclude_locales": [],
--      "exclude_regions": [],
--      "include_locales": [],
--      "include_regions": [
--        "JP"
+-      "exclude_regions": [
+-        "CN",
+-        "JP",
+-        "DE",
+-        "US",
+-        "IN",
+-        "FR",
+-        "BR",
+-        "GB",
+-        "PL",
+-        "IT",
+-        "ES"
 -      ],
+-      "include_locales": [],
+-      "include_regions": [],
 -      "exclude_experiments": [],
--      "include_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
 -      "id": "",
 -      "last_modified": 1
 -    },
 -    {
--      "url": "https://m.yahoo.co.jp/",
+-      "url": "https://www.tagesschau.de/",
 -      "order": 2,
--      "title": "Yahoo! JAPAN",
+-      "title": "Tagesschau",
 -      "schema": 1,
 -      "exclude_locales": [],
 -      "exclude_regions": [],
 -      "include_locales": [],
 -      "include_regions": [
--        "JP"
+-        "DE"
 -      ],
 -      "exclude_experiments": [],
--      "include_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
 -      "id": "",
 -      "last_modified": 1
 -    },
 -    {
--      "url": "https://ameblo.jp/",
+-      "url": "https://www.dwd.de/",
 -      "order": 3,
--      "title": "Amebaブログ",
+-      "title": "DWD",
 -      "schema": 1,
 -      "exclude_locales": [],
 -      "exclude_regions": [],
 -      "include_locales": [],
 -      "include_regions": [
--        "JP"
+-        "DE"
 -      ],
 -      "exclude_experiments": [],
--      "include_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
 -      "id": "",
 -      "last_modified": 1
 -    },
 -    {
--      "url": "https://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8",
+-      "url": "https://www.bahn.de/",
 -      "order": 4,
--      "title": "ウィキペディア",
+-      "title": "Deutsche Bahn",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "DE"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.kicker.de/",
+-      "order": 5,
+-      "title": "Kicker",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "DE"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.chefkoch.de/",
+-      "order": 6,
+-      "title": "Chefkoch",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "DE"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://apnews.com/",
+-      "order": 7,
+-      "title": "AP News",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "US"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.weather.gov/",
+-      "order": 8,
+-      "title": "National Weather Service",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "US"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.nfl.com/",
+-      "order": 9,
+-      "title": "NFL",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "US"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.allrecipes.com/",
+-      "order": 10,
+-      "title": "AllRecipes",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "US"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.ptinews.com/",
+-      "order": 11,
+-      "title": "PTI",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IN"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://mausam.imd.gov.in/index_en.php",
+-      "order": 12,
+-      "title": "IMD",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IN"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.irctc.co.in/",
+-      "order": 13,
+-      "title": "IRCTC",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IN"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.cricbuzz.com/",
+-      "order": 14,
+-      "title": "Cricbuzz",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IN"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.vegrecipesofindia.com/",
+-      "order": 15,
+-      "title": "Veg Recipes of India",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IN"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.francetvinfo.fr/",
+-      "order": 16,
+-      "title": "France Info",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "FR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://meteofrance.com/",
+-      "order": 17,
+-      "title": "Météo-France",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "FR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.sncf-connect.com/",
+-      "order": 18,
+-      "title": "SNCF Connect",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "FR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.lequipe.fr/",
+-      "order": 19,
+-      "title": "L'Équipe",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "FR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.750g.com/",
+-      "order": 20,
+-      "title": "750g",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "FR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://agenciabrasil.ebc.com.br/",
+-      "order": 21,
+-      "title": "Agência Brasil",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "BR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://portal.inmet.gov.br/",
+-      "order": 22,
+-      "title": "INMET",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "BR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.tudogostoso.com.br/",
+-      "order": 23,
+-      "title": "TudoGostoso",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "BR"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.bbc.co.uk/news",
+-      "order": 24,
+-      "title": "BBC News",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "GB"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.metoffice.gov.uk/",
+-      "order": 25,
+-      "title": "Met Office",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "GB"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.nationalrail.co.uk/",
+-      "order": 26,
+-      "title": "National Rail Enquiries",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "GB"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.bbc.co.uk/sport",
+-      "order": 27,
+-      "title": "BBC Sport",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "GB"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.deliciousmagazine.co.uk/",
+-      "order": 28,
+-      "title": "Delicious",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "GB"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.pap.pl/",
+-      "order": 29,
+-      "title": "PAP",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "PL"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.imgw.pl/",
+-      "order": 30,
+-      "title": "IMGW",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "PL"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://rozklad-pkp.pl/",
+-      "order": 31,
+-      "title": "Rozkład PKP",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "PL"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://przegladsportowy.onet.pl/",
+-      "order": 32,
+-      "title": "Przegląd Sportowy",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "PL"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://aniagotuje.pl/",
+-      "order": 33,
+-      "title": "Ania Gotuje",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "PL"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.rainews.it/",
+-      "order": 34,
+-      "title": "RAI News",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IT"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.meteoam.it/",
+-      "order": 35,
+-      "title": "Meteo Aeronautica Militare",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IT"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.trenitalia.com/",
+-      "order": 36,
+-      "title": "Trenitalia",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IT"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.gazzetta.it/",
+-      "order": 37,
+-      "title": "Gazzetta dello Sport",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IT"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.giallozafferano.it/",
+-      "order": 38,
+-      "title": "GialloZafferano",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "IT"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.efe.com/",
+-      "order": 39,
+-      "title": "EFE",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "ES"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.aemet.es/",
+-      "order": 40,
+-      "title": "AEMET",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "ES"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.renfe.com/",
+-      "order": 41,
+-      "title": "RENFE",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "ES"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.marca.com/",
+-      "order": 42,
+-      "title": "Marca",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "ES"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.recetasgratis.net/",
+-      "order": 43,
+-      "title": "RecetasGratis",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "ES"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www3.nhk.or.jp/news",
+-      "order": 44,
+-      "title": "NHKニュース",
 -      "schema": 1,
 -      "exclude_locales": [],
 -      "exclude_regions": [],
@@ -1882,7 +2630,81 @@ index d3370bf..268c73f 100644
 -        "JP"
 -      ],
 -      "exclude_experiments": [],
--      "include_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.jma.go.jp/",
+-      "order": 45,
+-      "title": "気象庁",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.jorudan.co.jp/",
+-      "order": 46,
+-      "title": "ジョルダン",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.jleague.jp/",
+-      "order": 47,
+-      "title": "Jリーグ",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://www.kurashiru.com/",
+-      "order": 48,
+-      "title": "クラシル",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [
+-        "regional-default-shortcuts"
+-      ],
 -      "id": "",
 -      "last_modified": 1
 -    }
@@ -1890,10 +2712,10 @@ index d3370bf..268c73f 100644
 +  "data": []
  }
 diff --git a/mobile/android/fenix/app/src/main/res/values/preference_keys.xml b/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
-index 6f95d22..c8d5826 100644
+index 2ad6520..f39703c 100644
 --- a/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
 +++ b/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
-@@ -58,6 +58,7 @@
+@@ -59,6 +59,7 @@
      <string name="pref_key_about" translatable="false">pref_key_about</string>
      <string name="pref_key_account" translatable="false">pref_key_account</string>
      <string name="pref_key_sign_in" translatable="false">pref_key_sign_in</string>
@@ -1902,7 +2724,7 @@ index 6f95d22..c8d5826 100644
      <string name="pref_key_sync_debug" translatable="false">pref_key_sync_debug</string>
      <string name="pref_key_override_fxa_server" translatable="false">pref_key_override_fxa_server</string>
 diff --git a/mobile/android/fenix/app/src/main/res/values/static_strings.xml b/mobile/android/fenix/app/src/main/res/values/static_strings.xml
-index c589c97..cd24281 100644
+index 5cd4313..484926d 100644
 --- a/mobile/android/fenix/app/src/main/res/values/static_strings.xml
 +++ b/mobile/android/fenix/app/src/main/res/values/static_strings.xml
 @@ -4,8 +4,8 @@
@@ -1916,8 +2738,8 @@ index c589c97..cd24281 100644
  
      <!-- Preference for developers -->
      <string name="preference_leakcanary" translatable="false">LeakCanary</string>
-@@ -451,7 +451,7 @@
-     <string name="customize_toggle_weather" translatable="false">Weather</string>
+@@ -455,7 +455,7 @@
+     <string name="customize_toggle_wrexham_widget" translatable="false">Wrexham Widget</string>
  
      <!--  Firefox brand name  -->
 -    <string name="app_name_firefox" tools:ignore="BrandUsage">Firefox</string>

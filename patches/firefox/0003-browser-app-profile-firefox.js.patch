@@ -1,8 +1,8 @@
 diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
-index 15a12b6..d787292 100644
+index aa07213..608215d 100644
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -150,9 +150,202 @@ pref("app.update.notifyDuringDownload", false);
+@@ -153,9 +153,202 @@ pref("app.update.notifyDuringDownload", false);
  // should no longer be used directly. Instead, getAppUpdateAutoEnabled and
  // getAppUpdateAutoEnabled from UpdateUtils.sys.mjs should be used.
  #ifndef XP_WIN
@@ -206,7 +206,7 @@ index 15a12b6..d787292 100644
  // If set to true, the Update Service will apply updates in the background
  // when it finishes downloading them.
  pref("app.update.staging.enabled", true);
-@@ -242,15 +435,15 @@ pref("extensions.update.interval", 86400);  // Check for updates to Extensions a
+@@ -245,15 +438,15 @@ pref("extensions.update.interval", 86400);  // Check for updates to Extensions a
    pref("browser.eme.ui.enabled", false);
  #endif
  
@@ -226,7 +226,7 @@ index 15a12b6..d787292 100644
  #else
    pref("general.autoScroll", true);
  #endif
-@@ -284,11 +477,11 @@ pref("browser.compactmode.auto.threshold", "0.05");
+@@ -287,11 +480,11 @@ pref("browser.compactmode.auto.threshold", "0.05");
  pref("browser.compactmode.show", false);
  
  // At startup, check if we're the default browser and prompt user if not.
@@ -241,7 +241,7 @@ index 15a12b6..d787292 100644
  pref("browser.shell.defaultBrowserCheckCount", 0);
  #if defined(XP_WIN)
  // Attempt to set the default browser on Windows 10 using the UserChoice registry keys,
-@@ -299,7 +492,7 @@ pref("browser.shell.setDefaultBrowserUserChoice", true);
+@@ -302,7 +495,7 @@ pref("browser.shell.setDefaultBrowserUserChoice", true);
  pref("browser.shell.setDefaultBrowserUserChoice.regRename", true);
  // When setting the default browser on Windows 10 using the UserChoice
  // registry keys, also try to set Firefox as the default PDF handler.
@@ -250,7 +250,7 @@ index 15a12b6..d787292 100644
  // When setting Firefox as the default PDF handler (subject to conditions
  // above), only set Firefox as the default PDF handler when the existing handler
  // is a known browser, and not when existing handler is another PDF handler such
-@@ -334,7 +527,7 @@ pref("browser.shell.setDefaultPDFHandler.attemptWaitTimeMs", 30000);
+@@ -337,7 +530,7 @@ pref("browser.shell.setDefaultPDFHandler.attemptWaitTimeMs", 30000);
  
  // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
  // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
@@ -259,7 +259,7 @@ index 15a12b6..d787292 100644
  pref("browser.startup.homepage",            "about:home");
  pref("browser.startup.homepage.abouthome_cache.enabled", true);
  pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
-@@ -379,7 +572,7 @@ pref("browser.warnOnQuit", true);
+@@ -382,7 +575,7 @@ pref("browser.warnOnQuit", true);
  #if defined(XP_WIN)
    pref("browser.warnOnQuitShortcut", false);
  #else
@@ -268,7 +268,7 @@ index 15a12b6..d787292 100644
  #endif
  
  // TODO bug 1702563: Renable fullscreen autohide by default on macOS.
-@@ -680,7 +873,7 @@ pref("browser.urlbar.smartbar.maxResults", 7);
+@@ -692,7 +885,7 @@ pref("browser.urlbar.smartbar.maxResults", 7);
  // is longer than this.
  pref("browser.urlbar.maxCharsForSearchSuggestions", 100);
  
@@ -277,7 +277,7 @@ index 15a12b6..d787292 100644
  pref("browser.urlbar.trimHttps", false);
  pref("browser.urlbar.trimWww", false);
  pref("browser.urlbar.untrimOnUserInteraction.featureGate", false);
-@@ -830,7 +1023,7 @@ pref("browser.urlbar.yelp.serviceResultDistinction", false);
+@@ -842,7 +1035,7 @@ pref("browser.urlbar.yelp.serviceResultDistinction", false);
  
  // If `browser.urlbar.yelp.featureGate` is true, this controls whether
  // Yelp suggestions are turned on.
@@ -286,16 +286,16 @@ index 15a12b6..d787292 100644
  
  // Feature gate pref for Fakespot suggestions in the urlbar.
  // TODO Bug 1982966: Remove this after all experiments and rollouts using it
-@@ -909,7 +1102,7 @@ pref("browser.urlbar.lastUrlbarSearchSeconds", 0);
- // their URLs with strings that explain why they're shown.
+@@ -925,7 +1118,7 @@ pref("browser.urlbar.resultExplanations.featureGate", true);
  pref("browser.urlbar.resultExplanations.featureGate", false);
+ #endif
  
 -pref("browser.altClickSave", false);
 +pref("browser.altClickSave", true);
  
  // Number of milliseconds to wait for the http headers (and thus
  // the Content-Disposition filename) before giving up and falling back to
-@@ -980,7 +1173,7 @@ pref("browser.search.separatePrivateDefault.featureGate", false);
+@@ -996,7 +1189,7 @@ pref("browser.search.separatePrivateDefault.featureGate", false);
  pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
  
  // Enables search SERP telemetry page categorization.
@@ -304,7 +304,7 @@ index 15a12b6..d787292 100644
  
  // A count of Glean SERP categorization event metrics that have been recorded
  // but not yet submitted in a ping. Needed to prevent sending a ping with only
-@@ -1131,8 +1324,8 @@ pref("browser.tabs.maxOpenBeforeWarn", 15);
+@@ -1161,8 +1354,8 @@ pref("browser.tabs.maxOpenBeforeWarn", 15);
  pref("browser.tabs.loadDivertedInBackground", false);
  pref("browser.tabs.loadBookmarksInBackground", false);
  pref("browser.tabs.loadBookmarksInTabs", false);
@@ -315,7 +315,7 @@ index 15a12b6..d787292 100644
  
  // When tabs opened by links in other tabs via a combination of
  // browser.link.open_newwindow being set to 3 and target="_blank" etc are
-@@ -1218,7 +1411,7 @@ pref("security.allow_parent_unrestricted_js_loads", false);
+@@ -1242,7 +1435,7 @@ pref("security.allow_parent_unrestricted_js_loads", false);
  #if defined(XP_MACOSX) || defined(XP_WIN)
      pref("browser.tabs.unloadOnLowMemory", true);
  #else
@@ -324,7 +324,7 @@ index 15a12b6..d787292 100644
  #endif
  
  // Tab Unloader does not unload tabs whose last inactive period is longer than
-@@ -1299,7 +1492,7 @@ pref("browser.bookmarks.openInTabClosesMenu", true);
+@@ -1323,7 +1516,7 @@ pref("browser.bookmarks.openInTabClosesMenu", true);
  // the bookmarks toolbar as a default.
  pref("browser.bookmarks.defaultLocation", "toolbar");
  
@@ -333,7 +333,7 @@ index 15a12b6..d787292 100644
  
  // Scripts & Windows prefs
  pref("dom.disable_open_during_load",              true);
-@@ -1445,7 +1638,9 @@ pref("browser.history_swipe_animation.disabled", false);
+@@ -1469,7 +1662,9 @@ pref("browser.history_swipe_animation.disabled", false);
    // who want to keep using this feature, let's enable it with alt+wheel.  This
    // is better for consistency with macOS users.
    pref("mousewheel.with_shift.action", 4);
@@ -343,7 +343,7 @@ index 15a12b6..d787292 100644
  #endif
  
  pref("mousewheel.with_meta.action", 1);
-@@ -1478,8 +1673,9 @@ pref("browser.netError.searchCTA.connectivityRecheckTimeoutMs", 3000);
+@@ -1502,8 +1697,9 @@ pref("browser.netError.searchCTA.connectivityRecheckTimeoutMs", 3000);
  // it renders once instead of showing a placeholder. 0 waits indefinitely.
  pref("browser.netError.searchCTA.decisionTimeoutMs", 300);
  
@@ -355,7 +355,7 @@ index 15a12b6..d787292 100644
  
  // If true, network link events will change the value of navigator.onLine
  pref("network.manage-offline-status", true);
-@@ -1534,7 +1730,7 @@ pref("browser.proton.toolbar.version", 0);
+@@ -1558,7 +1754,7 @@ pref("browser.proton.toolbar.version", 0);
  // 0 goes Back/Forward
  // 1 act like PgUp/PgDown
  // 2 and other values, nothing
@@ -364,7 +364,7 @@ index 15a12b6..d787292 100644
  
  pref("intl.regional_prefs.use_os_locales", false);
  
-@@ -1592,11 +1788,11 @@ pref("browser.sessionstore.logFlushIntervalSeconds", 3600);
+@@ -1616,11 +1812,11 @@ pref("browser.sessionstore.logFlushIntervalSeconds", 3600);
  // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
  pref("browser.sessionstore.privacy_level", 0);
  // how many tabs can be reopened (per window)
@@ -378,7 +378,7 @@ index 15a12b6..d787292 100644
  // number of crashes that can occur before the about:sessionrestore page is displayed
  // (this pref has no effect if more than 6 hours have passed since the last crash)
  pref("browser.sessionstore.max_resumed_crashes", 1);
-@@ -1611,7 +1807,7 @@ pref("browser.sessionstore.max_serialize_forward", -1);
+@@ -1635,7 +1831,7 @@ pref("browser.sessionstore.max_serialize_forward", -1);
  // Selected tabs are always restored regardless of this pref.
  pref("browser.sessionstore.restore_on_demand", true);
  // Whether to automatically restore hidden tabs (i.e., tabs in other tab groups) or not
@@ -387,7 +387,7 @@ index 15a12b6..d787292 100644
  // If restore_on_demand is set, pinned tabs are restored on startup by default.
  // When set to true, this pref overrides that behavior, and pinned tabs will only
  // be restored when they are focused.
-@@ -1795,20 +1991,20 @@ pref("services.sync.prefs.sync.browser.contentblocking.features.strict", true);
+@@ -1820,20 +2016,20 @@ pref("services.sync.prefs.sync.browser.contentblocking.features.strict", true);
  pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", true);
  pref("services.sync.prefs.sync.browser.ctrlTab.sortByRecentlyUsed", true);
  pref("services.sync.prefs.sync.browser.download.useDownloadDir", true);
@@ -414,7 +414,7 @@ index 15a12b6..d787292 100644
  // Some linux distributions disable all highlights by default.
  pref("services.sync.prefs.sync-seen.browser.newtabpage.activity-stream.section.highlights", false);
  pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.highlights.includeVisited", true);
-@@ -1937,7 +2133,7 @@ pref("browser.topsites.component.enabled", false);
+@@ -1962,7 +2158,7 @@ pref("browser.topsites.component.enabled", false);
  
  pref("browser.topsites.useRemoteSetting", true);
  // Fetch sponsored Top Sites from Mozilla Tiles Service (Contile)
@@ -423,7 +423,7 @@ index 15a12b6..d787292 100644
  pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
  
  // Activates preloading of the new tab url.
-@@ -1968,12 +2164,8 @@ pref("termsofuse.minimumVersion", 4);
+@@ -1993,12 +2189,8 @@ pref("termsofuse.minimumVersion", 4);
  #endif
  
  // Should we bypass auto-triggering actions that show an OS-level consent
@@ -438,7 +438,7 @@ index 15a12b6..d787292 100644
  
  // Show "Download Firefox for mobile" QR code modal on newtab
  pref("browser.newtabpage.activity-stream.mobileDownloadModal.enabled", false);
-@@ -1982,8 +2174,9 @@ pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-b", false);
+@@ -2007,8 +2199,9 @@ pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-b", false);
  pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-c", false);
  
  // Mozilla Ad Routing Service (MARS) unified ads service
@@ -450,7 +450,7 @@ index 15a12b6..d787292 100644
  pref("browser.newtabpage.activity-stream.unifiedAds.endpoint", "https://ads.mozilla.org/");
  pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled", false);
  pref("browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled", true);
-@@ -2088,14 +2281,14 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiment
+@@ -2113,14 +2306,14 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiment
  // ASRouter user prefs
  pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
  pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", true);
@@ -467,7 +467,7 @@ index 15a12b6..d787292 100644
  pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hybridLayout.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
-@@ -2108,7 +2301,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.compactImages.enabled",
+@@ -2133,7 +2326,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.compactImages.enabled",
  pref("browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.titleLines", 3);
  pref("browser.newtabpage.activity-stream.discoverystream.descLines", 3);
@@ -476,7 +476,7 @@ index 15a12b6..d787292 100644
  pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
  
-@@ -2244,15 +2437,12 @@ pref("browser.newtabpage.trainhopAddon.xpiBaseURL", "https://archive.mozilla.org
+@@ -2269,15 +2462,12 @@ pref("browser.newtabpage.trainhopAddon.xpiBaseURL", "https://archive.mozilla.org
  
  pref("browser.newtabpage.sponsor-protection.enabled", true);
  
@@ -495,7 +495,7 @@ index 15a12b6..d787292 100644
  // Whether to skip showing the experiment loading splash screen if Nimbus is
  // already initialized when the preonboarding modal's screen targeting is
  // evaluated.
-@@ -2334,7 +2524,7 @@ pref("sidebar.animation.expand-on-hover.delay-duration-ms", 200);
+@@ -2346,7 +2536,7 @@ pref("sidebar.animation.expand-on-hover.delay-duration-ms", 200);
  // This pref is used to store user customized tools in the sidebar launcher and shouldn't be changed.
  // See https://firefox-source-docs.mozilla.org/browser/components/sidebar/docs/index.html for ways
  // you can introduce a new tool to the sidebar launcher.
@@ -504,7 +504,7 @@ index 15a12b6..d787292 100644
  pref("sidebar.installed.extensions", "");
  pref("sidebar.verticalTabs", false);
  pref("sidebar.verticalTabs.dragToPinPromo.dismissed", false);
-@@ -2533,8 +2723,8 @@ pref("browser.uiCustomization.debug", false);
+@@ -2561,8 +2751,8 @@ pref("browser.uiCustomization.debug", false);
  pref("browser.uiCustomization.state", "");
  
  // If set to false, FxAccounts and Sync will be unavailable.
@@ -515,7 +515,7 @@ index 15a12b6..d787292 100644
  
  // The remote FxA root content URL. Must use HTTPS.
  pref("identity.fxaccounts.remote.root", "https://accounts.firefox.com/");
-@@ -2549,7 +2739,7 @@ pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox
+@@ -2577,7 +2767,7 @@ pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox
  pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
  
  // Whether FxA pairing using QR codes is enabled.
@@ -524,7 +524,7 @@ index 15a12b6..d787292 100644
  
  // The version of the pairing flow to be used by FxA.
  pref("identity.fxaccounts.pairing.version", 2);
-@@ -2581,14 +2771,14 @@ pref("identity.fxaccounts.commands.missed.fetch_interval", 86400);
+@@ -2609,14 +2799,14 @@ pref("identity.fxaccounts.commands.missed.fetch_interval", 86400);
  
  // Controls whether this client can send and receive "close tab"
  // commands from other FxA clients
@@ -542,7 +542,7 @@ index 15a12b6..d787292 100644
  
  // Note: when media.gmp-*.visible is true, provided we're running on a
  // supported platform/OS version, the corresponding CDM appears in the
-@@ -2801,10 +2991,10 @@ pref("browser.vpn_promo.enabled", true);
+@@ -2829,10 +3019,10 @@ pref("browser.vpn_promo.enabled", true);
  pref("browser.contentblocking.report.vpn_regions", "as,at,au,bd,be,bg,br,ca,ch,cl,co,cy,cz,de,dk,ee,eg,es,fi,fr,gb,gg,gr,hr,hu,id,ie,im,in,io,it,je,ke,kr,lt,lu,lv,ma,mp,mt,mx,my,ng,nl,no,nz,pl,pr,pt,ro,sa,se,sg,si,sk,sn,th,tr,tw,ua,ug,uk,um,us,vg,vi,vn,za");
  
  // Default to enabling pin promos to be shown where allowed.
@@ -555,7 +555,7 @@ index 15a12b6..d787292 100644
  
  pref("browser.contentblocking.report.hide_vpn_banner", false);
  pref("browser.contentblocking.report.vpn_sub_id", "sub_HrfCZF7VPHzZkA");
-@@ -3151,7 +3341,7 @@ pref("browser.engagement.sidebar-button.has-used", false);
+@@ -3179,7 +3369,7 @@ pref("browser.engagement.sidebar-button.has-used", false);
  pref("browser.engagement.library-button.has-used", false);
  pref("browser.engagement.ctrlTab.has-used", false);
  
@@ -564,7 +564,7 @@ index 15a12b6..d787292 100644
  
  pref("browser.toolbars.keyboard_navigation", true);
  
-@@ -3159,7 +3349,7 @@ pref("browser.toolbars.keyboard_navigation", true);
+@@ -3187,7 +3377,7 @@ pref("browser.toolbars.keyboard_navigation", true);
  // "newtab": Show on the New Tab Page
  // "always": Always show
  // "never": Never show
@@ -573,7 +573,7 @@ index 15a12b6..d787292 100644
  
  // Visibility of the "Show Other Bookmarks" menuitem in the
  // bookmarks toolbar contextmenu.
-@@ -3184,16 +3374,16 @@ pref("security.certerrors.felt-privacy-v1", true);
+@@ -3216,16 +3406,16 @@ pref("security.certerrors.felt-privacy-v1", true);
  // This pref will surface existing Firefox Account information
  // as a button next to the hamburger menu. It allows
  // quick access to sign-in and manage your Firefox Account.
@@ -596,7 +596,7 @@ index 15a12b6..d787292 100644
  
  // Prefs to control Mozilla account panels that shows an updated flow
  // for users who don't have sync enabled
-@@ -3202,7 +3392,7 @@ pref("identity.fxaccounts.toolbar.syncSetup.panelAccessed", false);
+@@ -3234,7 +3424,7 @@ pref("identity.fxaccounts.toolbar.syncSetup.panelAccessed", false);
  // Whether the user dismissed the app menu's sign-in promo. Once dismissed, the
  // promo is never shown again and the compact sign-in row takes its place. Only
  // the app menu's promo is dismissible; the account menu's is not (bug 2070687).
@@ -605,7 +605,7 @@ index 15a12b6..d787292 100644
  
  // Toolbox preferences
  pref("devtools.toolbox.footer.height", 250);
-@@ -3242,9 +3432,9 @@ pref("devtools.command-button-measure.enabled", false);
+@@ -3274,9 +3464,9 @@ pref("devtools.command-button-measure.enabled", false);
  pref("devtools.command-button-noautohide.enabled", false);
  pref("devtools.command-button-errorcount.enabled", true);
  pref("devtools.command-button-jstracer.enabled", false);
@@ -617,7 +617,7 @@ index 15a12b6..d787292 100644
  
  // Inspector preferences
  // Enable the Inspector
-@@ -3644,7 +3834,7 @@ pref("first-startup.category-tasks-enabled", true);
+@@ -3676,7 +3866,7 @@ pref("first-startup.category-tasks-enabled", true);
  #ifdef MOZ_DEV_EDITION
    pref("browser.menu.showViewImageInfo", true);
  #else
@@ -626,7 +626,7 @@ index 15a12b6..d787292 100644
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3909,3 +4099,354 @@ pref("distribution.mozillaonline.ignore", true);
+@@ -3941,3 +4131,351 @@ pref("distribution.mozillaonline.ignore", true);
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -954,11 +954,9 @@ index 15a12b6..d787292 100644
 +#ifdef XP_WIN
 +  pref("security.sandbox.content.win32k-disable", true);
 +  pref("security.sandbox.gmp.win32k-disable", true);
-+  pref("security.sandbox.socket.win32k-disable", true);
 +  pref("security.sandbox.content.shadow-stack.enabled", true);
 +  pref("security.sandbox.gpu.shadow-stack.enabled", true);
 +  pref("security.sandbox.rdd.shadow-stack.enabled", true);
-+  pref("security.sandbox.socket.shadow-stack.enabled", true);
 +  pref("security.sandbox.gmp.shadow-stack.enabled", true);
 +  pref("security.sandbox.rdd.acg.enabled", true);
 +  pref("security.sandbox.gmp.acg.enabled", true);
@@ -968,7 +966,6 @@ index 15a12b6..d787292 100644
 +#endif
 +#ifdef XP_LINUX
 +  pref("security.sandbox.content.level", 6);
-+  pref("security.sandbox.socket.process.level", 2);
 +  pref("security.sandbox.gpu.level", 1);
 +  pref("security.sandbox.warn_unprivileged_namespaces", true);
 +#endif

@@ -1,17 +1,25 @@
+diff --git a/build/pgo/index.html b/build/pgo/index.html
+index cc6e37c..cf59d6c 100644
 --- a/build/pgo/index.html
 +++ b/build/pgo/index.html
-@@ -134,6 +134,11 @@
-     new Item(
+@@ -223,6 +223,14 @@
        "webkit/PerformanceTests/webaudio/index.html?raptor&rendering-buffer-length=30",
-       extendedTimeout
+       extendedTimeout,
+       "benchmark"
 +    ),
 +    // Mercury: local Canvas2D + modern JS/Wasm + DOM/Layout PGO workload.
++    // Firefox 161 closes items early once they signal completion; keep the
++    // workload open for its full 15 s like on 160.
 +    new Item(
 +      "mercury-workload.html",
-+      15 * 1000
++      15 * 1000,
++      "timeout"
      )
    );
  
+diff --git a/build/pgo/mercury-workload.html b/build/pgo/mercury-workload.html
+new file mode 100644
+index 0000000..c215de6
 --- /dev/null
 +++ b/build/pgo/mercury-workload.html
 @@ -0,0 +1,223 @@
