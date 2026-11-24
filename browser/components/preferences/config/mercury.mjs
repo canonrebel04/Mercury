@@ -21,6 +21,10 @@ const {
 const { MercuryBurner } = ChromeUtils.importESModule(
   "resource:///modules/MercuryBurner.sys.mjs"
 );
+const { MercuryPerformance, PREF_PROFILE, normalizeProfile } =
+  ChromeUtils.importESModule(
+    "resource:///modules/MercuryPerformance.sys.mjs"
+  );
 
 const FPP_OVERRIDES_PREF = "privacy.fingerprintingProtection.overrides";
 
@@ -636,6 +640,34 @@ addPrefSetting(
 
 // --- Group 4: Performance & GPU Engine ---
 addPrefSetting(
+  "mercuryPerformanceProfile",
+  PREF_PROFILE,
+  "string",
+  "balanced",
+  {
+    get: val => normalizeProfile(val),
+    set: val => {
+      MercuryPerformance.setProfile(val);
+      return undefined;
+    },
+  }
+);
+
+addPrefSetting(
+  "mercuryFontations",
+  "gfx.font_rendering.fontations.enabled",
+  "bool",
+  true
+);
+
+addPrefSetting(
+  "mercuryUnloadLowMem",
+  "browser.tabs.unloadOnLowMemory",
+  "bool",
+  true
+);
+
+addPrefSetting(
   "mercuryHardwareAccel",
   "layers.acceleration.disabled",
   "bool",
@@ -1042,6 +1074,24 @@ SettingGroupManager.registerGroups({
     l10nId: "mercury-group-performance",
     headingLevel: 2,
     items: [
+      {
+        id: "mercuryPerformanceProfile",
+        l10nId: "mercury-performance-profile",
+        control: "moz-select",
+        options: [
+          { value: "balanced", l10nId: "mercury-performance-profile-balanced" },
+          { value: "turbo", l10nId: "mercury-performance-profile-turbo" },
+          { value: "low-ram", l10nId: "mercury-performance-profile-low-ram" },
+        ],
+      },
+      {
+        id: "mercuryFontations",
+        l10nId: "mercury-fontations",
+      },
+      {
+        id: "mercuryUnloadLowMem",
+        l10nId: "mercury-unload-low-mem",
+      },
       {
         id: "mercuryHardwareAccel",
         l10nId: "mercury-hardware-accel",

@@ -1,0 +1,1107 @@
+diff --git a/dom/canvas/DrawTargetWebgl.cpp b/dom/canvas/DrawTargetWebgl.cpp
+index 2559950..bf641f4 100644
+--- a/dom/canvas/DrawTargetWebgl.cpp
++++ b/dom/canvas/DrawTargetWebgl.cpp
+@@ -38,6 +38,7 @@
+ #include "nsContentUtils.h"
+ #include "nsIMemoryReporter.h"
+ #include "skia/include/core/SkPixmap.h"
++#include "skia/include/core/SkRRect.h"
+ 
+ #ifdef XP_MACOSX
+ #  include "mozilla/gfx/ScaledFontMac.h"
+@@ -5546,17 +5547,45 @@ void DrawTargetWebgl::DrawPath(const Path* aPath, const Pattern& aPattern,
+ 
+ // DrawCircleAccel is a more specialized version of DrawPathAccel that attempts
+ // to cache a unit circle.
++bool SharedContextWebgl::UploadAndDrawPathVertices(
++    const uint8_t* aVertexData, size_t aVertexLen, const IntRect& aIntBounds,
++    const Pattern& aPattern, const DrawOptions& aOptions) {
++  if (!aVertexData || aVertexLen == 0 || mPathVertexCapacity == 0) {
++    return false;
++  }
++  uint32_t vertexBytes = uint32_t(
++      std::min(aVertexLen * sizeof(WGR::OutputVertex), size_t(UINT32_MAX)));
++  if (vertexBytes > mPathVertexCapacity - mPathVertexOffset &&
++      vertexBytes <= mPathVertexCapacity - sizeof(kRectVertexData)) {
++    if (mPathCache) {
++      mPathCache->ClearVertexRanges();
++    }
++    ResetPathVertexBuffer();
++  }
++  if (vertexBytes > mPathVertexCapacity - mPathVertexOffset) {
++    return false;
++  }
++  PathVertexRange vertexRange(
++      uint32_t(mPathVertexOffset / sizeof(WGR::OutputVertex)),
++      uint32_t(aVertexLen));
++  mWebgl->BufferSubData(LOCAL_GL_ARRAY_BUFFER, mPathVertexOffset, vertexBytes,
++                        aVertexData, /* unsynchronized */ true);
++  mPathVertexOffset += vertexBytes;
++  mCurrentTarget->mProfile.OnUncachedDraw();
++  return DrawRectAccel(Rect(aIntBounds.TopLeft(), Size(1, 1)), aPattern,
++                       aOptions, Nothing(), nullptr, false, true, true, false,
++                       nullptr, &vertexRange);
++}
++
+ bool SharedContextWebgl::DrawCircleAccel(const Point& aCenter, float aRadius,
+                                          const Pattern& aPattern,
+                                          const DrawOptions& aOptions,
+                                          const StrokeOptions* aStrokeOptions) {
+-  // Mercury fast-path: directly tessellate solid-color filled circles into
+-  // mPathVertexBuffer via AAStroke without WGR quantization or PathCache
+-  // heap allocations/evictions (eliminates cache churn on animated radii).
+-  if (!aStrokeOptions && mPathVertexCapacity > 0 &&
+-      aPattern.GetType() == PatternType::COLOR &&
+-      aOptions.mAntialiasMode != AntialiasMode::NONE &&
+-      SupportsPattern(aPattern)) {
++  // Mercury fast-path: directly tessellate solid-color filled circles AND
++  // stroked circles into mPathVertexBuffer via Rust AAStroke without PathCache
++  // heap allocations or evictions.
++  if (mPathVertexCapacity > 0 &&
++      aOptions.mAntialiasMode != AntialiasMode::NONE) {
+     const Matrix& currentTransform = mCurrentTarget->GetTransform();
+     auto scaleFactors = currentTransform.ScaleFactors();
+     if (scaleFactors.AreScalesSame() && scaleFactors.xScale > 0.0f) {
+@@ -5564,47 +5593,68 @@ bool SharedContextWebgl::DrawCircleAccel(const Point& aCenter, float aRadius,
+       float radius = aRadius * scaleFactors.xScale;
+       if (radius > 0.0f && std::isfinite(radius) &&
+           std::isfinite(center.x) && std::isfinite(center.y)) {
+-        Rect bounds(center.x - radius - 1.0f, center.y - radius - 1.0f,
+-                    2.0f * radius + 2.0f, 2.0f * radius + 2.0f);
+-        IntRect viewport(IntPoint(), mViewportSize);
+-        IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
+-        if (intBounds.IsEmpty()) {
+-          return true;
+-        }
+         WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
+         size_t outputBufferCapacity =
+             outputBuffer ? mPathVertexCapacity / sizeof(WGR::OutputVertex) : 0;
+-        AAStroke::VertexBuffer vb = AAStroke::aa_stroke_filled_circle(
+-            center.x - float(intBounds.x), center.y - float(intBounds.y),
+-            radius, (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
+-        if (vb.len > 0 && (!outputBuffer || vb.len <= outputBufferCapacity)) {
+-          const uint8_t* vbData =
+-              vb.data ? (const uint8_t*)vb.data : (const uint8_t*)outputBuffer;
+-          uint32_t vertexBytes = uint32_t(
+-              std::min(vb.len * sizeof(WGR::OutputVertex), size_t(UINT32_MAX)));
+-          if (vertexBytes > mPathVertexCapacity - mPathVertexOffset &&
+-              vertexBytes <= mPathVertexCapacity - sizeof(kRectVertexData)) {
+-            if (mPathCache) {
+-              mPathCache->ClearVertexRanges();
+-            }
+-            ResetPathVertexBuffer();
++        if (!aStrokeOptions && aPattern.GetType() == PatternType::COLOR &&
++            SupportsPattern(aPattern)) {
++          Rect bounds(center.x - radius - 1.0f, center.y - radius - 1.0f,
++                      2.0f * radius + 2.0f, 2.0f * radius + 2.0f);
++          IntRect viewport(IntPoint(), mViewportSize);
++          IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
++          if (intBounds.IsEmpty()) {
++            return true;
++          }
++          AAStroke::VertexBuffer vb = AAStroke::aa_stroke_filled_circle(
++              center.x - float(intBounds.x), center.y - float(intBounds.y),
++              radius, (AAStroke::OutputVertex*)outputBuffer,
++              outputBufferCapacity);
++          bool drew = false;
++          if (vb.len > 0 && (!outputBuffer || vb.len <= outputBufferCapacity)) {
++            const uint8_t* vbData = vb.data ? (const uint8_t*)vb.data
++                                            : (const uint8_t*)outputBuffer;
++            drew = UploadAndDrawPathVertices(vbData, vb.len, intBounds,
++                                             aPattern, aOptions);
+           }
+-          if (vertexBytes <= mPathVertexCapacity - mPathVertexOffset) {
+-            PathVertexRange vertexRange(
+-                uint32_t(mPathVertexOffset / sizeof(WGR::OutputVertex)),
+-                uint32_t(vb.len));
+-            mWebgl->BufferSubData(LOCAL_GL_ARRAY_BUFFER, mPathVertexOffset,
+-                                  vertexBytes, vbData,
+-                                  /* unsynchronized */ true);
+-            mPathVertexOffset += vertexBytes;
+-            AAStroke::aa_stroke_vertex_buffer_release(vb);
+-            mCurrentTarget->mProfile.OnUncachedDraw();
+-            return DrawRectAccel(Rect(intBounds.TopLeft(), Size(1, 1)),
+-                                 aPattern, aOptions, Nothing(), nullptr, false,
+-                                 true, true, false, nullptr, &vertexRange);
++          AAStroke::aa_stroke_vertex_buffer_release(vb);
++          if (drew) {
++            return true;
++          }
++        } else if (aStrokeOptions && mPathAAStroke && outputBuffer &&
++                   SupportsAAStroke(aPattern, aOptions, *aStrokeOptions,
++                                    false) == AAStrokeMode::Geometry) {
++          float strokeWidth = aStrokeOptions->mLineWidth * scaleFactors.xScale;
++          if (strokeWidth > 0.0f && std::isfinite(strokeWidth) &&
++              aStrokeOptions->mMiterLimit > 0.0f &&
++              std::isfinite(aStrokeOptions->mMiterLimit)) {
++            float extent = radius + strokeWidth * 0.5f + 2.0f;
++            Rect bounds(center.x - extent, center.y - extent, 2.0f * extent,
++                        2.0f * extent);
++            if (RectInsidePrecisionLimits(bounds)) {
++              IntRect viewport(IntPoint(), mViewportSize);
++              IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
++              if (intBounds.IsEmpty()) {
++                return true;
++              }
++              AAStroke::StrokeStyle style = {
++                  strokeWidth, ToAAStrokeLineCap(aStrokeOptions->mLineCap),
++                  ToAAStrokeLineJoin(aStrokeOptions->mLineJoin),
++                  aStrokeOptions->mMiterLimit};
++              AAStroke::VertexBuffer vb =
++                  AAStroke::mercury_aa_stroke_stroked_circle(
++                      center.x - float(intBounds.x),
++                      center.y - float(intBounds.y), radius, &style,
++                      (AAStroke::OutputVertex*)outputBuffer,
++                      outputBufferCapacity);
++              if (vb.len > 0 && vb.len <= outputBufferCapacity &&
++                  UploadAndDrawPathVertices((const uint8_t*)outputBuffer,
++                                            vb.len, intBounds, aPattern,
++                                            aOptions)) {
++                return true;
++              }
++            }
+           }
+         }
+-        AAStroke::aa_stroke_vertex_buffer_release(vb);
+       }
+     }
+   }
+@@ -5618,14 +5668,15 @@ bool SharedContextWebgl::DrawCircleAccel(const Point& aCenter, float aRadius,
+                        true, nullptr, true, &circleXform);
+ }
+ 
+-// Mercury fast-path: directly tessellate single open Bezier curves into
+-// mPathVertexBuffer via AAStroke, bypassing WGR::PathBuilder and PathCache.
++// Mercury Rust-first fast-path: directly tessellate single open Bezier curves
++// into mWGROutputBuffer via mercury_aa_stroke_cubic_curve (zero heap allocs).
+ bool SharedContextWebgl::StrokeCurveAccel(const Point& aP0, const Point& aC1,
+                                           const Point& aC2, const Point& aP3,
+                                           const Pattern& aPattern,
+                                           const StrokeOptions& aStrokeOptions,
+                                           const DrawOptions& aOptions) {
+-  if (!mPathAAStroke || mPathVertexCapacity == 0 ||
++  WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
++  if (!mPathAAStroke || !outputBuffer || mPathVertexCapacity == 0 ||
+       aOptions.mAntialiasMode == AntialiasMode::NONE ||
+       SupportsAAStroke(aPattern, aOptions, aStrokeOptions, true) !=
+           AAStrokeMode::Geometry) {
+@@ -5660,52 +5711,170 @@ bool SharedContextWebgl::StrokeCurveAccel(const Point& aP0, const Point& aC1,
+   if (intBounds.IsEmpty()) {
+     return true;
+   }
+-  WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
+   size_t outputBufferCapacity =
+-      outputBuffer ? mPathVertexCapacity / sizeof(WGR::OutputVertex) : 0;
++      mPathVertexCapacity / sizeof(WGR::OutputVertex);
+   AAStroke::StrokeStyle style = {strokeWidth,
+                                  ToAAStrokeLineCap(aStrokeOptions.mLineCap),
+                                  ToAAStrokeLineJoin(aStrokeOptions.mLineJoin),
+                                  aStrokeOptions.mMiterLimit};
+-  AAStroke::Stroker* stroker = AAStroke::aa_stroke_new(
+-      &style, (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
+   Point origin(float(intBounds.x), float(intBounds.y));
+-  AAStroke::aa_stroke_move_to(stroker, p0.x - origin.x, p0.y - origin.y, false);
+-  AAStroke::aa_stroke_curve_to(stroker, c1.x - origin.x, c1.y - origin.y,
+-                               c2.x - origin.x, c2.y - origin.y,
+-                               p3.x - origin.x, p3.y - origin.y, true);
+-  AAStroke::VertexBuffer vb = AAStroke::aa_stroke_finish(stroker);
+-  AAStroke::aa_stroke_release(stroker);
+-  if (!vb.len || (outputBuffer && vb.len > outputBufferCapacity)) {
+-    AAStroke::aa_stroke_vertex_buffer_release(vb);
++  AAStroke::VertexBuffer vb = AAStroke::mercury_aa_stroke_cubic_curve(
++      p0.x - origin.x, p0.y - origin.y, c1.x - origin.x, c1.y - origin.y,
++      c2.x - origin.x, c2.y - origin.y, p3.x - origin.x, p3.y - origin.y,
++      &style, (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
++  if (vb.len == 0 || vb.len > outputBufferCapacity) {
+     return false;
+   }
+-  const uint8_t* vbData =
+-      vb.data ? (const uint8_t*)vb.data : (const uint8_t*)outputBuffer;
+-  uint32_t vertexBytes = uint32_t(
+-      std::min(vb.len * sizeof(WGR::OutputVertex), size_t(UINT32_MAX)));
+-  if (vertexBytes > mPathVertexCapacity - mPathVertexOffset &&
+-      vertexBytes <= mPathVertexCapacity - sizeof(kRectVertexData)) {
+-    if (mPathCache) {
+-      mPathCache->ClearVertexRanges();
++  return UploadAndDrawPathVertices((const uint8_t*)outputBuffer, vb.len,
++                                   intBounds, aPattern, aOptions);
++}
++
++// Mercury Rust-first fast-path: directly tessellate 2..64 point open/closed
++// polylines into mWGROutputBuffer via mercury_aa_stroke_polyline.
++bool SharedContextWebgl::StrokePolylineAccel(
++    const Point* aPoints, size_t aPointCount, bool aClosed,
++    const Pattern& aPattern, const StrokeOptions& aStrokeOptions,
++    const DrawOptions& aOptions) {
++  WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
++  if (!mPathAAStroke || !outputBuffer || mPathVertexCapacity == 0 ||
++      !aPoints || aPointCount < 2 || aPointCount > 64 ||
++      aOptions.mAntialiasMode == AntialiasMode::NONE ||
++      SupportsAAStroke(aPattern, aOptions, aStrokeOptions, !aClosed) !=
++          AAStrokeMode::Geometry) {
++    return false;
++  }
++  const Matrix& currentTransform = mCurrentTarget->GetTransform();
++  auto scaleFactors = currentTransform.ScaleFactors();
++  if (!scaleFactors.AreScalesSame() || scaleFactors.xScale <= 0.0f) {
++    return false;
++  }
++  float strokeWidth = aStrokeOptions.mLineWidth * scaleFactors.xScale;
++  if (strokeWidth <= 0.0f || !std::isfinite(strokeWidth) ||
++      aStrokeOptions.mMiterLimit <= 0.0f ||
++      !std::isfinite(aStrokeOptions.mMiterLimit)) {
++    return false;
++  }
++  float coords[128];
++  Point first = currentTransform.TransformPoint(aPoints[0]);
++  if (!std::isfinite(first.x) || !std::isfinite(first.y)) {
++    return false;
++  }
++  float minX = first.x;
++  float minY = first.y;
++  float maxX = first.x;
++  float maxY = first.y;
++  coords[0] = first.x;
++  coords[1] = first.y;
++  for (size_t i = 1; i < aPointCount; ++i) {
++    Point pt = currentTransform.TransformPoint(aPoints[i]);
++    if (!std::isfinite(pt.x) || !std::isfinite(pt.y)) {
++      return false;
+     }
+-    ResetPathVertexBuffer();
++    coords[i * 2] = pt.x;
++    coords[i * 2 + 1] = pt.y;
++    minX = std::min(minX, pt.x);
++    minY = std::min(minY, pt.y);
++    maxX = std::max(maxX, pt.x);
++    maxY = std::max(maxY, pt.y);
++  }
++  float miterPad = aStrokeOptions.mLineJoin == JoinStyle::MITER ||
++                           aStrokeOptions.mLineJoin == JoinStyle::MITER_OR_BEVEL
++                       ? strokeWidth * aStrokeOptions.mMiterLimit * 0.5f
++                       : strokeWidth;
++  float pad = std::max(strokeWidth, miterPad) + 2.0f;
++  Rect bounds(minX - pad, minY - pad, (maxX - minX) + 2.0f * pad,
++              (maxY - minY) + 2.0f * pad);
++  if (!RectInsidePrecisionLimits(bounds)) {
++    return false;
+   }
+-  if (vertexBytes > mPathVertexCapacity - mPathVertexOffset) {
+-    AAStroke::aa_stroke_vertex_buffer_release(vb);
++  IntRect viewport(IntPoint(), mViewportSize);
++  IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
++  if (intBounds.IsEmpty()) {
++    return true;
++  }
++  float ox = float(intBounds.x);
++  float oy = float(intBounds.y);
++  for (size_t i = 0; i < aPointCount; ++i) {
++    coords[i * 2] -= ox;
++    coords[i * 2 + 1] -= oy;
++  }
++  size_t outputBufferCapacity =
++      mPathVertexCapacity / sizeof(WGR::OutputVertex);
++  AAStroke::StrokeStyle style = {strokeWidth,
++                                 ToAAStrokeLineCap(aStrokeOptions.mLineCap),
++                                 ToAAStrokeLineJoin(aStrokeOptions.mLineJoin),
++                                 aStrokeOptions.mMiterLimit};
++  AAStroke::VertexBuffer vb = AAStroke::mercury_aa_stroke_polyline(
++      coords, aPointCount, aClosed, &style,
++      (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
++  if (vb.len == 0 || vb.len > outputBufferCapacity) {
+     return false;
+   }
+-  PathVertexRange vertexRange(
+-      uint32_t(mPathVertexOffset / sizeof(WGR::OutputVertex)),
+-      uint32_t(vb.len));
+-  mWebgl->BufferSubData(LOCAL_GL_ARRAY_BUFFER, mPathVertexOffset, vertexBytes,
+-                        vbData, /* unsynchronized */ true);
+-  mPathVertexOffset += vertexBytes;
+-  AAStroke::aa_stroke_vertex_buffer_release(vb);
+-  mCurrentTarget->mProfile.OnUncachedDraw();
+-  return DrawRectAccel(Rect(intBounds.TopLeft(), Size(1, 1)), aPattern,
+-                       aOptions, Nothing(), nullptr, false, true, true, false,
+-                       nullptr, &vertexRange);
++  return UploadAndDrawPathVertices((const uint8_t*)outputBuffer, vb.len,
++                                   intBounds, aPattern, aOptions);
++}
++
++// Mercury Rust-first fast-path: directly tessellate axis-aligned stroked
++// rounded (or sharp) rects via mercury_aa_stroke_stroked_rounded_rect.
++bool SharedContextWebgl::StrokeRoundedRectAccel(
++    const Rect& aRect, float aRx, float aRy, const Pattern& aPattern,
++    const StrokeOptions& aStrokeOptions, const DrawOptions& aOptions) {
++  WGR::OutputVertex* outputBuffer = mWGROutputBuffer.get();
++  if (!mPathAAStroke || !outputBuffer || mPathVertexCapacity == 0 ||
++      aRect.width <= 0.0f || aRect.height <= 0.0f || aRx < 0.0f ||
++      aRy < 0.0f || aOptions.mAntialiasMode == AntialiasMode::NONE ||
++      SupportsAAStroke(aPattern, aOptions, aStrokeOptions, false) !=
++          AAStrokeMode::Geometry) {
++    return false;
++  }
++  const Matrix& currentTransform = mCurrentTarget->GetTransform();
++  if (currentTransform._12 != 0.0f || currentTransform._21 != 0.0f ||
++      currentTransform._11 <= 0.0f ||
++      currentTransform._11 != currentTransform._22) {
++    return false;
++  }
++  float scale = currentTransform._11;
++  float strokeWidth = aStrokeOptions.mLineWidth * scale;
++  if (strokeWidth <= 0.0f || !std::isfinite(strokeWidth) ||
++      aStrokeOptions.mMiterLimit <= 0.0f ||
++      !std::isfinite(aStrokeOptions.mMiterLimit)) {
++    return false;
++  }
++  Point topLeft = currentTransform.TransformPoint(aRect.TopLeft());
++  float w = aRect.width * scale;
++  float h = aRect.height * scale;
++  float rx = aRx * scale;
++  float ry = aRy * scale;
++  if (!std::isfinite(topLeft.x) || !std::isfinite(topLeft.y) ||
++      !std::isfinite(w) || !std::isfinite(h) || !std::isfinite(rx) ||
++      !std::isfinite(ry) || w <= 0.0f || h <= 0.0f) {
++    return false;
++  }
++  float pad = strokeWidth + 2.0f;
++  Rect bounds(topLeft.x - pad, topLeft.y - pad, w + 2.0f * pad,
++              h + 2.0f * pad);
++  if (!RectInsidePrecisionLimits(bounds)) {
++    return false;
++  }
++  IntRect viewport(IntPoint(), mViewportSize);
++  IntRect intBounds = RoundedOut(bounds).Intersect(viewport);
++  if (intBounds.IsEmpty()) {
++    return true;
++  }
++  size_t outputBufferCapacity =
++      mPathVertexCapacity / sizeof(WGR::OutputVertex);
++  AAStroke::StrokeStyle style = {strokeWidth,
++                                 ToAAStrokeLineCap(aStrokeOptions.mLineCap),
++                                 ToAAStrokeLineJoin(aStrokeOptions.mLineJoin),
++                                 aStrokeOptions.mMiterLimit};
++  AAStroke::VertexBuffer vb = AAStroke::mercury_aa_stroke_stroked_rounded_rect(
++      topLeft.x - float(intBounds.x), topLeft.y - float(intBounds.y), w, h, rx,
++      ry, &style, (AAStroke::OutputVertex*)outputBuffer, outputBufferCapacity);
++  if (vb.len == 0 || vb.len > outputBufferCapacity) {
++    return false;
++  }
++  return UploadAndDrawPathVertices((const uint8_t*)outputBuffer, vb.len,
++                                   intBounds, aPattern, aOptions);
+ }
+ 
+ void DrawTargetWebgl::DrawCircle(const Point& aOrigin, float aRadius,
+@@ -6041,6 +6210,46 @@ void DrawTargetWebgl::Stroke(const Path* aPath, const Pattern& aPattern,
+       }
+     }
+   }
++  if (numVerbs >= 3 && ShouldAccelPath(aOptions, &aStrokeOptions)) {
++    SkRRect rrect;
++    if (skiaPath.isRRect(&rrect) && rrect.isSimple()) {
++      const SkRect& sr = rrect.rect();
++      SkVector radii = rrect.getSimpleRadii();
++      Rect rect(sr.fLeft, sr.fTop, sr.width(), sr.height());
++      if (mSharedContext->StrokeRoundedRectAccel(rect, radii.fX, radii.fY,
++                                                 aPattern, aStrokeOptions,
++                                                 aOptions)) {
++        return;
++      }
++    } else if (numVerbs <= 65) {
++      uint8_t verbs[65];
++      skiaPath.getVerbs({verbs, numVerbs});
++      if (verbs[0] == SkPath::kMove_Verb) {
++        bool closed = verbs[numVerbs - 1] == SkPath::kClose_Verb;
++        int lineCount = numVerbs - 1 - (closed ? 1 : 0);
++        if (lineCount >= 2 && lineCount <= 63) {
++          bool allLines = true;
++          for (int i = 1; i <= lineCount; ++i) {
++            if (verbs[i] != SkPath::kLine_Verb) {
++              allLines = false;
++              break;
++            }
++          }
++          if (allLines && skiaPath.countPoints() == lineCount + 1) {
++            Point pts[64];
++            for (int i = 0; i <= lineCount; ++i) {
++              pts[i] = SkPointToPoint(skiaPath.getPoint(i));
++            }
++            if (mSharedContext->StrokePolylineAccel(
++                    pts, size_t(lineCount + 1), closed, aPattern,
++                    aStrokeOptions, aOptions)) {
++              return;
++            }
++          }
++        }
++      }
++    }
++  }
+ 
+   DrawPath(aPath, aPattern, aOptions, &aStrokeOptions, allowStrokeAlpha);
+ }
+diff --git a/dom/canvas/DrawTargetWebgl.h b/dom/canvas/DrawTargetWebgl.h
+index fa16c69..cf01213 100644
+--- a/dom/canvas/DrawTargetWebgl.h
++++ b/dom/canvas/DrawTargetWebgl.h
+@@ -452,6 +452,10 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
+                      bool aCacheable = true,
+                      const Matrix* aPathXform = nullptr);
+ 
++  bool UploadAndDrawPathVertices(const uint8_t* aVertexData, size_t aVertexLen,
++                                 const IntRect& aIntBounds,
++                                 const Pattern& aPattern,
++                                 const DrawOptions& aOptions);
+   bool DrawCircleAccel(const Point& aCenter, float aRadius,
+                        const Pattern& aPattern, const DrawOptions& aOptions,
+                        const StrokeOptions* aStrokeOptions = nullptr);
+@@ -459,6 +463,14 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
+                         const Point& aP3, const Pattern& aPattern,
+                         const StrokeOptions& aStrokeOptions,
+                         const DrawOptions& aOptions);
++  bool StrokePolylineAccel(const Point* aPoints, size_t aPointCount,
++                           bool aClosed, const Pattern& aPattern,
++                           const StrokeOptions& aStrokeOptions,
++                           const DrawOptions& aOptions);
++  bool StrokeRoundedRectAccel(const Rect& aRect, float aRx, float aRy,
++                              const Pattern& aPattern,
++                              const StrokeOptions& aStrokeOptions,
++                              const DrawOptions& aOptions);
+ 
+   bool DrawGlyphsAccel(ScaledFont* aFont, const GlyphBuffer& aBuffer,
+                        const Pattern& aPattern, const DrawOptions& aOptions,
+diff --git a/gfx/src/AAStroke.h b/gfx/src/AAStroke.h
+index 31f7658..61c7891 100644
+--- a/gfx/src/AAStroke.h
++++ b/gfx/src/AAStroke.h
+@@ -41,6 +41,22 @@ VertexBuffer aa_stroke_finish(Stroker* s);
+ VertexBuffer aa_stroke_filled_circle(float cx, float cy, float radius,
+                                      OutputVertex* output_ptr = nullptr,
+                                      size_t output_capacity = 0);
++VertexBuffer mercury_aa_stroke_cubic_curve(
++    float p0x, float p0y, float c1x, float c1y, float c2x, float c2y,
++    float p3x, float p3y, const StrokeStyle* style,
++    OutputVertex* output_ptr = nullptr, size_t output_capacity = 0);
++VertexBuffer mercury_aa_stroke_stroked_circle(
++    float cx, float cy, float radius, const StrokeStyle* style,
++    OutputVertex* output_ptr = nullptr, size_t output_capacity = 0);
++VertexBuffer mercury_aa_stroke_polyline(const float* points_xy,
++                                        size_t point_count, bool closed,
++                                        const StrokeStyle* style,
++                                        OutputVertex* output_ptr = nullptr,
++                                        size_t output_capacity = 0);
++VertexBuffer mercury_aa_stroke_stroked_rounded_rect(
++    float x, float y, float w, float h, float rx, float ry,
++    const StrokeStyle* style, OutputVertex* output_ptr = nullptr,
++    size_t output_capacity = 0);
+ void aa_stroke_vertex_buffer_release(VertexBuffer vb);
+ void aa_stroke_release(Stroker* s);
+ };
+diff --git a/toolkit/library/rust/shared/lib.rs b/toolkit/library/rust/shared/lib.rs
+index 078e80a..4706e4c 100644
+--- a/toolkit/library/rust/shared/lib.rs
++++ b/toolkit/library/rust/shared/lib.rs
+@@ -74,6 +74,8 @@ extern crate wgpu_bindings;
+ 
+ extern crate aa_stroke;
+ extern crate qcms;
++
++mod mercury_canvas_accel;
+ extern crate wpf_gpu_raster;
+ 
+ extern crate locale_service_glue;
+diff --git a/toolkit/library/rust/shared/mercury_canvas_accel.rs b/toolkit/library/rust/shared/mercury_canvas_accel.rs
+new file mode 100644
+index 0000000..09c8f21
+--- /dev/null
++++ b/toolkit/library/rust/shared/mercury_canvas_accel.rs
+@@ -0,0 +1,591 @@
++// This Source Code Form is subject to the terms of the Mozilla Public
++// License, v. 2.0. If a copy of the MPL was not distributed with this
++// file, You can obtain one at http://mozilla.org/MPL/2.0/.
++
++//! Mercury Rust-first Canvas2D GPU geometry tessellators.
++//!
++//! Exports 4 stack-allocated, zero-heap-allocation, bounds-checked C ABI entry
++//! points on top of Mozilla's vendored `aa-stroke` crate, matching the exact
++//! `AAStroke::VertexBuffer` and `AAStroke::StrokeStyle` layout in
++//! `gfx/src/AAStroke.h`.
++
++#[cfg(test)]
++extern crate aa_stroke;
++
++use std::ptr;
++use std::slice;
++
++use aa_stroke::{Point, StrokeStyle, Stroker, Vertex};
++
++/// Cubic Bezier circle approximation constant: 4 * (sqrt(2) - 1) / 3.
++const KAPPA: f32 = 0.55228475;
++/// Maximum polyline vertex count accepted on the fast path.
++const MAX_POLYLINE_POINTS: usize = 64;
++
++/// C ABI vertex buffer matching `AAStroke::VertexBuffer` in `gfx/src/AAStroke.h`.
++#[repr(C)]
++pub struct VertexBuffer {
++    pub data: *const Vertex,
++    pub len: usize,
++}
++
++#[inline]
++fn empty_vb() -> VertexBuffer {
++    VertexBuffer {
++        data: ptr::null(),
++        len: 0,
++    }
++}
++
++#[inline]
++fn is_valid_style(style: &StrokeStyle) -> bool {
++    style.width.is_finite()
++        && style.width > 0.0
++        && style.miter_limit.is_finite()
++        && style.miter_limit > 0.0
++}
++
++/// Finishes `stroker` into the caller-provided stack/preallocated output buffer.
++/// Never heap-allocates; returns `len == 0` on empty output or capacity overflow
++/// so C++ cleanly falls back without leaking.
++#[inline]
++fn finish_into_buffer(stroker: &mut Stroker, output_capacity: usize) -> VertexBuffer {
++    let stroked_path = stroker.get_stroked_path();
++    match stroked_path.get_output_buffer_size() {
++        Some(len) if len > 0 && len <= output_capacity => VertexBuffer {
++            data: ptr::null(),
++            len: len,
++        },
++        _ => empty_vb(),
++    }
++}
++
++/// Tessellates a single open cubic Bezier curve directly into `output_ptr`.
++#[no_mangle]
++pub extern "C" fn mercury_aa_stroke_cubic_curve(
++    p0x: f32,
++    p0y: f32,
++    c1x: f32,
++    c1y: f32,
++    c2x: f32,
++    c2y: f32,
++    p3x: f32,
++    p3y: f32,
++    style: *const StrokeStyle,
++    output_ptr: *mut Vertex,
++    output_capacity: usize,
++) -> VertexBuffer {
++    if style.is_null() || output_ptr.is_null() || output_capacity == 0 {
++        return empty_vb();
++    }
++    if !p0x.is_finite()
++        || !p0y.is_finite()
++        || !c1x.is_finite()
++        || !c1y.is_finite()
++        || !c2x.is_finite()
++        || !c2y.is_finite()
++        || !p3x.is_finite()
++        || !p3y.is_finite()
++    {
++        return empty_vb();
++    }
++    let style_ref = unsafe { &*style };
++    if !is_valid_style(style_ref) {
++        return empty_vb();
++    }
++
++    let output_slice = unsafe { slice::from_raw_parts_mut(output_ptr, output_capacity) };
++    let mut stroker = Stroker::new(style_ref);
++    stroker.set_output_buffer(output_slice);
++    stroker.move_to(Point::new(p0x, p0y), false);
++    stroker.curve_to_capped(
++        Point::new(c1x, c1y),
++        Point::new(c2x, c2y),
++        Point::new(p3x, p3y),
++    );
++    finish_into_buffer(&mut stroker, output_capacity)
++}
++
++/// Tessellates a closed stroked circle (4-quadrant cubic Bezier ring) directly
++/// into `output_ptr`.
++#[no_mangle]
++pub extern "C" fn mercury_aa_stroke_stroked_circle(
++    cx: f32,
++    cy: f32,
++    radius: f32,
++    style: *const StrokeStyle,
++    output_ptr: *mut Vertex,
++    output_capacity: usize,
++) -> VertexBuffer {
++    if style.is_null() || output_ptr.is_null() || output_capacity == 0 {
++        return empty_vb();
++    }
++    if !cx.is_finite() || !cy.is_finite() || !radius.is_finite() || radius <= 0.0 {
++        return empty_vb();
++    }
++    let style_ref = unsafe { &*style };
++    if !is_valid_style(style_ref) {
++        return empty_vb();
++    }
++
++    let k = KAPPA * radius;
++    let output_slice = unsafe { slice::from_raw_parts_mut(output_ptr, output_capacity) };
++    let mut stroker = Stroker::new(style_ref);
++    stroker.set_output_buffer(output_slice);
++    stroker.move_to(Point::new(cx + radius, cy), true);
++    stroker.curve_to(
++        Point::new(cx + radius, cy + k),
++        Point::new(cx + k, cy + radius),
++        Point::new(cx, cy + radius),
++    );
++    stroker.curve_to(
++        Point::new(cx - k, cy + radius),
++        Point::new(cx - radius, cy + k),
++        Point::new(cx - radius, cy),
++    );
++    stroker.curve_to(
++        Point::new(cx - radius, cy - k),
++        Point::new(cx - k, cy - radius),
++        Point::new(cx, cy - radius),
++    );
++    stroker.curve_to(
++        Point::new(cx + k, cy - radius),
++        Point::new(cx + radius, cy - k),
++        Point::new(cx + radius, cy),
++    );
++    stroker.close();
++    finish_into_buffer(&mut stroker, output_capacity)
++}
++
++/// Tessellates an open or closed polyline (2..=64 points packed as `[x0, y0, ...]`)
++/// directly into `output_ptr`.
++#[no_mangle]
++pub extern "C" fn mercury_aa_stroke_polyline(
++    points_xy: *const f32,
++    point_count: usize,
++    closed: bool,
++    style: *const StrokeStyle,
++    output_ptr: *mut Vertex,
++    output_capacity: usize,
++) -> VertexBuffer {
++    if points_xy.is_null()
++        || style.is_null()
++        || output_ptr.is_null()
++        || output_capacity == 0
++        || point_count < 2
++        || point_count > MAX_POLYLINE_POINTS
++    {
++        return empty_vb();
++    }
++    let style_ref = unsafe { &*style };
++    if !is_valid_style(style_ref) {
++        return empty_vb();
++    }
++
++    let coords = unsafe { slice::from_raw_parts(points_xy, point_count * 2) };
++    for &c in coords {
++        if !c.is_finite() {
++            return empty_vb();
++        }
++    }
++
++    let output_slice = unsafe { slice::from_raw_parts_mut(output_ptr, output_capacity) };
++    let mut stroker = Stroker::new(style_ref);
++    stroker.set_output_buffer(output_slice);
++    stroker.move_to(Point::new(coords[0], coords[1]), closed);
++    for i in 1..point_count {
++        let pt = Point::new(coords[i * 2], coords[i * 2 + 1]);
++        if !closed && i + 1 == point_count {
++            stroker.line_to_capped(pt);
++        } else {
++            stroker.line_to(pt);
++        }
++    }
++    if closed {
++        stroker.close();
++    }
++    finish_into_buffer(&mut stroker, output_capacity)
++}
++
++/// Tessellates a closed stroked rounded (or sharp) rectangle directly into
++/// `output_ptr`, clamping `rx <= w/2` and `ry <= h/2`.
++#[no_mangle]
++pub extern "C" fn mercury_aa_stroke_stroked_rounded_rect(
++    x: f32,
++    y: f32,
++    w: f32,
++    h: f32,
++    rx: f32,
++    ry: f32,
++    style: *const StrokeStyle,
++    output_ptr: *mut Vertex,
++    output_capacity: usize,
++) -> VertexBuffer {
++    if style.is_null() || output_ptr.is_null() || output_capacity == 0 {
++        return empty_vb();
++    }
++    if !x.is_finite()
++        || !y.is_finite()
++        || !w.is_finite()
++        || !h.is_finite()
++        || !rx.is_finite()
++        || !ry.is_finite()
++        || w <= 0.0
++        || h <= 0.0
++        || rx < 0.0
++        || ry < 0.0
++    {
++        return empty_vb();
++    }
++    let style_ref = unsafe { &*style };
++    if !is_valid_style(style_ref) {
++        return empty_vb();
++    }
++
++    let rx = if rx > w * 0.5 { w * 0.5 } else { rx };
++    let ry = if ry > h * 0.5 { h * 0.5 } else { ry };
++    let x0 = x;
++    let y0 = y;
++    let x1 = x + w;
++    let y1 = y + h;
++
++    let output_slice = unsafe { slice::from_raw_parts_mut(output_ptr, output_capacity) };
++    let mut stroker = Stroker::new(style_ref);
++    stroker.set_output_buffer(output_slice);
++
++    if rx <= 0.0 || ry <= 0.0 {
++        stroker.move_to(Point::new(x0, y0), true);
++        stroker.line_to(Point::new(x1, y0));
++        stroker.line_to(Point::new(x1, y1));
++        stroker.line_to(Point::new(x0, y1));
++        stroker.close();
++    } else {
++        let kx = KAPPA * rx;
++        let ky = KAPPA * ry;
++        stroker.move_to(Point::new(x0 + rx, y0), true);
++        if x1 - rx > x0 + rx {
++            stroker.line_to(Point::new(x1 - rx, y0));
++        }
++        stroker.curve_to(
++            Point::new(x1 - rx + kx, y0),
++            Point::new(x1, y0 + ry - ky),
++            Point::new(x1, y0 + ry),
++        );
++        if y1 - ry > y0 + ry {
++            stroker.line_to(Point::new(x1, y1 - ry));
++        }
++        stroker.curve_to(
++            Point::new(x1, y1 - ry + ky),
++            Point::new(x1 - rx + kx, y1),
++            Point::new(x1 - rx, y1),
++        );
++        if x1 - rx > x0 + rx {
++            stroker.line_to(Point::new(x0 + rx, y1));
++        }
++        stroker.curve_to(
++            Point::new(x0 + rx - kx, y1),
++            Point::new(x0, y1 - ry + ky),
++            Point::new(x0, y1 - ry),
++        );
++        if y1 - ry > y0 + ry {
++            stroker.line_to(Point::new(x0, y0 + ry));
++        }
++        stroker.curve_to(
++            Point::new(x0, y0 + ry - ky),
++            Point::new(x0 + rx - kx, y0),
++            Point::new(x0 + rx, y0),
++        );
++        stroker.close();
++    }
++
++    finish_into_buffer(&mut stroker, output_capacity)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use aa_stroke::{LineCap, LineJoin};
++    use std::f32;
++
++    fn make_buf(cap: usize) -> Vec<Vertex> {
++        let mut v = Vec::with_capacity(cap);
++        for _ in 0..cap {
++            v.push(Vertex {
++                x: 0.0,
++                y: 0.0,
++                coverage: 0.0,
++            });
++        }
++        v
++    }
++
++    fn make_style(width: f32) -> StrokeStyle {
++        StrokeStyle {
++            width: width,
++            cap: LineCap::Round,
++            join: LineJoin::Round,
++            miter_limit: 10.0,
++        }
++    }
++
++    fn assert_all_finite(buf: &[Vertex], len: usize) {
++        assert!(len > 0 && len <= buf.len());
++        assert_eq!(len % 3, 0);
++        for v in &buf[0..len] {
++            assert!(v.x.is_finite() && v.y.is_finite() && v.coverage.is_finite());
++        }
++    }
++
++    #[test]
++    fn test_cubic_curve_basic_and_safety() {
++        let style = make_style(4.0);
++        let mut buf = make_buf(4096);
++        let vb = mercury_aa_stroke_cubic_curve(
++            10.0,
++            20.0,
++            40.0,
++            5.0,
++            80.0,
++            95.0,
++            120.0,
++            40.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb.data.is_null());
++        assert_all_finite(&buf, vb.len);
++
++        // NaN, null, and overflow must return len == 0 with null data (zero heap fallback).
++        let vb_nan = mercury_aa_stroke_cubic_curve(
++            f32::NAN,
++            0.0,
++            10.0,
++            10.0,
++            20.0,
++            20.0,
++            30.0,
++            30.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_nan.data.is_null() && vb_nan.len == 0);
++
++        let vb_null = mercury_aa_stroke_cubic_curve(
++            0.0,
++            0.0,
++            10.0,
++            10.0,
++            20.0,
++            20.0,
++            30.0,
++            30.0,
++            ptr::null(),
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_null.data.is_null() && vb_null.len == 0);
++
++        let mut tiny = make_buf(6);
++        let vb_overflow = mercury_aa_stroke_cubic_curve(
++            10.0,
++            20.0,
++            40.0,
++            5.0,
++            80.0,
++            95.0,
++            120.0,
++            40.0,
++            &style,
++            tiny.as_mut_ptr(),
++            tiny.len(),
++        );
++        assert!(vb_overflow.data.is_null() && vb_overflow.len == 0);
++    }
++
++    #[test]
++    fn test_stroked_circle_basic_and_safety() {
++        let style = make_style(3.0);
++        let mut buf = make_buf(8192);
++        let vb = mercury_aa_stroke_stroked_circle(
++            50.0,
++            50.0,
++            25.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb.data.is_null());
++        assert_all_finite(&buf, vb.len);
++
++        let vb_zero = mercury_aa_stroke_stroked_circle(
++            50.0,
++            50.0,
++            0.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_zero.data.is_null() && vb_zero.len == 0);
++
++        let vb_inf = mercury_aa_stroke_stroked_circle(
++            50.0,
++            50.0,
++            f32::INFINITY,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_inf.data.is_null() && vb_inf.len == 0);
++    }
++
++    #[test]
++    fn test_polyline_open_closed_and_bounds() {
++        let style = make_style(2.5);
++        let mut buf = make_buf(8192);
++        let pts: [f32; 8] = [10.0, 10.0, 60.0, 15.0, 75.0, 65.0, 20.0, 80.0];
++
++        let vb_open = mercury_aa_stroke_polyline(
++            pts.as_ptr(),
++            4,
++            false,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_open.data.is_null());
++        assert_all_finite(&buf, vb_open.len);
++
++        let vb_closed = mercury_aa_stroke_polyline(
++            pts.as_ptr(),
++            4,
++            true,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_closed.data.is_null());
++        assert_all_finite(&buf, vb_closed.len);
++
++        // Reject null, count < 2, count > 64, and NaN point.
++        assert_eq!(
++            mercury_aa_stroke_polyline(ptr::null(), 4, false, &style, buf.as_mut_ptr(), buf.len())
++                .len,
++            0
++        );
++        assert_eq!(
++            mercury_aa_stroke_polyline(pts.as_ptr(), 1, false, &style, buf.as_mut_ptr(), buf.len())
++                .len,
++            0
++        );
++        assert_eq!(
++            mercury_aa_stroke_polyline(
++                pts.as_ptr(),
++                65,
++                false,
++                &style,
++                buf.as_mut_ptr(),
++                buf.len()
++            )
++            .len,
++            0
++        );
++        let bad_pts: [f32; 4] = [0.0, 0.0, f32::NAN, 10.0];
++        assert_eq!(
++            mercury_aa_stroke_polyline(
++                bad_pts.as_ptr(),
++                2,
++                false,
++                &style,
++                buf.as_mut_ptr(),
++                buf.len()
++            )
++            .len,
++            0
++        );
++    }
++
++    #[test]
++    fn test_stroked_rounded_rect_clamping_and_sharp() {
++        let style = make_style(3.0);
++        let mut buf = make_buf(8192);
++
++        // Rounded rect with normal corner radii.
++        let vb_rr = mercury_aa_stroke_stroked_rounded_rect(
++            10.0,
++            10.0,
++            100.0,
++            60.0,
++            12.0,
++            12.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_rr.data.is_null());
++        assert_all_finite(&buf, vb_rr.len);
++
++        // Oversized corner radii must clamp cleanly to w/2 and h/2.
++        let vb_clamped = mercury_aa_stroke_stroked_rounded_rect(
++            10.0,
++            10.0,
++            40.0,
++            20.0,
++            999.0,
++            999.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_clamped.data.is_null());
++        assert_all_finite(&buf, vb_clamped.len);
++
++        // Sharp rectangle (rx == 0, ry == 0).
++        let vb_sharp = mercury_aa_stroke_stroked_rounded_rect(
++            5.0,
++            5.0,
++            80.0,
++            50.0,
++            0.0,
++            0.0,
++            &style,
++            buf.as_mut_ptr(),
++            buf.len(),
++        );
++        assert!(vb_sharp.data.is_null());
++        assert_all_finite(&buf, vb_sharp.len);
++
++        // Reject negative radii and non-positive dimensions.
++        assert_eq!(
++            mercury_aa_stroke_stroked_rounded_rect(
++                0.0,
++                0.0,
++                40.0,
++                20.0,
++                -1.0,
++                5.0,
++                &style,
++                buf.as_mut_ptr(),
++                buf.len()
++            )
++            .len,
++            0
++        );
++        assert_eq!(
++            mercury_aa_stroke_stroked_rounded_rect(
++                0.0,
++                0.0,
++                0.0,
++                20.0,
++                4.0,
++                4.0,
++                &style,
++                buf.as_mut_ptr(),
++                buf.len()
++            )
++            .len,
++            0
++        );
++    }
++}

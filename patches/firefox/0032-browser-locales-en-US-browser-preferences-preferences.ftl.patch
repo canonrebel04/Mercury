@@ -1,5 +1,5 @@
 diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
-index e36e667..a67e651 100644
+index e36e667..9b67b26 100644
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
 @@ -12,6 +12,16 @@ global-privacy-control-description =
@@ -19,7 +19,7 @@ index e36e667..a67e651 100644
  do-not-track-removal3 =
      .message = We no longer support the “Do Not Track” feature.
  
-@@ -2864,3 +2874,236 @@ referrals-section-header2 =
+@@ -2864,3 +2874,251 @@ referrals-section-header2 =
  # use the browser. "Share" here means recommending or referring the browser
  referrals-link2 =
    .label = Share { -brand-product-name }
@@ -227,6 +227,21 @@ index e36e667..a67e651 100644
 +
 +mercury-group-performance =
 +  .label = Performance & GPU Engine
++mercury-performance-profile =
++  .label = Performance & Memory Profile
++  .description = Tunes Fission prelaunch processes, GPU Canvas2D cache, JS nursery, image cache, and low-memory tab unloading without touching any privacy or security settings.
++mercury-performance-profile-balanced =
++  .label = Balanced — Fast desktop default (4 prelaunch processes, 512 MB canvas cache)
++mercury-performance-profile-turbo =
++  .label = Turbo (High-RAM Desktop) — Maximum speed (6 prelaunch processes, 1024 MB canvas cache, 128 MB JS nursery)
++mercury-performance-profile-low-ram =
++  .label = Low-RAM (Laptop / Constrained Memory) — Lean footprint (1 prelaunch process, 128 MB canvas cache, 16 MB JS nursery)
++mercury-fontations =
++  .label = Rust Fontations Font Engine (memory-safe pure-Rust font parsing)
++  .description = Uses Google/Mozilla's memory-safe Rust Fontations stack instead of legacy C/C++ font parsers.
++mercury-unload-low-mem =
++  .label = Auto-Unload Idle Tabs on Low Memory
++  .description = Automatically suspends background tabs when system memory runs low to keep active tabs responsive.
 +mercury-hardware-accel =
 +  .label = Hardware acceleration & WebRender GPU compositing (requires restart)
 +  .description = Uses your GPU for page compositing and shaders. Disable only if troubleshooting driver glitches.

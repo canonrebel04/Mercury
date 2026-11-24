@@ -7,6 +7,7 @@
 #   published.
 # - MercuryHardened: the optional Hardened mode switch in Settings.
 # - MercuryBurner: native ephemeral "Burner" tabs (resource:///modules/MercuryBurner.sys.mjs).
+# - MercuryPerformance: performance & memory profiles (resource:///modules/MercuryPerformance.sys.mjs).
 MOZ_SRC_FILES += [
     "MercuryHardened.sys.mjs",
     "MercuryUpdateCheck.sys.mjs",
@@ -14,4 +15,5 @@ MOZ_SRC_FILES += [
 
 EXTRA_JS_MODULES += [
     "MercuryBurner.sys.mjs",
+    "MercuryPerformance.sys.mjs",
 ]
