@@ -1,5 +1,5 @@
 diff --git a/browser/components/preferences/preferences.js b/browser/components/preferences/preferences.js
-index df1663c..50bcece 100644
+index df1663c..fa59b90 100644
 --- a/browser/components/preferences/preferences.js
 +++ b/browser/components/preferences/preferences.js
 @@ -400,7 +400,13 @@ const CONFIG_PANES = Object.freeze({
@@ -17,7 +17,7 @@ index df1663c..50bcece 100644
      l10nId: "preferences-profiles-group-header",
      groupIds: ["profilePane"],
    },
-@@ -452,12 +458,26 @@ const CONFIG_PANES = Object.freeze({
+@@ -452,12 +458,27 @@ const CONFIG_PANES = Object.freeze({
        "cookiesAndSiteData2",
        "history2",
        "nonTechnicalPrivacy2",
@@ -34,6 +34,7 @@ index df1663c..50bcece 100644
 +    iconSrc: "chrome://branding/content/icon32.png",
 +    groupIds: [
 +      "mercuryIdentity",
++      "mercuryBurner",
 +      "mercuryFingerprinting",
 +      "mercuryNetwork",
 +      "mercuryPerformance",
@@ -44,7 +45,7 @@ index df1663c..50bcece 100644
    search: {
      l10nId: "search-section",
      groupIds: [
-@@ -485,6 +505,7 @@ const CONFIG_PANES = Object.freeze({
+@@ -485,6 +506,7 @@ const CONFIG_PANES = Object.freeze({
        "referrals",
      ],
      module: "chrome://browser/content/preferences/config/account-sync.mjs",
@@ -52,7 +53,7 @@ index df1663c..50bcece 100644
      replaces: "sync",
    },
    moreFromMozilla: {
-@@ -615,9 +636,11 @@ function init_all() {
+@@ -615,9 +637,11 @@ function init_all() {
    );
    let categorySync = document.getElementById("category-sync");
    if (redesignEnabled) {
@@ -67,7 +68,7 @@ index df1663c..50bcece 100644
    } else if (accountsEnabled) {
      categorySync.hidden = false;
      register_module("paneSync", gSyncPane);
-@@ -760,10 +783,20 @@ async function gotoPref(
+@@ -760,10 +784,20 @@ async function gotoPref(
  ) {
    let redesignEnabled = srdSectionPrefs.all;
    let categories = document.getElementById("categories");

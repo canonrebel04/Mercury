@@ -1,5 +1,5 @@
 diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
-index e36e667..36dc889 100644
+index e36e667..f362e93 100644
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
 @@ -12,6 +12,16 @@ global-privacy-control-description =
@@ -19,7 +19,7 @@ index e36e667..36dc889 100644
  do-not-track-removal3 =
      .message = We no longer support the “Do Not Track” feature.
  
-@@ -2864,3 +2874,198 @@ referrals-section-header2 =
+@@ -2864,3 +2874,223 @@ referrals-section-header2 =
  # use the browser. "Share" here means recommending or referring the browser
  referrals-link2 =
    .label = Share { -brand-product-name }
@@ -51,6 +51,31 @@ index e36e667..36dc889 100644
 +  .label = New Identity (Clear Session, Cookies, Cache & TLS Tickets)
 +mercury-new-identity-alert-title = { -brand-short-name } — New Identity
 +mercury-new-identity-alert-body = Cookies, caches, site storage, HTTP auth, and TLS session state have been cleared.
++
++mercury-group-burner =
++  .label = Ephemeral Burner Tabs & Network Silence
++  .description = Open disposable tabs in isolated containers that atomically wipe cookies, storage, and cache the instant their last tab closes, plus silence background connectivity probes and silent cross-site storage grants.
++
++mercury-auto-burner =
++  .label = Auto-Burner Mode (open external links in fresh Burner Tabs)
++  .description = Automatically isolates newly opened cross-site HTTP(S) links into ephemeral Burner containers. Never affects pinned tabs, Private Browsing windows, or internal browser pages.
++
++mercury-purge-burners-button =
++  .label = Purge All Burner Data Now
++mercury-purge-burners-alert-title = { -brand-short-name } — Burner Data Purged
++mercury-purge-burners-alert-body = All active and orphaned Burner Tabs and their isolated site data have been wiped.
++
++mercury-captive-portal =
++  .label = Captive Portal Detection (Hotel/Airport Wi-Fi)
++  .description = Off by default for zero background network chatter. Enable temporarily when signing in to public hotel, cafe, or airport Wi-Fi portals.
++
++mercury-block-storage-access-auto-grants =
++  .label = Block Silent Storage Access Auto-Grants
++  .description = Prevents third-party embeds from silently obtaining cross-site cookie access via Storage Access heuristics or HTTP headers.
++
++mercury-redirect-query-stripping =
++  .label = Redirect Query Parameter Stripping
++  .description = Strips known tracking parameters (utm_*, fbclid, gclid, and more) across HTTP redirect chains in addition to top-level navigations.
 +
 +mercury-group-fingerprinting =
 +  .label = Anti-Fingerprinting & Crowd-Blending

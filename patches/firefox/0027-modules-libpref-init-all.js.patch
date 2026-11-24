@@ -1,5 +1,5 @@
 diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
-index fe38d02..d11c576 100644
+index fe38d02..df16958 100644
 --- a/modules/libpref/init/all.js
 +++ b/modules/libpref/init/all.js
 @@ -3068,7 +3068,9 @@ pref("network.tcp.keepalive.idle_time", 600); // seconds; 10 mins
@@ -13,7 +13,17 @@ index fe38d02..d11c576 100644
  
    // Timeout to wait before sending the location request.
    pref("geo.provider.network.timeToWaitBeforeSending", 5000);
-@@ -3270,21 +3272,16 @@ pref("captivedetect.pollingTime", 3000);
+@@ -3237,7 +3239,8 @@ pref("gfx.vr.osvr.clientKitLibPath", "");
+ // actions when the fifo is written to.  Disable this in general.
+ pref("memory_info_dumper.watch_fifo.enabled", false);
+ 
+-pref("network.connectivity-service.enabled", true);
++// Mercury: zero background chatter; toggled alongside captive portal in Settings > Mercury.
++pref("network.connectivity-service.enabled", false);
+ pref("network.connectivity-service.DNSv4.domain", "example.org");
+ pref("network.connectivity-service.DNSv6.domain", "example.org");
+ pref("network.connectivity-service.DNS_HTTPS.domain", "cloudflare-dns.com");
+@@ -3270,21 +3273,16 @@ pref("captivedetect.pollingTime", 3000);
  pref("captivedetect.maxRetryCount", 5);
  
  // The tables used for Safebrowsing phishing and malware checks
@@ -41,7 +51,7 @@ index fe38d02..d11c576 100644
  
  // Tables for anti-tracking features
  pref("urlclassifier.trackingAnnotationTable", "moztest-track-simple,ads-track-digest256,social-track-digest256,analytics-track-digest256,content-track-digest256");
-@@ -3316,14 +3313,16 @@ pref("urlclassifier.features.antifraud.annotate.blocklistTables", "anti-fraud-tr
+@@ -3316,14 +3314,16 @@ pref("urlclassifier.features.antifraud.annotate.blocklistTables", "anti-fraud-tr
  pref("urlclassifier.features.antifraud.annotate.allowlistTables", "mozstd-trackwhite-digest256");
  
  // These tables will never trigger a gethash call.
@@ -60,7 +70,7 @@ index fe38d02..d11c576 100644
  
  // The migration for this pref disables both allow-list categories (convenience
  // and baseline) for users in ETP "strict" and "custom" mode.
-@@ -3361,7 +3360,7 @@ pref("browser.safebrowsing.allowOverride", true);
+@@ -3361,7 +3361,7 @@ pref("browser.safebrowsing.allowOverride", true);
  pref("browser.safebrowsing.downloads.enabled", true);
  pref("browser.safebrowsing.downloads.remote.enabled", true);
  pref("browser.safebrowsing.downloads.remote.timeout_ms", 15000);
@@ -69,7 +79,7 @@ index fe38d02..d11c576 100644
  pref("browser.safebrowsing.downloads.remote.block_dangerous",            true);
  pref("browser.safebrowsing.downloads.remote.block_dangerous_host",       true);
  pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", true);
-@@ -3370,40 +3369,8 @@ pref("browser.safebrowsing.downloads.remote.block_uncommon",             true);
+@@ -3370,40 +3370,8 @@ pref("browser.safebrowsing.downloads.remote.block_uncommon",             true);
  // Android SafeBrowsing's configuration is in ContentBlocking.java, keep in sync.
  #ifndef MOZ_WIDGET_ANDROID
  
@@ -112,7 +122,7 @@ index fe38d02..d11c576 100644
  
  #endif // ifndef MOZ_WIDGET_ANDROID
  
-@@ -3723,24 +3690,24 @@ pref("toolkit.aboutProcesses.profileDuration", 5);
+@@ -3723,24 +3691,24 @@ pref("toolkit.aboutProcesses.profileDuration", 5);
  pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
  
  #ifdef MOZ_DATA_REPORTING
@@ -146,7 +156,7 @@ index fe38d02..d11c576 100644
    #endif
  #endif
  
-@@ -3749,8 +3716,9 @@ pref("services.common.log.logger.rest.response", "Debug");
+@@ -3749,8 +3717,9 @@ pref("services.common.log.logger.rest.response", "Debug");
  pref("services.common.log.logger.tokenserverclient", "Debug");
  
  #ifdef MOZ_SERVICES_SYNC
@@ -157,7 +167,7 @@ index fe38d02..d11c576 100644
  
    pref("services.sync.scheduler.idleInterval", 3600);  // 1 hour
    pref("services.sync.scheduler.activeInterval", 600);   // 10 minutes
-@@ -3759,19 +3727,14 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
+@@ -3759,19 +3728,14 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
  
    pref("services.sync.scheduler.fxa.singleDeviceInterval", 3600); // 1 hour
  

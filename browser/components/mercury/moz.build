@@ -6,7 +6,12 @@
 # - MercuryUpdateCheck: notifies the user when a newer Mercury release is
 #   published.
 # - MercuryHardened: the optional Hardened mode switch in Settings.
+# - MercuryBurner: native ephemeral "Burner" tabs (resource:///modules/MercuryBurner.sys.mjs).
 MOZ_SRC_FILES += [
     "MercuryHardened.sys.mjs",
     "MercuryUpdateCheck.sys.mjs",
+]
+
+EXTRA_JS_MODULES += [
+    "MercuryBurner.sys.mjs",
 ]

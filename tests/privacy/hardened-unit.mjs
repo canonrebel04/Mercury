@@ -7,7 +7,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -63,7 +64,7 @@ const DEFAULTS = {
   "mercury.rfp.preserveSystemTheme": true,
   "privacy.resistFingerprinting": false,
   "privacy.resistFingerprinting.letterboxing": false,
-  "privacy.fingerprintingProtection.overrides": "+EfficientCanvasRandomization,-CanvasRandomization,+FontVisibilityLangPack,+ScreenAvailToResolution,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse,+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+Gamepad,+DeviceSensors,+AudioSampleRate,+MediaDevices,+SpeechSynthesis,+NetworkConnection,+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+VideoElementPlaybackQuality,-JSMathFdlibm,-CSSPrefersColorScheme",
+  "privacy.fingerprintingProtection.overrides": "+EfficientCanvasRandomization,-CanvasRandomization,+CanvasExtractionFromThirdPartiesIsBlocked,+FontVisibilityLangPack,+ScreenAvailToResolution,+WindowScreenXY,+WindowInnerScreenXY,+ScreenPixelDepth,+MouseEventScreenPoint,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse,+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+WebGLRandomization,+WebGLRenderCapability,+Gamepad,+DeviceSensors,+AudioSampleRate,+AudioContext,+MediaDevices,+MediaCapabilities,+WebCodecs,+SpeechSynthesis,+NetworkConnection,+DiskStorageLimit,+UseStandinsForNativeColors,+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+CSSPrefersReducedTransparency,+CSSInvertedColors,+VideoElementPlaybackQuality,+PdfjsSpoof,-JSMathFdlibm,-CSSPrefersColorScheme",
   "browser.contentblocking.category": "strict",
   "privacy.sanitize.sanitizeOnShutdown": false,
   "privacy.clearOnShutdown_v2.cookiesAndStorage": true,
@@ -316,9 +317,10 @@ test("security level falls back to standard on invalid input", () => {
   assert.ok(!prefs._user.has("webgl.disabled"));
 });
 
-await test("newIdentity invokes Services.clearData.deleteData with expected flags", async () => {
+await test("newIdentity invokes Services.clearData.deleteData with expected flags and purges unused burners", async () => {
   setup();
   let capturedFlags = 0;
+  let burnerPurged = false;
   globalThis.Ci = {
     nsIClearDataService: {
       CLEAR_COOKIES: 1 << 0,
@@ -337,8 +339,88 @@ await test("newIdentity invokes Services.clearData.deleteData with expected flag
       cb();
     },
   };
+  globalThis.ChromeUtils = {
+    importESModule: url => {
+      if (url === "resource:///modules/MercuryBurner.sys.mjs") {
+        return {
+          MercuryBurner: {
+            async purgeAllUnused() {
+              burnerPurged = true;
+              return [];
+            },
+          },
+        };
+      }
+      throw new Error(`unexpected module: ${url}`);
+    },
+  };
   await MercuryHardened.newIdentity();
   assert.equal(capturedFlags, 0xff);
+  assert.equal(burnerPurged, true);
+});
+
+await test("CROWD_BLEND_OVERRIDES targets exist in Firefox 160 RFPTargets.inc and match 0003; strip_list excludes functional params", () => {
+  const overrides = mod.CROWD_BLEND_OVERRIDES.split(",").map(s => s.trim()).filter(Boolean);
+  assert.equal(overrides.length, 36);
+  const targets = overrides.map(tok => {
+    assert.ok(tok[0] === "+" || tok[0] === "-", `invalid override token: ${tok}`);
+    return tok.slice(1);
+  });
+
+  // Check against $HOME/mozilla-unified RFPTargets.inc if present on disk.
+  const rfpTargetsPath = join(
+    homedir(),
+    "mozilla-unified/toolkit/components/resistfingerprinting/RFPTargets.inc"
+  );
+  if (existsSync(rfpTargetsPath)) {
+    const rfpInc = readFileSync(rfpTargetsPath, "utf8");
+    const validTargets = new Set(
+      [...rfpInc.matchAll(/ITEM_VALUE\(\s*([A-Za-z0-9_]+)\s*,/g)].map(m => m[1])
+    );
+    for (const t of targets) {
+      assert.ok(validTargets.has(t), `Unknown RFPTarget in CROWD_BLEND_OVERRIDES: ${t}`);
+    }
+  }
+
+  // Verify exact parity with 0003 and safe strip_list (if present in 0003).
+  const p0003 = readFileSync(
+    join(repoRoot, "patches/firefox/0003-browser-app-profile-firefox.js.patch"),
+    "utf8"
+  );
+  const fppMatch = p0003.match(
+    /^\+pref\("privacy\.fingerprintingProtection\.overrides",\s*"([^"]+)"\);/m
+  );
+  assert.ok(fppMatch, "privacy.fingerprintingProtection.overrides not found in 0003");
+  assert.equal(
+    fppMatch[1],
+    mod.CROWD_BLEND_OVERRIDES,
+    "0003 privacy.fingerprintingProtection.overrides must match MercuryHardened.CROWD_BLEND_OVERRIDES exactly"
+  );
+
+  const stripMatch = p0003.match(
+    /^\+pref\("privacy\.query_stripping\.strip_list",\s*"([^"]+)"\);/m
+  );
+  assert.ok(stripMatch, "privacy.query_stripping.strip_list not found in 0003");
+  const stripParams = new Set(stripMatch[1].trim().split(/\s+/).filter(Boolean));
+  assert.ok(stripParams.size >= 50, `expected curated strip_list >= 50 params, got ${stripParams.size}`);
+  const forbiddenFunctional = [
+    "id",
+    "ref",
+    "v",
+    "t",
+    "page",
+    "q",
+    "token",
+    "code",
+    "state",
+    "redirect",
+  ];
+  for (const fp of forbiddenFunctional) {
+    assert.ok(
+      !stripParams.has(fp),
+      `functional OAuth/search/nav param '${fp}' must NOT be in privacy.query_stripping.strip_list`
+    );
+  }
 });
 
 await test("desktop Mercury settings pane l10n IDs, groups, settings, and pref safety", () => {

@@ -29,23 +29,38 @@ export const DEFAULT_DOH_URI = "https://dns.adguard-dns.com/dns-query";
 export const CROWD_BLEND_OVERRIDES = [
   "+EfficientCanvasRandomization",
   "-CanvasRandomization",
+  "+CanvasExtractionFromThirdPartiesIsBlocked",
   "+FontVisibilityLangPack",
   "+ScreenAvailToResolution",
+  "+WindowScreenXY",
+  "+WindowInnerScreenXY",
+  "+ScreenPixelDepth",
+  "+MouseEventScreenPoint",
   "+NavigatorHWConcurrencyTiered",
   "+MaxTouchPointsCollapse",
   "+IMEStyle",
   "+WebGLRendererConstant",
   "+WebGLVendorSanitize",
+  "+WebGLRandomization",
+  "+WebGLRenderCapability",
   "+Gamepad",
   "+DeviceSensors",
   "+AudioSampleRate",
+  "+AudioContext",
   "+MediaDevices",
+  "+MediaCapabilities",
+  "+WebCodecs",
   "+SpeechSynthesis",
   "+NetworkConnection",
+  "+DiskStorageLimit",
+  "+UseStandinsForNativeColors",
   "+CSSColorInfo",
   "+CSSVideoDynamicRange",
   "+CSSPointerCapabilities",
+  "+CSSPrefersReducedTransparency",
+  "+CSSInvertedColors",
   "+VideoElementPlaybackQuality",
+  "+PdfjsSpoof",
   "-JSMathFdlibm",
   "-CSSPrefersColorScheme",
 ].join(",");
@@ -297,6 +312,14 @@ export const MercuryHardened = {
       await new Promise(resolve => {
         Services.clearData.deleteData(flags, () => resolve());
       });
+      try {
+        const { MercuryBurner } = ChromeUtils.importESModule(
+          "resource:///modules/MercuryBurner.sys.mjs"
+        );
+        await MercuryBurner.purgeAllUnused();
+      } catch (e) {
+        // MercuryBurner may not be loaded in minimal unit-test mocks.
+      }
     } catch (e) {
       console.error("Mercury New Identity:", e);
     }

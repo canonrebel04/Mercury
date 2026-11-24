@@ -12,6 +12,9 @@ const { MercuryHardened, CROWD_BLEND_OVERRIDES, DEFAULT_DOH_URI } =
   ChromeUtils.importESModule(
     "moz-src:///browser/components/mercury/MercuryHardened.sys.mjs"
   );
+const { MercuryBurner } = ChromeUtils.importESModule(
+  "resource:///modules/MercuryBurner.sys.mjs"
+);
 
 const FPP_OVERRIDES_PREF = "privacy.fingerprintingProtection.overrides";
 
@@ -706,6 +709,74 @@ addPrefSetting(
 
 addPrefSetting("mercuryUpdateCheck", "mercury.updatecheck.enabled", "bool", true);
 
+// --- Group 6: Ephemeral Burner Tabs & Network Silence ---
+addPrefSetting("mercuryAutoBurner", "mercury.burner.autoIsolate", "bool", false);
+
+Preferences.addSetting({
+  id: "mercuryPurgeBurnersButton",
+  onUserClick: async () => {
+    await MercuryBurner.purgeAll();
+    let title = "Mercury — Burner Data Purged";
+    let body =
+      "All active and orphaned Burner Tabs and their isolated site data have been wiped.";
+    try {
+      let [l10nTitle, l10nBody] = await document.l10n.formatValues([
+        { id: "mercury-purge-burners-alert-title" },
+        { id: "mercury-purge-burners-alert-body" },
+      ]);
+      if (l10nTitle) {
+        title = l10nTitle;
+      }
+      if (l10nBody) {
+        body = l10nBody;
+      }
+    } catch (e) {
+      // Fallback strings above are already set.
+    }
+    Services.prompt.alert(window, title, body);
+  },
+});
+
+addPrefSetting(
+  "mercuryCaptivePortal",
+  "network.captive-portal-service.enabled",
+  "bool",
+  false,
+  {
+    extraObservedPrefs: ["network.connectivity-service.enabled"],
+    get: val =>
+      val || Services.prefs.getBoolPref("network.connectivity-service.enabled", false),
+    set: enable => {
+      writePref("network.connectivity-service.enabled", "bool", enable);
+      return enable;
+    },
+  }
+);
+
+addPrefSetting(
+  "mercuryBlockStorageAccessAutoGrants",
+  "dom.storage_access.auto_grants",
+  "bool",
+  false,
+  {
+    extraObservedPrefs: ["dom.storage_access.headers.enabled"],
+    get: val =>
+      !val &&
+      !Services.prefs.getBoolPref("dom.storage_access.headers.enabled", false),
+    set: block => {
+      writePref("dom.storage_access.headers.enabled", "bool", !block);
+      return !block;
+    },
+  }
+);
+
+addPrefSetting(
+  "mercuryRedirectQueryStripping",
+  "privacy.query_stripping.redirect",
+  "bool",
+  true
+);
+
 SettingGroupManager.registerGroups({
   mercuryIdentity: {
     l10nId: "mercury-group-identity",
@@ -733,6 +804,33 @@ SettingGroupManager.registerGroups({
         id: "mercuryNewIdentityButton",
         l10nId: "mercury-new-identity-button",
         control: "moz-button",
+      },
+    ],
+  },
+  mercuryBurner: {
+    l10nId: "mercury-group-burner",
+    headingLevel: 2,
+    items: [
+      {
+        id: "mercuryAutoBurner",
+        l10nId: "mercury-auto-burner",
+      },
+      {
+        id: "mercuryPurgeBurnersButton",
+        l10nId: "mercury-purge-burners-button",
+        control: "moz-button",
+      },
+      {
+        id: "mercuryCaptivePortal",
+        l10nId: "mercury-captive-portal",
+      },
+      {
+        id: "mercuryBlockStorageAccessAutoGrants",
+        l10nId: "mercury-block-storage-access-auto-grants",
+      },
+      {
+        id: "mercuryRedirectQueryStripping",
+        l10nId: "mercury-redirect-query-stripping",
       },
     ],
   },

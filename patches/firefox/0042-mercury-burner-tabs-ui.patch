@@ -1,0 +1,139 @@
+diff --git a/browser/base/content/browser-context.inc.xhtml b/browser/base/content/browser-context.inc.xhtml
+index 58cadb5..5579baa 100644
+--- a/browser/base/content/browser-context.inc.xhtml
++++ b/browser/base/content/browser-context.inc.xhtml
+@@ -100,6 +100,11 @@
+             hidden="true">
+         <menupopup id="context-openlinkinusercontext-popup"/>
+       </menu>
++      <menuitem id="context-openlinkinburner"
++                class="context-menu-open-link"
++                data-l10n-id="main-context-menu-open-link-burner-tab"
++                hidden="true"
++                />
+ 
+       <menuitem id="context-openlink"
+                 class="context-menu-open-link"
+diff --git a/browser/base/content/browser-context.js b/browser/base/content/browser-context.js
+index 2e617f9..2fe831e 100644
+--- a/browser/base/content/browser-context.js
++++ b/browser/base/content/browser-context.js
+@@ -43,6 +43,9 @@ document.addEventListener(
+         case "context-openlinkintab":
+           gContextMenu.openLinkInTab(event);
+           break;
++        case "context-openlinkinburner":
++          gContextMenu.openLinkInBurnerTab();
++          break;
+         case "context-openlink":
+           gContextMenu.openLink();
+           break;
+diff --git a/browser/base/content/browser-sets.inc.xhtml b/browser/base/content/browser-sets.inc.xhtml
+index 9190c6e..be28d79 100644
+--- a/browser/base/content/browser-sets.inc.xhtml
++++ b/browser/base/content/browser-sets.inc.xhtml
+@@ -20,6 +20,7 @@
+ 
+     <command id="cmd_newNavigatorTab" />
+     <command id="cmd_newNavigatorTabNoEvent" />
++    <command id="cmd_newBurnerTab" />
+     <command id="Browser:OpenFile" />
+     <command id="Browser:SavePage" />
+ 
+@@ -143,6 +144,8 @@
+          modifiers="accel" reserved="true"/>
+     <key id="key_newNavigatorTab" data-l10n-id="tab-new-shortcut" modifiers="accel"
+          command="cmd_newNavigatorTabNoEvent" reserved="true"/>
++    <key id="key_newBurnerTab" data-l10n-id="mercury-burner-tab-shortcut" modifiers="accel,alt"
++         command="cmd_newBurnerTab" reserved="true"/>
+     <key id="focusURLBar" data-l10n-id="location-open-shortcut" command="Browser:OpenLocation"
+          modifiers="accel"/>
+ #ifndef XP_MACOSX
+diff --git a/browser/base/content/browser-sets.js b/browser/base/content/browser-sets.js
+index d3da878..cb64453 100644
+--- a/browser/base/content/browser-sets.js
++++ b/browser/base/content/browser-sets.js
+@@ -44,6 +44,13 @@ document.addEventListener(
+           case "cmd_newNavigatorTabNoEvent":
+             BrowserCommands.openTab();
+             break;
++          case "cmd_newBurnerTab": {
++            const { MercuryBurner } = ChromeUtils.importESModule(
++              "resource:///modules/MercuryBurner.sys.mjs"
++            );
++            MercuryBurner.openBurnerTab(window);
++            break;
++          }
+           case "Browser:OpenFile":
+             BrowserCommands.openFileWindow();
+             break;
+diff --git a/browser/base/content/nsContextMenu.sys.mjs b/browser/base/content/nsContextMenu.sys.mjs
+index e7485dd..9e95bca 100644
+--- a/browser/base/content/nsContextMenu.sys.mjs
++++ b/browser/base/content/nsContextMenu.sys.mjs
+@@ -20,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
+   GenAI: "moz-src:///browser/components/genai/GenAI.sys.mjs",
+   LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
+   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
++  MercuryBurner: "resource:///modules/MercuryBurner.sys.mjs",
+   LoginManagerContextMenu:
+     "resource://gre/modules/LoginManagerContextMenu.sys.mjs",
+   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
+@@ -541,6 +542,10 @@ export class nsContextMenu {
+       "context-openlinkinusercontext-menu",
+       shouldShow && !isWindowPrivate && showContainers
+     );
++    this.showItem(
++      "context-openlinkinburner",
++      shouldShow && !isWindowPrivate
++    );
+     this.showItem("context-openlinkincurrent", this.onPlainTextLink);
+     this.showItem(
+       "context-previewlink",
+@@ -1587,6 +1592,17 @@ export class nsContextMenu {
+     );
+   }
+ 
++  openLinkInBurnerTab() {
++    lazy.MercuryBurner.openBurnerTab(this.window, this.linkURL, {
++      triggeringPrincipal: this.principal,
++      referrerInfo: this.referrerInfo,
++      inBackground: Services.prefs.getBoolPref(
++        "browser.tabs.loadInBackground",
++        true
++      ),
++    });
++  }
++
+   // Open linked-to URL in a new split view
+   openLinkInSplitView() {
+     let win = this.window;
+diff --git a/browser/locales/en-US/browser/browserContext.ftl b/browser/locales/en-US/browser/browserContext.ftl
+index 5767f9d..d1a48c8 100644
+--- a/browser/locales/en-US/browser/browserContext.ftl
++++ b/browser/locales/en-US/browser/browserContext.ftl
+@@ -145,6 +145,10 @@ main-context-menu-open-link-container-tab =
+     .label = Open Link in New Container Tab
+     .accesskey = w
+ 
++main-context-menu-open-link-burner-tab =
++    .label = Open Link in Burner Tab
++    .accesskey = u
++
+ main-context-menu-open-link-new-window =
+     .label = Open Link in New Window
+     .accesskey = d
+diff --git a/browser/locales/en-US/browser/browserSets.ftl b/browser/locales/en-US/browser/browserSets.ftl
+index ac4c6a1..11c5932 100644
+--- a/browser/locales/en-US/browser/browserSets.ftl
++++ b/browser/locales/en-US/browser/browserSets.ftl
+@@ -20,6 +20,9 @@ close-shortcut =
+ tab-new-shortcut =
+     .key = T
+ 
++mercury-burner-tab-shortcut =
++    .key = T
++
+ location-open-shortcut =
+     .key = L
+ 
