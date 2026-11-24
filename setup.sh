@@ -38,6 +38,8 @@ displayHelp () {
 	printf "${bold}${YEL}  Use the --android flag to make an Android ARM64 (GeckoView + Fenix) build${c0}\n" &&
 	printf "${bold}${YEL}  Use the --android-x86_64 flag to make an Android x86_64 build${c0}\n" &&
 	printf "${bold}${YEL}  Use the --help or -h flag to show this help${c0}\n" &&
+	printf "${bold}${CYA}  Env overrides: MERCURY_FAST_BUILD=1, MERCURY_PGO_PROFILE=/abs/merged.profdata, MERCURY_LTO_MODE, MERCURY_BOLT=1${c0}\n" &&
+	printf "${bold}${CYA}  Multi-platform release pipeline: scripts/build-release.sh --help${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -290,11 +292,26 @@ case $1 in
 	--raspi) copyLinuxArm64;
 esac
 
+copyAndroidAssets () {
+	if [ -d "./android/res" ]; then
+		rm -f \
+			"${HG_SRC_DIR}/mobile/android/fenix/app/src/main/res/drawable-nodpi/ic_wordmark_text_normal.xml" \
+			"${HG_SRC_DIR}/mobile/android/fenix/app/src/main/res/drawable-nodpi/ic_wordmark_text_private.xml" \
+			"${HG_SRC_DIR}/mobile/android/fenix/app/src/main/res/drawable-night/ic_logo_wordmark_normal.xml"
+		cp -r ./android/res/. "${HG_SRC_DIR}/mobile/android/fenix/app/src/main/res/"
+		cp -r ./android/res/. "${HG_SRC_DIR}/mobile/android/fenix/app/src/release/res/"
+	fi
+	if [ -d "./android/java" ]; then
+		cp -r ./android/java/. "${HG_SRC_DIR}/mobile/android/fenix/app/src/main/java/"
+	fi
+}
+
 copyAndroidArm64 () {
 	printf "\n" &&
 	printf "${GRE}Copying Android ARM64 (GeckoView + Fenix) mozconfig${c0}\n" &&
 	printf "\n" &&
 	applyPatch "${MERCURY_SRC_DIR}/patches/optional/ffp-contract-fast.patch" &&
+	copyAndroidAssets &&
 	cp -v ./mozconfigs/mozconfig-android-arm64 "${HG_SRC_DIR}/mozconfig"
 }
 case $1 in
@@ -306,6 +323,7 @@ copyAndroidX86_64 () {
 	printf "${GRE}Copying Android x86_64 (GeckoView + Fenix) mozconfig${c0}\n" &&
 	printf "\n" &&
 	applyPatch "${MERCURY_SRC_DIR}/patches/optional/ffp-contract-fast.patch" &&
+	copyAndroidAssets &&
 	cp -v ./mozconfigs/mozconfig-android-x86_64 "${HG_SRC_DIR}/mozconfig"
 }
 case $1 in

@@ -55,7 +55,9 @@ for cand in \
 	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.tar.xz \
 	"${HG_SRC_DIR}"/obj-*/dist/install/sea/mercury-*.installer.exe \
 	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.win64.zip \
-	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.dmg; do
+	"${HG_SRC_DIR}"/obj-*/dist/mercury-*.dmg \
+	"${HG_SRC_DIR}"/obj-*/gradle/build/mobile/android/fenix/app/outputs/apk/*/*.apk \
+	"${HG_SRC_DIR}"/obj-*/dist/*.apk; do
 	if [ -f "$cand" ]; then
 		printf "%s\n" "$cand"
 		found_pkg=1

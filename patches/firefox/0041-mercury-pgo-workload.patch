@@ -1,0 +1,240 @@
+--- a/build/pgo/index.html
++++ b/build/pgo/index.html
+@@ -134,6 +134,11 @@
+     new Item(
+       "webkit/PerformanceTests/webaudio/index.html?raptor&rendering-buffer-length=30",
+       extendedTimeout
++    ),
++    // Mercury: local Canvas2D + modern JS/Wasm + DOM/Layout PGO workload.
++    new Item(
++      "mercury-workload.html",
++      15 * 1000
+     )
+   );
+ 
+--- /dev/null
++++ b/build/pgo/mercury-workload.html
+@@ -0,0 +1,223 @@
++<!DOCTYPE html>
++<!-- This Source Code Form is subject to the terms of the Mozilla Public
++   - License, v. 2.0. If a copy of the MPL was not distributed with this
++   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
++<html lang="en">
++<head>
++  <meta charset="utf-8">
++  <title>Mercury PGO Training Workload</title>
++  <style>
++    :root { --accent: #4c8bf5; --gap: 4px; }
++    body { margin: 0; font: 13px/1.4 sans-serif; background: #111; color: #eee; }
++    #grid {
++      display: grid;
++      grid-template-columns: repeat(12, minmax(24px, 1fr));
++      gap: var(--gap);
++      padding: 8px;
++    }
++    .card {
++      display: flex;
++      align-items: center;
++      justify-content: center;
++      padding: 4px;
++      border-radius: 4px;
++      background: #222;
++      transform: translateZ(0);
++    }
++    .card:has(.hot) { border: 1px solid var(--accent); background: #1b2838; }
++    .card:is(.a, .b, .c):nth-child(odd) { opacity: 0.92; }
++  </style>
++</head>
++<body>
++  <canvas id="c2d" width="512" height="512"></canvas>
++  <svg id="svg" width="256" height="256" viewBox="0 0 256 256"></svg>
++  <div id="grid"></div>
++  <div id="shadow-host"></div>
++  <pre id="status">running...</pre>
++  <script>
++    "use strict";
++
++    function runCanvas2D() {
++      const canvas = document.getElementById("c2d");
++      const ctx = canvas.getContext("2d", { willReadFrequently: true });
++      const off = document.createElement("canvas");
++      off.width = 128;
++      off.height = 128;
++      const octx = off.getContext("2d");
++
++      for (let f = 0; f < 40; f++) {
++        const grad = octx.createLinearGradient(0, 0, 128, 128);
++        grad.addColorStop(0, `hsl(${(f * 13) % 360}, 80%, 50%)`);
++        grad.addColorStop(1, `hsl(${(f * 29 + 90) % 360}, 70%, 30%)`);
++        octx.fillStyle = grad;
++        octx.fillRect(0, 0, 128, 128);
++        octx.beginPath();
++        for (let i = 0; i < 16; i++) {
++          octx.bezierCurveTo(
++            (i * 19 + f) % 128, (i * 7) % 128,
++            (i * 11) % 128, (i * 23 + f) % 128,
++            (i * 17) % 128, (i * 13) % 128
++          );
++        }
++        octx.strokeStyle = "rgba(255,255,255,0.6)";
++        octx.stroke();
++
++        ctx.save();
++        ctx.globalCompositeOperation = (f % 2 === 0) ? "source-over" : "lighter";
++        ctx.shadowColor = "rgba(0,0,0,0.4)";
++        ctx.shadowBlur = 4;
++        for (let t = 0; t < 16; t++) {
++          const x = (t % 4) * 128;
++          const y = Math.floor(t / 4) * 128;
++          ctx.drawImage(off, x, y);
++        }
++        ctx.fillStyle = "#fff";
++        ctx.font = "bold 14px sans-serif";
++        ctx.fillText("Mercury PGO Frame " + f, 12, 24 + (f % 10) * 16);
++        ctx.measureText("Mercury Canvas2D Metric " + f);
++        ctx.restore();
++
++        if (f % 8 === 0) {
++          const img = ctx.getImageData(0, 0, 128, 128);
++          const d = img.data;
++          for (let p = 0; p < d.length; p += 4) {
++            d[p] = (d[p] + 7) & 255;
++            d[p + 1] = (d[p + 1] ^ 0x13) & 255;
++          }
++          ctx.putImageData(img, 0, 0);
++        }
++      }
++    }
++
++    function runJsAndCollections() {
++      const n = 4096;
++      const f64 = new Float64Array(n);
++      const u32 = new Uint32Array(n);
++      for (let i = 0; i < n; i++) {
++        f64[i] = Math.sin(i * 0.013) * Math.cos(i * 0.007) + i * 0.001;
++        u32[i] = (i * 2654435761) >>> 0;
++      }
++      let acc = 0;
++      for (let round = 0; round < 80; round++) {
++        for (let i = 1; i < n - 1; i++) {
++          f64[i] = 0.25 * f64[i - 1] + 0.5 * f64[i] + 0.25 * f64[i + 1];
++          acc += f64[i];
++        }
++      }
++
++      const map = new Map();
++      const set = new Set();
++      const records = [];
++      for (let i = 0; i < 2000; i++) {
++        const key = "key_" + i + "_" + (u32[i] & 255);
++        const obj = { id: i, key, val: f64[i], tags: ["a", "b", String(i % 17)] };
++        map.set(key, obj);
++        set.add(key);
++        if (i < 400) records.push(obj);
++      }
++      const cloned = structuredClone(records);
++      const encoded = JSON.stringify(cloned);
++      const decoded = JSON.parse(encoded);
++
++      const re = /key_(\d+)_([0-9]+)/gu;
++      let matches = 0;
++      let m;
++      while ((m = re.exec(encoded)) !== null) {
++        matches += Number(m[1]) & 7;
++      }
++
++      const collator = new Intl.Collator("en-US", { numeric: true });
++      const keys = Array.from(set).slice(0, 400).sort(collator.compare);
++      return acc + decoded.length + matches + keys.length + map.size;
++    }
++
++    async function runWasmAndCrypto() {
++      // Minimal valid Wasm module exporting addLoop(n) -> sum 0..n-1
++      const wasmBytes = new Uint8Array([
++        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
++        0x01, 0x06, 0x01, 0x60, 0x01, 0x7f, 0x01, 0x7f,
++        0x03, 0x02, 0x01, 0x00,
++        0x07, 0x0b, 0x01, 0x07, 0x61, 0x64, 0x64, 0x4c, 0x6f, 0x6f, 0x70, 0x00, 0x00,
++        0x0a, 0x23, 0x01, 0x21, 0x01, 0x02, 0x7f,
++        0x03, 0x40,
++          0x20, 0x01, 0x20, 0x00, 0x49, 0x04, 0x40,
++            0x20, 0x02, 0x20, 0x01, 0x6a, 0x21, 0x02,
++            0x20, 0x01, 0x41, 0x01, 0x6a, 0x21, 0x01,
++            0x0c, 0x01,
++          0x0b,
++        0x0b,
++        0x20, 0x02, 0x0b
++      ]);
++      const { instance } = await WebAssembly.instantiate(wasmBytes);
++      let total = 0;
++      for (let i = 0; i < 40; i++) {
++        total += instance.exports.addLoop(10000);
++      }
++
++      if (window.crypto && crypto.subtle) {
++        const payload = new Uint8Array(8192);
++        crypto.getRandomValues(payload);
++        for (let i = 0; i < 20; i++) {
++          const digest = await crypto.subtle.digest("SHA-256", payload);
++          total += new Uint8Array(digest)[0];
++        }
++      }
++      return total;
++    }
++
++    function runDomLayoutSvg() {
++      const grid = document.getElementById("grid");
++      const svg = document.getElementById("svg");
++      const host = document.getElementById("shadow-host");
++      const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
++
++      let mutations = 0;
++      const obs = new MutationObserver(list => { mutations += list.length; });
++      obs.observe(grid, { childList: true, attributes: true, subtree: true });
++
++      const classes = ["a", "b", "c", "d"];
++      for (let round = 0; round < 12; round++) {
++        const frag = document.createDocumentFragment();
++        for (let i = 0; i < 144; i++) {
++          const div = document.createElement("div");
++          div.className = "card " + classes[(i + round) & 3];
++          const span = document.createElement("span");
++          if ((i + round) % 5 === 0) span.className = "hot";
++          span.textContent = String((i * 31 + round) % 997);
++          div.appendChild(span);
++          frag.appendChild(div);
++        }
++        grid.replaceChildren(frag);
++        // Force style + layout flush
++        void grid.offsetHeight;
++        document.documentElement.style.setProperty("--gap", ((round % 4) + 2) + "px");
++      }
++
++      const svgNS = "http://www.w3.org/2000/svg";
++      svg.replaceChildren();
++      for (let i = 0; i < 64; i++) {
++        const path = document.createElementNS(svgNS, "path");
++        path.setAttribute("d", `M ${i * 3} 10 Q 128 ${i * 4} ${250 - i * 3} 240`);
++        path.setAttribute("stroke", `hsl(${i * 5}, 75%, 60%)`);
++        path.setAttribute("fill", "none");
++        svg.appendChild(path);
++      }
++      shadow.innerHTML = "<style>p{color:#8cf;margin:2px}</style><p>Shadow DOM PGO node</p>";
++      obs.disconnect();
++      return mutations;
++    }
++
++    (async function main() {
++      const t0 = performance.now();
++      runCanvas2D();
++      const jsScore = runJsAndCollections();
++      const wasmScore = await runWasmAndCrypto();
++      const domScore = runDomLayoutSvg();
++      const elapsed = (performance.now() - t0).toFixed(1);
++      document.getElementById("status").textContent =
++        `MERCURY_PGO_DONE elapsed=${elapsed}ms js=${jsScore.toFixed(0)} wasm=${wasmScore} dom=${domScore}`;
++      document.title = "MERCURY_PGO_DONE";
++    })();
++  </script>
++</body>
++</html>

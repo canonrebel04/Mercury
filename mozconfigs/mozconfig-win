@@ -25,8 +25,6 @@ ac_add_options --disable-debug-js-modules
 ac_add_options --disable-tests
 ac_add_options --enable-strip
 ac_add_options --enable-install-strip
-ac_add_options --enable-clang-plugin
-ac_add_options --enable-lto
 ac_add_options --enable-jemalloc
 ac_add_options --enable-optimize="-O2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -maes -Xclang -O3"
 ac_add_options --enable-rust-simd
@@ -57,11 +55,12 @@ ac_add_options --disable-updater
 ac_add_options --enable-geckodriver
 ac_add_options --disable-maintenance-service
 ac_add_options --disable-bits-download
-#ac_add_options --disable-default-browser-agent
+ac_add_options --disable-default-browser-agent
+ac_add_options --disable-backgroundtasks
 # ${changeset} is a Mercurial leftover and is empty on git checkouts.
 # An empty MOZ_SOURCE_CHANGESET makes build/variables.py call hg and fail.
 # Use the Firefox source tree's git HEAD (override by exporting it first).
-export MOZ_SOURCE_CHANGESET=${MOZ_SOURCE_CHANGESET:-$(git rev-parse HEAD)}
+export MOZ_SOURCE_CHANGESET="${MOZ_SOURCE_CHANGESET:-$(git rev-parse HEAD 2>/dev/null || echo mercury)}"
 mk_add_options MOZ_CRASHREPORTER=0
 mk_add_options MOZ_DATA_REPORTING=0
 mk_add_options MOZ_SERVICES_HEALTHREPORT=0
@@ -84,7 +83,7 @@ ac_add_options --with-distribution-id=com.alex313031.mercury
 #-app=/home/alex/bin/Mercury/application.ini
 
 # Make flags (set to number of CPU cores)
-mk_add_options MOZ_MAKE_FLAGS="-j16"
+mk_add_options MOZ_MAKE_FLAGS="${MOZ_MAKE_FLAGS:--j$(nproc 2>/dev/null || echo 16)}"
 
 # Autoclobber
 mk_add_options AUTOCLOBBER=1
@@ -95,16 +94,7 @@ export RUSTC_OPT_LEVEL="3"
 ac_add_options RUSTC_OPT_LEVEL="3"
 
 # Enable PGO/LTO
-export MOZ_LTO=1
-ac_add_options MOZ_LTO=1
-export MOZ_PGO=1
-ac_add_options MOZ_PGO=1
 
-if test "$GEN_PGO"; then
-    ac_add_options --enable-profile-generate
-elif test "$USE_PGO"; then
-    ac_add_options --enable-profile-use=cross
-fi
 
 # Compiler, Linker, and Rust flags
 export CFLAGS="-O2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -maes -clang:-O3 -arch:AVX"
@@ -113,4 +103,38 @@ export CXXFLAGS="-O2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -maes -clang:-O3 -ar
 export LDFLAGS="-opt:lldlto=3 -mllvm:-mcpu=x86-64 -mllvm:-mattr=+sse3,+ssse3,+sse4.1,+sse4.2,+avx,+aes"
 export POLLY="-mllvm -polly -mllvm -polly-2nd-level-tiling -mllvm -polly-loopfusion-greedy -mllvm -polly-pattern-matching-based-opts -mllvm -polly-position=before-vectorizer -mllvm -polly-vectorizer=stripmine"
 export RUSTFLAGS="-C target-feature=+avx -C codegen-units=1"
+# Mercury env-driven Fast Dev / Cross-PGO / Full-LTO controls
+if [ "${MERCURY_FAST_BUILD:-0}" = "1" ]; then
+    ac_add_options --disable-geckodriver
+    export RUSTC_OPT_LEVEL="2"
+    ac_add_options RUSTC_OPT_LEVEL="2"
+    export RUSTFLAGS="${RUSTFLAGS} -C codegen-units=16"
+else
+    if [ "${MERCURY_PGO_GENERATE:-0}" = "1" ] || [ -n "${GEN_PGO:-}" ]; then
+        ac_add_options --enable-profile-generate=cross
+    elif [ -n "${MERCURY_PGO_PROFILE:-}" ]; then
+        if [ ! -f "${MERCURY_PGO_PROFILE}" ]; then
+            echo "ERROR: MERCURY_PGO_PROFILE file not found: ${MERCURY_PGO_PROFILE}" >&2
+            exit 1
+        fi
+        ac_add_options --enable-profile-use=cross
+        ac_add_options --with-pgo-profile-path="${MERCURY_PGO_PROFILE}"
+        if [ -n "${MERCURY_PGO_JARLOG:-}" ] && [ -f "${MERCURY_PGO_JARLOG}" ]; then
+            ac_add_options --with-pgo-jarlog="${MERCURY_PGO_JARLOG}"
+        fi
+    elif [ -n "${USE_PGO:-}" ]; then
+        ac_add_options --enable-profile-use=cross
+    elif [ "${MERCURY_NO_PGO:-0}" != "1" ]; then
+        export MOZ_PGO=1
+        ac_add_options MOZ_PGO=1
+    fi
+    if [ "${MERCURY_PGO_GENERATE:-0}" != "1" ] && [ -z "${GEN_PGO:-}" ]; then
+        _mercury_lto="${MERCURY_LTO_MODE:-full}"
+        if [ "$_mercury_lto" != "off" ] && [ "$_mercury_lto" != "none" ]; then
+            ac_add_options --enable-lto="${_mercury_lto}"
+        fi
+        unset _mercury_lto
+    fi
+fi
+
 export VERBOSE=1

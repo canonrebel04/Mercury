@@ -19,13 +19,26 @@ try() { "$@" || die "${RED}Failed $*"; }
 displayHelp () {
 	printf "\n" &&
 	printf "${bold}${GRE}Script to build Mercury Browser.${c0}\n" &&
-	printf "${underline}${YEL}Usage:${c0} build.sh\n" &&
-	printf "You can also run ${CYA}export MOZ_MAKE_FLAGS=\"-j#\"${c0} where # is the number of jobs.\n" &&
+	printf "${underline}${YEL}Usage:${c0} build.sh [--fast]\n" &&
+	printf "  ${YEL}--fast${c0}    Set MERCURY_FAST_BUILD=1 (disables PGO, LTO, BOLT, and geckodriver; -O2; Rust cgu=16)\n" &&
+	printf "\n" &&
+	printf "Environment variables:\n" &&
+	printf "  ${CYA}MOZ_MAKE_FLAGS=\"-j#\"${c0}          Parallel job count\n" &&
+	printf "  ${CYA}MERCURY_FAST_BUILD=1${c0}          Fast developer iteration mode\n" &&
+	printf "  ${CYA}MERCURY_PGO_PROFILE=/abs/path${c0} Reuse shared merged.profdata (Cross-PGO)\n" &&
+	printf "  ${CYA}MERCURY_LTO_MODE=full|cross,full|thin|off${c0}\n" &&
+	printf "  ${CYA}MERCURY_BOLT=1${c0}                Emit ELF relocations (-Wl,--emit-relocs) for scripts/bolt-optimize.sh\n" &&
+	printf "\n" &&
+	printf "For multi-platform Profile-Once Cross-PGO + Full-LTO + BOLT releases, see ${CYA}scripts/build-release.sh --help${c0}.\n" &&
 	printf "\n"
 }
-case $1 in
-	--help) displayHelp; exit 0;;
-esac
+for arg in "$@"; do
+	case "$arg" in
+		--help|-h) displayHelp; exit 0;;
+		--fast) export MERCURY_FAST_BUILD=1;;
+		*) die "${RED}Unknown option: ${arg} (use --help)${c0}";;
+	esac
+done
 
 # mozilla source dir env variable
 if [ -z "${HG_SRC_DIR}" ]; then 

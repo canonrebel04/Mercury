@@ -1,6 +1,12 @@
 ## Copyright (c) 2024 Alex313031.
 
-## .mozconfig for compiling Mercury Browser for Windows natively
+## .mozconfig for compiling Mercury Browser for Windows natively (x86-64-v3 / AVX2)
+## Supports env overrides:
+##   MERCURY_FAST_BUILD=1          Fast dev build (no PGO/LTO, -O2, cgu=16)
+##   MERCURY_PGO_PROFILE=/abs/path Single-pass Cross-PGO use build
+##   MERCURY_PGO_JARLOG=/abs/path  Optional omni.ja startup jarlog
+##   MERCURY_PGO_MODE=auto|cross|cpp
+##   MERCURY_LTO_MODE=auto|cross,full|full|thin|off
 
 # Build only Mercury
 ac_add_options --enable-application=browser
@@ -10,14 +16,11 @@ ac_add_options --disable-artifact-builds
 ac_add_options --enable-bootstrap
 ac_add_options --disable-update-agent
 ac_add_options --with-redist
-# ac_add_options --disable-dmd
-# ac_add_options --disable-signmar
-# ac_add_options --disable-verify-mar
 
 CROSS_COMPILE=0
 export MOZ_INCLUDE_SOURCE_INFO=1
 
-# Optimization settings
+# Base release / stripping settings (no --enable-clang-plugin in release builds)
 ac_add_options --enable-release
 ac_add_options --disable-debug
 ac_add_options --disable-debug-symbols
@@ -25,13 +28,11 @@ ac_add_options --disable-debug-js-modules
 ac_add_options --disable-tests
 ac_add_options --enable-strip
 ac_add_options --enable-install-strip
-ac_add_options --enable-clang-plugin
-ac_add_options --enable-lto
 ac_add_options --enable-jemalloc
-ac_add_options --enable-optimize="-O2 -march=x86-64-v3 -Xclang -O3"
 ac_add_options --enable-rust-simd
 ac_add_options --enable-hardening
-#ac_add_options --disable-trace-logging
+ac_add_options --disable-dmd
+ac_add_options --disable-necko-wifi
 mk_add_options MOZILLA_OFFICIAL=1
 MOZILLA_OFFICIAL=1
 export MOZILLA_OFFICIAL=1
@@ -54,14 +55,11 @@ ac_add_options --enable-eme=widevine
 ac_add_options --disable-parental-controls
 ac_add_options --disable-crashreporter
 ac_add_options --disable-updater
-ac_add_options --enable-geckodriver
 ac_add_options --disable-maintenance-service
 ac_add_options --disable-bits-download
-#ac_add_options --disable-default-browser-agent
-# ${changeset} is a Mercurial leftover and is empty on git checkouts.
-# An empty MOZ_SOURCE_CHANGESET makes build/variables.py call hg and fail.
-# Use the Firefox source tree's git HEAD (override by exporting it first).
-export MOZ_SOURCE_CHANGESET=${MOZ_SOURCE_CHANGESET:-$(git rev-parse HEAD)}
+ac_add_options --disable-default-browser-agent
+ac_add_options --disable-backgroundtasks
+export MOZ_SOURCE_CHANGESET="${MOZ_SOURCE_CHANGESET:-$(git rev-parse HEAD 2>/dev/null || echo mercury)}"
 mk_add_options MOZ_CRASHREPORTER=0
 mk_add_options MOZ_DATA_REPORTING=0
 mk_add_options MOZ_SERVICES_HEALTHREPORT=0
@@ -81,36 +79,103 @@ ac_add_options --with-branding=browser/branding/mercury
 # Relative to the Firefox source tree, wherever it is checked out.
 ac_add_options --with-l10n-base=@TOPSRCDIR@/browser/locales/en-US
 ac_add_options --with-distribution-id=com.alex313031.mercury
-#-app=/home/alex/bin/Mercury/application.ini
 
-# Make flags (set to number of CPU cores)
-mk_add_options MOZ_MAKE_FLAGS="-j16"
+# Make flags
+mk_add_options MOZ_MAKE_FLAGS="${MOZ_MAKE_FLAGS:--j$(nproc 2>/dev/null || echo 16)}"
 
 # Autoclobber
 mk_add_options AUTOCLOBBER=1
 export AUTOCLOBBER=1
 
-# Set Rust -Copt-level=3 (C/C++ use -O3 via --enable-optimize and CFLAGS)
-export RUSTC_OPT_LEVEL="3"
-ac_add_options RUSTC_OPT_LEVEL="3"
+# Optimization, PGO, and LTO controls
+if [ "${MERCURY_FAST_BUILD:-0}" = "1" ]; then
+    ac_add_options --enable-optimize="-O2 -march=x86-64-v3"
+    ac_add_options --disable-geckodriver
+    export RUSTC_OPT_LEVEL="2"
+    ac_add_options RUSTC_OPT_LEVEL="2"
+    export CFLAGS="-O2 -march=x86-64-v3 -arch:AVX2"
+    export CPPFLAGS="-O2 -march=x86-64-v3 -arch:AVX2"
+    export CXXFLAGS="-O2 -march=x86-64-v3 -arch:AVX2"
+    export LDFLAGS="-mllvm:-mcpu=x86-64-v3"
+    export RUSTFLAGS="-C target-cpu=x86-64-v3 -C target-feature=+avx2 -C codegen-units=16"
+else
+    ac_add_options --enable-optimize="-O2 -march=x86-64-v3 -Xclang -O3"
+    ac_add_options --enable-geckodriver
+    export RUSTC_OPT_LEVEL="3"
+    ac_add_options RUSTC_OPT_LEVEL="3"
 
-# Enable PGO/LTO
-export MOZ_LTO=1
-ac_add_options MOZ_LTO=1
-export MOZ_PGO=1
-ac_add_options MOZ_PGO=1
+    _mercury_cc="${CC:-}"
+    if [ -z "$_mercury_cc" ] && [ -x "${HOME}/.mozbuild/clang/bin/clang-cl" ]; then
+        _mercury_cc="${HOME}/.mozbuild/clang/bin/clang-cl"
+    elif [ -z "$_mercury_cc" ] && [ -x "${HOME}/.mozbuild/clang/bin/clang" ]; then
+        _mercury_cc="${HOME}/.mozbuild/clang/bin/clang"
+    elif [ -z "$_mercury_cc" ]; then
+        _mercury_cc="clang-cl"
+    fi
+    _mercury_cc_maj="$("$_mercury_cc" --version 2>/dev/null | sed -n 's/.*clang version \([0-9][0-9]*\).*/\1/p' | head -n 1 || true)"
+    _mercury_rs_maj="$(rustc --version --verbose 2>/dev/null | sed -n 's/^LLVM version: \([0-9][0-9]*\).*/\1/p' | head -n 1 || true)"
+    _mercury_llvm_match=0
+    if [ -n "$_mercury_cc_maj" ] && [ -n "$_mercury_rs_maj" ] && [ "$_mercury_cc_maj" = "$_mercury_rs_maj" ]; then
+        _mercury_llvm_match=1
+    fi
 
-if test "$GEN_PGO"; then
-    ac_add_options --enable-profile-generate
-elif test "$USE_PGO"; then
-    ac_add_options --enable-profile-use=cross
+    _mercury_pgo_mode="${MERCURY_PGO_MODE:-auto}"
+    if [ "$_mercury_pgo_mode" = "auto" ]; then
+        if [ "$_mercury_llvm_match" = "1" ]; then
+            _mercury_pgo_mode="cross"
+        else
+            _mercury_pgo_mode="cpp"
+        fi
+    fi
+
+    if [ "${MERCURY_PGO_GENERATE:-0}" = "1" ] || [ -n "${GEN_PGO:-}" ]; then
+        if [ "$_mercury_pgo_mode" = "cross" ]; then
+            ac_add_options --enable-profile-generate=cross
+        else
+            ac_add_options --enable-profile-generate
+        fi
+    elif [ -n "${MERCURY_PGO_PROFILE:-}" ]; then
+        if [ ! -f "${MERCURY_PGO_PROFILE}" ]; then
+            echo "ERROR: MERCURY_PGO_PROFILE file not found: ${MERCURY_PGO_PROFILE}" >&2
+            exit 1
+        fi
+        if [ "$_mercury_pgo_mode" = "cross" ]; then
+            ac_add_options --enable-profile-use=cross
+        else
+            ac_add_options --enable-profile-use
+        fi
+        ac_add_options --with-pgo-profile-path="${MERCURY_PGO_PROFILE}"
+        if [ -n "${MERCURY_PGO_JARLOG:-}" ] && [ -f "${MERCURY_PGO_JARLOG}" ]; then
+            ac_add_options --with-pgo-jarlog="${MERCURY_PGO_JARLOG}"
+        fi
+    elif [ -n "${USE_PGO:-}" ]; then
+        ac_add_options --enable-profile-use=cross
+    elif [ "${MERCURY_NO_PGO:-0}" != "1" ]; then
+        export MOZ_PGO=1
+        ac_add_options MOZ_PGO=1
+    fi
+
+    if [ "${MERCURY_PGO_GENERATE:-0}" != "1" ] && [ -z "${GEN_PGO:-}" ]; then
+        _mercury_lto="${MERCURY_LTO_MODE:-auto}"
+        if [ "$_mercury_lto" = "auto" ]; then
+            if [ "$_mercury_llvm_match" = "1" ]; then
+                _mercury_lto="cross,full"
+            else
+                _mercury_lto="full"
+            fi
+        fi
+        if [ "$_mercury_lto" != "off" ] && [ "$_mercury_lto" != "none" ]; then
+            ac_add_options --enable-lto="${_mercury_lto}"
+        fi
+    fi
+
+    export CFLAGS="-O2 -march=x86-64-v3 -clang:-O3 -clang:-ffp-contract=fast -arch:AVX2"
+    export CPPFLAGS="-O2 -march=x86-64-v3 -clang:-O3 -clang:-ffp-contract=fast -arch:AVX2"
+    export CXXFLAGS="-O2 -march=x86-64-v3 -clang:-O3 -clang:-ffp-contract=fast -arch:AVX2"
+    export LDFLAGS="-opt:lldlto=3 -mllvm:-import-instr-limit=45 -mllvm:-mcpu=x86-64-v3 -mllvm:-fp-contract=fast"
+    export RUSTFLAGS="-C target-cpu=x86-64-v3 -C target-feature=+avx2 -C codegen-units=1"
+
+    unset _mercury_cc _mercury_cc_maj _mercury_rs_maj _mercury_llvm_match _mercury_pgo_mode _mercury_lto
 fi
 
-# Compiler, Linker, and Rust flags
-export CFLAGS="-O2 -march=x86-64-v3 -clang:-O3 -clang:-ffp-contract=fast -arch:AVX2"
-export CPPFLAGS="-O2 -march=x86-64-v3 -clang:-O3 -clang:-ffp-contract=fast -arch:AVX2"
-export CXXFLAGS="-O2 -march=x86-64-v3 -clang:-O3 -clang:-ffp-contract=fast -arch:AVX2"
-export LDFLAGS="-opt:lldlto=3 -mllvm:-mcpu=x86-64-v3 -mllvm:-fp-contract=fast"
-export POLLY="-mllvm -polly -mllvm -polly-2nd-level-tiling -mllvm -polly-loopfusion-greedy -mllvm -polly-pattern-matching-based-opts -mllvm -polly-position=before-vectorizer -mllvm -polly-vectorizer=stripmine"
-export RUSTFLAGS="-C target-cpu=haswell -C target-feature=+avx2 -C codegen-units=1"
 export VERBOSE=1
