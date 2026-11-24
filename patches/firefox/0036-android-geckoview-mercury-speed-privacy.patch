@@ -1,9 +1,152 @@
+diff --git a/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt b/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt
+index 9a7364d..6600385 100644
+--- a/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt
++++ b/mobile/android/android-components/components/feature/search/src/main/java/mozilla/components/feature/search/storage/SearchEngineSelectorRepository.kt
+@@ -6,6 +6,9 @@ package mozilla.components.feature.search.storage
+ 
+ import android.content.Context
+ import android.graphics.Bitmap
++import android.graphics.Canvas
++import android.graphics.Color
++import android.graphics.Paint
+ import java.util.Locale
+ import kotlin.coroutines.CoroutineContext
+ import kotlinx.coroutines.withContext
+@@ -88,11 +91,17 @@ class SearchEngineSelectorRepository(
+                 val searchConfig = selector.filterEngineConfiguration(config)
+                 val iconsList = searchConfigIconsUpdateService.fetchIconsRecords(searchEngineSelectorConfig.service)
+                 val searchEngineList =
+-                    buildSearchEngineList(
+-                        searchConfig = searchConfig,
+-                        iconsList = iconsList,
++                    buildMercurySearchEngineList(
++                        upstream =
++                            buildSearchEngineList(
++                                searchConfig = searchConfig,
++                                iconsList = iconsList,
++                            ),
+                     )
+-                val defaultEngineId = searchConfig.appDefaultEngineId ?: searchConfig.engines.first().identifier
++                val defaultEngineId =
++                    searchEngineList.firstOrNull { it.id == "ddg" }?.id
++                        ?: searchEngineList.firstOrNull()?.id
++                        ?: "ddg"
+ 
+                 return@withContext Bundle(
+                     list = searchEngineList,
+@@ -101,13 +110,92 @@ class SearchEngineSelectorRepository(
+                 )
+             } catch (_: Exception) {
+                 logger.error("exception in SearchEngineSelectorRepository.load")
++                val fallbackList = buildMercurySearchEngineList(emptyList())
++                return@withContext Bundle(
++                    list = fallbackList,
++                    defaultSearchEngineId = "ddg",
++                    searchEnvironmentId = null,
++                )
+             }
+-            return@withContext Bundle(
+-                list = emptyList(),
+-                defaultSearchEngineId = "",
+-                searchEnvironmentId = null,
++        }
++
++    private fun makeBadgeIcon(label: String, bgHex: String): Bitmap {
++        val size = 64
++        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
++        val canvas = Canvas(bmp)
++        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++            color = Color.parseColor(bgHex)
++            style = Paint.Style.FILL
++        }
++        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
++        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++            color = Color.WHITE
++            textSize = 28f
++            textAlign = Paint.Align.CENTER
++            isFakeBoldText = true
++        }
++        val y = size / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
++        canvas.drawText(label, size / 2f, y, textPaint)
++        return bmp
++    }
++
++    private fun buildMercurySearchEngineList(upstream: List<SearchEngine>): List<SearchEngine> {
++        val blockedPrefixes = listOf("ebay", "perplexity", "amazon")
++        val iconById = upstream.associateBy { it.id.lowercase(Locale.ROOT) }
++        fun iconFor(id: String, badge: String, colorHex: String): Bitmap {
++            return iconById.entries
++                .firstOrNull { (k, _) -> k == id || k.startsWith("$id-") || k.startsWith("${id}_") }
++                ?.value?.icon
++                ?: makeBadgeIcon(badge, colorHex)
++        }
++
++        data class Spec(val id: String, val name: String, val url: String, val badge: String, val color: String)
++        val curated = listOf(
++            Spec("ddg", "DuckDuckGo", "https://duckduckgo.com/?q={searchTerms}", "D", "#DE5833"),
++            Spec("mercury-brave", "Brave Search", "https://search.brave.com/search?q={searchTerms}", "Br", "#FB542B"),
++            Spec("mercury-startpage", "Startpage", "https://www.startpage.com/sp/search?query={searchTerms}", "Sp", "#6573FF"),
++            Spec("mercury-qwant", "Qwant", "https://www.qwant.com/?q={searchTerms}", "Q", "#5C97FF"),
++            Spec("mercury-ecosia", "Ecosia", "https://www.ecosia.org/search?q={searchTerms}", "Ec", "#36ACB8"),
++            Spec("mercury-metager", "MetaGer", "https://metager.org/meta/meta.ger3?eingabe={searchTerms}", "MG", "#FF8000"),
++            Spec("mercury-mojeek", "Mojeek", "https://www.mojeek.com/search?q={searchTerms}", "Mj", "#2E7D32"),
++            Spec("mercury-swisscows", "Swisscows", "https://swisscows.com/en/web?query={searchTerms}", "Sc", "#DF5D5D"),
++            Spec("mercury-gibiru", "Gibiru", "https://gibiru.com/results.html?q={searchTerms}", "Gi", "#D32F2F"),
++            Spec("mercury-privacywall", "PrivacyWall", "https://www.privacywall.org/search/secure/?q={searchTerms}", "PW", "#1565C0"),
++            Spec("mercury-searx-neocities", "SearX Random (neocities)", "https://searx.neocities.org/?q={searchTerms}", "Sx", "#3050FF"),
++            Spec("mercury-searxng-rhscz", "SearXNG (rhscz.eu)", "https://search.rhscz.eu/search?q={searchTerms}", "S1", "#283593"),
++            Spec("mercury-searxng-deggo", "SearXNG (deggo.fyi)", "https://searxng.deggo.fyi/search?q={searchTerms}", "S2", "#283593"),
++            Spec("mercury-searxng-oloke", "SearXNG (oloke.xyz)", "https://searx.oloke.xyz/search?q={searchTerms}", "S3", "#283593"),
++            Spec("mercury-searxng-paulgo", "SearXNG (paulgo.io)", "https://paulgo.io/search?q={searchTerms}", "S4", "#283593"),
++            Spec("mercury-searxng-privau", "SearXNG (priv.au)", "https://priv.au/search?q={searchTerms}", "S5", "#283593"),
++            Spec("mercury-searxng-tiekoetter", "SearXNG (tiekoetter)", "https://searx.tiekoetter.com/search?q={searchTerms}", "S6", "#283593"),
++            Spec("bing", "Bing", "https://www.bing.com/search?q={searchTerms}", "B", "#008373"),
++            Spec("google", "Google", "https://www.google.com/search?q={searchTerms}", "G", "#4285F4"),
++        )
++
++        val result = curated.map { s ->
++            SearchEngine(
++                id = s.id,
++                name = s.name,
++                icon = iconFor(s.id.removePrefix("mercury-"), s.badge, s.color),
++                inputEncoding = "UTF-8",
++                type = SearchEngine.Type.BUNDLED,
++                resultUrls = listOf(s.url),
++                suggestUrl = null,
++                trendingUrl = null,
++                isGeneral = true,
+             )
++        }.toMutableList()
++
++        // Keep Wikipedia if present upstream; drop Google/Bing duplicates & eBay/Amazon/Perplexity
++        val usedIds = result.map { it.id }.toSet()
++        upstream.forEach { e ->
++            val low = e.id.lowercase(Locale.ROOT)
++            if (low.startsWith("wikipedia") && e.id !in usedIds && blockedPrefixes.none { low.startsWith(it) }) {
++                result.add(e)
++            }
+         }
++        return result
++    }
+ 
+     private fun buildEnvironment(
+         region: RegionState,
+diff --git a/mobile/android/app/geckoview-prefs.js b/mobile/android/app/geckoview-prefs.js
+index 3cf841d..be01a6e 100644
 --- a/mobile/android/app/geckoview-prefs.js
 +++ b/mobile/android/app/geckoview-prefs.js
-@@ -387,3 +387,100 @@
- pref("browser.ipProtection.enabled", true);
- pref("browser.ipProtection.guardian.endpoint", "https://vpn.mozilla.org/");
- pref("toolkit.ipProtection.android.authProvider", "fxa");
+@@ -383,7 +383,178 @@ pref("xpinstall.signatures.required", true);
+ pref("xpinstall.whitelist.add", "https://addons.mozilla.org");
+ pref("xpinstall.whitelist.fileRequest", false);
+ 
+-// Pref to enable the IP protection feature
+-pref("browser.ipProtection.enabled", true);
+-pref("browser.ipProtection.guardian.endpoint", "https://vpn.mozilla.org/");
+-pref("toolkit.ipProtection.android.authProvider", "fxa");
++// Pref to disable Mozilla VPN / IP protection by default in Mercury
++pref("browser.ipProtection.enabled", false);
++pref("browser.ipProtection.guardian.endpoint", "");
++pref("toolkit.ipProtection.android.authProvider", "");
 +
 +// MERCURY ANDROID: SPEED, GPU, PRIVACY, AND DE-GOOGLE DEFAULTS
 +// WebRender, shader disk cache, accelerated 2D Canvas, and font/image decoding
@@ -75,35 +218,154 @@
 +pref("network.early-hints.enabled", true);
 +pref("network.early-hints.preconnect.enabled", true);
 +
-+// Privacy & De-Google (low-cost defaults; keep JS Math & multi-core workers fast)
++// Mercury Crowd-Blend ("Hide in Plain Sight") & Bleeding-Edge Security
++pref("browser.contentblocking.category", "strict");
++pref("privacy.trackingprotection.enabled", true);
++pref("privacy.trackingprotection.socialtracking.enabled", true);
++pref("privacy.trackingprotection.emailtracking.enabled", true);
++pref("privacy.trackingprotection.cryptomining.enabled", true);
++pref("privacy.trackingprotection.fingerprinting.enabled", true);
++pref("privacy.annotate_channels.strict_list.enabled", true);
++pref("privacy.trackingprotection.allow_list.convenience.enabled", false);
 +pref("privacy.donottrackheader.enabled", true);
 +pref("privacy.globalprivacycontrol.enabled", true);
 +pref("privacy.fingerprintingProtection", true);
-+pref("privacy.fingerprintingProtection.overrides", "-JSMathFdlibm,-NavigatorHWConcurrencyTiered,-CanvasRandomization");
++pref("privacy.fingerprintingProtection.pbmode", true);
++pref("privacy.fingerprintingProtection.overrides", "+EfficientCanvasRandomization,-CanvasRandomization,+FontVisibilityLangPack,+ScreenAvailToResolution,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse,+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+Gamepad,+DeviceSensors,+AudioSampleRate,+MediaDevices,+SpeechSynthesis,+NetworkConnection,+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+VideoElementPlaybackQuality,-JSMathFdlibm,-CSSPrefersColorScheme");
 +pref("privacy.resistFingerprinting.randomization.canvas.use_siphash", true);
++
++// AdGuard Ad & Tracker Blocking DNS-over-HTTPS + ECH
++pref("network.trr.mode", 2);
++pref("network.trr.uri", "https://dns.adguard-dns.com/dns-query");
++pref("network.trr.default_provider_uri", "https://dns.adguard-dns.com/dns-query");
++pref("network.dns.echconfig.enabled", true);
++pref("network.dns.http3_echconfig.enabled", true);
++
++// Post-Quantum TLS ML-KEM-1024 & WebRTC DTLS ML-KEM-768
++pref("media.webrtc.send_mlkem_keyshare", true);
++pref("security.tls.enable_kyber", true);
++pref("security.tls.enable_mlkem1024", true);
++pref("network.http.http3.enable_kyber", true);
++
++// Active Bounce Tracking Purge, LNA Defense, Schemeful SameSite, No 0-RTT
++pref("privacy.bounceTrackingProtection.mode", 1);
++pref("network.lna.blocking", true);
++pref("network.lna.block_trackers", true);
++pref("network.lna.block_insecure_contexts", true);
++pref("network.cookie.sameSite.schemeful", true);
++pref("security.tls.enable_0rtt_data", false);
++pref("network.http.http3.enable_0rtt", false);
++pref("dom.security.https_first", true);
++pref("dom.security.https_first_pbm", true);
++pref("dom.security.https_first_schemeless", true);
++pref("security.mixed_content.upgrade_display_content", true);
++pref("security.ssl.treat_unsafe_negotiation_as_broken", true);
++
++// Referer, Query Stripping, WebRTC LAN IP Masking, CRLite-only Certs
 +pref("browser.send_pings", false);
++pref("beacon.enabled", false);
 +pref("privacy.query_stripping.enabled", true);
 +pref("privacy.query_stripping.enabled.pbmode", true);
++pref("privacy.query_stripping.strip_on_share.enabled", true);
 +pref("network.http.referer.XOriginTrimmingPolicy", 2);
++pref("network.http.referer.disallowCrossSiteRelaxingDefault", true);
++pref("network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation", true);
++pref("media.peerconnection.ice.default_address_only", true);
++pref("media.peerconnection.ice.no_host", true);
 +pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
++pref("security.pki.crlite_mode", 2);
++pref("security.pki.certificate_transparency.mode", 2);
 +pref("security.OCSP.enabled", 0);
-+pref("webgl.enable-debug-renderer-info", false);
-+pref("beacon.enabled", false);
-+pref("dom.battery.enabled", false);
-+pref("dom.gamepad.enabled", false);
 +pref("network.auth.subresource-http-auth-allow", 1);
 +pref("pdfjs.enableScripting", false);
-+pref("datareporting.healthreport.uploadEnabled", false);
-+pref("datareporting.policy.dataSubmissionEnabled", false);
-+pref("toolkit.telemetry.enabled", false);
-+pref("toolkit.telemetry.server", "data:,");
-+pref("app.shield.optoutstudies.enabled", false);
++pref("dom.webgpu.enabled", false);
++
++// Telemetry, studies, crash reporting & Google Safe Browsing: locked OFF
++lockPref("datareporting.healthreport.uploadEnabled", false);
++lockPref("datareporting.policy.dataSubmissionEnabled", false);
++lockPref("datareporting.usage.uploadEnabled", false);
++lockPref("toolkit.telemetry.enabled", false);
++lockPref("toolkit.telemetry.unified", false);
++lockPref("toolkit.telemetry.server", "data:,");
++lockPref("app.shield.optoutstudies.enabled", false);
++lockPref("app.normandy.enabled", false);
++lockPref("nimbus.rollouts.enabled", false);
++lockPref("browser.crashReports.unsubmittedCheck.enabled", false);
++lockPref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
++lockPref("breakpad.reportURL", "");
 +pref("browser.safebrowsing.malware.enabled", false);
 +pref("browser.safebrowsing.phishing.enabled", false);
 +pref("geo.provider.network.url", "");
++
++// Mercury: disable Firefox Accounts/Sync, Terms-of-Use prompts, and onboarding by default
++pref("identity.fxaccounts.enabled", false);
++pref("browser.aboutwelcome.enabled", false);
++pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
++pref("termsofuse.bypassNotification", true);
++pref("app.normandy.first_run", false);
++pref("messaging-system.rsexperimentloader.enabled", false);
++
++// Mercury Android Settings defaults (toggleable at runtime via Settings > Mercury)
++pref("mercury.hardened.enabled", false);
++pref("mercury.security.level", "standard");
++pref("mercury.rfp.preserveSystemTheme", true);
++pref("privacy.resistFingerprinting", false);
++pref("privacy.resistFingerprinting.letterboxing", false);
++pref("media.peerconnection.enabled", true);
++pref("webgl.disabled", false);
++pref("media.eme.enabled", true);
++pref("network.IDN_show_punycode", false);
++pref("network.prefetch-next", true);
++pref("network.predictor.enabled", true);
++pref("network.predictor.enable-prefetch", true);
+diff --git a/mobile/android/fenix/app/build.gradle b/mobile/android/fenix/app/build.gradle
+index 03399d0..433f5f7 100644
+--- a/mobile/android/fenix/app/build.gradle
++++ b/mobile/android/fenix/app/build.gradle
+@@ -47,7 +47,7 @@ android {
+             arg("room.schemaLocation", "$projectDir/schemas".toString())
+         }
+ 
+-        applicationId "org.mozilla"
++        applicationId "org.mercury"
+         minSdk config.minSdkVersion
+         targetSdk config.targetSdkVersion
+         versionCode 1
+@@ -109,7 +109,7 @@ android {
+         debug {
+             shrinkResources = false
+             minifyEnabled = false
+-            applicationIdSuffix ".fenix.debug"
++            applicationIdSuffix ".browser.debug"
+             resValue "bool", "IS_DEBUG", "true"
+             pseudoLocalesEnabled = true
+         }
+@@ -141,18 +141,10 @@ android {
+         }
+         release releaseTemplate >> {
+             buildConfigField "boolean", "USE_RELEASE_VERSIONING", "true"
+-            applicationIdSuffix ".firefox"
+-            def deepLinkSchemeValue = "fenix"
++            applicationIdSuffix ".browser"
++            def deepLinkSchemeValue = "mercury"
+             buildConfigField "String", "DEEP_LINK_SCHEME", "\"$deepLinkSchemeValue\""
+             manifestPlaceholders.putAll([
+-                    // This release type is meant to replace Firefox (Release channel) and therefore needs to inherit
+-                    // its sharedUserId for all eternity. See:
+-                    // https://searchfox.org/mozilla-esr68/search?q=moz_android_shared_id&case=false&regexp=false&path=
+-                    // Shipping an app update without sharedUserId can have
+-                    // fatal consequences. For example see:
+-                    //  - https://issuetracker.google.com/issues/36924841
+-                    //  - https://issuetracker.google.com/issues/36905922
+-                    "sharedUserId": "org.mozilla.firefox.sharedID",
+                     "deepLinkScheme": deepLinkSchemeValue,
+             ])
+         }
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
+index dd13cf1..6c55566 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/FeatureFlags.kt
-@@ -11,11 +11,11 @@
+@@ -11,13 +11,13 @@ object FeatureFlags {
       * Enables custom extension collection feature, This feature does not only depend on this flag. It requires the AMO
       * collection override to be enabled which is behind the Secret Settings.
       */
@@ -117,16 +379,405 @@
 -    const val FX_SUGGEST = true
 +    const val FX_SUGGEST = false
  
+     /**
+      * Disables the Onboarding feature for debug builds by default. Set this to `true` if you need to access the
+@@ -25,5 +25,6 @@ object FeatureFlags {
+      *
+      * ⚠️ DO NOT MODIFY THIS FLAG IN PRODUCTION.
+      */
+-    val onboardingFeatureEnabled = !Config.channel.isDebug
++    // Mercury: disable first-run onboarding carousel (ToS/Sync/Marketing) by default.
++    val onboardingFeatureEnabled = false
+ }
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt
+index 375166f..60a2f21 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/bookmarks/BookmarksScreen.kt
+@@ -63,6 +63,7 @@ import androidx.compose.ui.focus.focusRequester
+ import androidx.compose.ui.focus.onFocusChanged
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.layout.onPlaced
++import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.platform.LocalDensity
+ import androidx.compose.ui.platform.LocalFocusManager
+ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+@@ -104,6 +105,7 @@ import mozilla.components.compose.base.utils.BackInvokedHandler
+ import mozilla.components.compose.browser.toolbar.concept.BrowserToolbarTestTags.ADDRESSBAR_SEARCH_BOX
+ import mozilla.components.support.ktx.util.URLStringUtils
+ import mozilla.components.ui.icons.R as iconsR
++import org.mozilla.fenix.FenixApplication
+ import org.mozilla.fenix.R
+ import org.mozilla.fenix.bookmarks.BookmarksTestTag.BOOKMARK_PLACEHOLDER
+ import org.mozilla.fenix.bookmarks.BookmarksTestTag.BOOKMARK_SEARCH_ITEM
+@@ -1103,7 +1105,10 @@ private fun RootEmptyContent(
+ 
+     Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.static300))
+ 
+-    if (showSignIn) {
++    val showSyncUi =
++        (LocalContext.current.applicationContext as? FenixApplication)
++            ?.components?.settings?.mercuryShowSyncUi == true
++    if (showSignIn && showSyncUi) {
+         Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.static200))
+ 
+         OutlinedButton(
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt
+index 6774a4e..7845908 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Analytics.kt
+@@ -127,38 +127,21 @@ class Analytics(
+                 null
+             }
+ 
++        // Mercury: never register Sentry/Socorro/Glean crash upload services or prompt to send crash reports.
+         CrashReporter(
+             context = context,
+-            services = services,
+-            telemetryServices =
+-                listOf(
+-                    GleanCrashReporterService(
+-                        context,
+-                        appChannel = MOZ_UPDATE_CHANNEL,
+-                        appVersion = MOZ_APP_VERSION,
+-                        appBuildId = MOZ_APP_BUILDID,
+-                        isUploadEnabled = settings.isTelemetryEnabled,
+-                        serverEndpoint = gleanServerEndpoint,
+-                    )
+-                ),
+-            shouldPrompt = CrashReporter.Prompt.ALWAYS,
++            services = emptyList(),
++            telemetryServices = emptyList(),
++            shouldPrompt = CrashReporter.Prompt.NEVER,
+             promptConfiguration =
+                 CrashReporter.PromptConfiguration(
+                     appName = context.getString(R.string.app_name),
+-                    organizationName = "Mozilla",
++                    organizationName = "Mercury",
+                 ),
+-            enabled = true,
++            enabled = false,
+             nonFatalCrashIntent = pendingIntent,
+-            useLegacyReporting = settings.crashReportOption() != CrashReportOption.Auto,
+-            runtimeTagProviders =
+-                listOf(
+-                    ReleaseRuntimeTagProvider(),
+-                    BuildRuntimeTagProvider(context.versionInfoProvider),
+-                    EnvironmentRuntimeProvider(),
+-                    ExperimentDataRuntimeTagProvider(
+-                        NimbusExperimentDataProvider(getEnrollments = nimbusComponents::getEnrollmentsForCrashReporter)
+-                    ),
+-                ),
++            useLegacyReporting = true,
++            runtimeTagProviders = emptyList(),
+         )
+     }
+ 
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
+index e3007a5..071c8e1 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
+@@ -139,6 +139,7 @@ import org.mozilla.fenix.perf.StrictModeManager
+ import org.mozilla.fenix.perf.lazyMonitored
+ import org.mozilla.fenix.settings.advanced.getSelectedLocale
+ import org.mozilla.fenix.settings.downloads.DownloadLocationManager
++import org.mozilla.fenix.settings.mercury.MercurySettingsFragment
+ import org.mozilla.fenix.share.DefaultSentFromFirefoxManager
+ import org.mozilla.fenix.share.DefaultSentFromStorage
+ import org.mozilla.fenix.share.SaveToPDFMiddleware
+@@ -192,7 +193,7 @@ class Core(
+                 dohDefaultProviderUrl = context.components.settings.dohDefaultProviderUrl,
+                 dohExceptionsList = context.components.settings.dohExceptionsList.toList(),
+                 globalPrivacyControlEnabled = context.components.settings.shouldEnableGlobalPrivacyControl,
+-                fdlibmMathEnabled = FxNimbus.features.fingerprintingProtection.value().fdlibmMath,
++                fdlibmMathEnabled = false,
+                 emailTrackerBlockingPrivateBrowsing = true,
+                 userCharacteristicPingCurrentVersion = FxNimbus.features.userCharacteristics.value().currentVersion,
+                 getDesktopMode = {
+@@ -221,42 +222,19 @@ class Core(
+                 useContentBlockingDatabase = true,
+             )
+ 
+-        applyFingerprintingProtectionFeature(
+-            defaultSettings,
+-            FxNimbus.features.fingerprintingProtection.value(),
+-        )
+-
+-        applyBaselineFingerprintingProtectionFeature(
+-            defaultSettings,
+-            FxNimbus.features.baselineFpp.value(),
+-        )
+-
+-        // Apply third-party cookie blocking settings if the Nimbus feature is
+-        // enabled.
+-        if (FxNimbus.features.thirdPartyCookieBlocking.value().enabled) {
+-            defaultSettings.cookieBehaviorOptInPartitioning =
+-                FxNimbus.features.thirdPartyCookieBlocking.value().enabledNormal
+-            defaultSettings.cookieBehaviorOptInPartitioningPBM =
+-                FxNimbus.features.thirdPartyCookieBlocking.value().enabledPrivate
+-        }
+-
+-        // Apply Safe Browsing V5 settings if the Nimbus feature is enabled.
+-        if (FxNimbus.features.safeBrowsingV5.value().featureEnabled) {
+-            defaultSettings.safeBrowsingV5Enabled = FxNimbus.features.safeBrowsingV5.value().enableV5
+-        }
+-
+-        // Apply Safe Browsing Real-Time settings if the Nimbus feature is enabled.
+-        with(FxNimbus.features.safeBrowsingRealTime.value()) {
+-            if (featureEnabled) {
+-                defaultSettings.safeBrowsingGlobalCacheEnabled = globalCacheEnabled
+-                defaultSettings.safeBrowsingRealTimeEnabled = realTimeEnabled
+-                defaultSettings.safeBrowsingRealTimeSimulationEnabled = simulationEnabled
+-                defaultSettings.safeBrowsingRealTimeSimulationHitProbability = simulationHitProbability
+-                defaultSettings.safeBrowsingRealTimeSimulationCacheTTLSec = simulationCacheTtlSec
+-                defaultSettings.safeBrowsingRealTimeSimulationNegativeCacheEnabled = simulationNegativeCacheEnabled
+-                defaultSettings.safeBrowsingRealTimeSimulationNegativeCacheTTLSec = simulationNegativeCacheTtlSec
++        // Mercury: apply Crowd-Blend FPP / Hardened Mode settings and never let Nimbus re-enable Safe Browsing V5 / Real-Time.
++        val mercurySettings = context.components.settings
++        val fppEnabled = mercurySettings.mercuryCrowdBlendFpp || mercurySettings.mercuryHardenedMode
++        defaultSettings.fingerprintingProtection = fppEnabled
++        defaultSettings.fingerprintingProtectionPrivateBrowsing = fppEnabled
++        defaultSettings.fingerprintingProtectionOverrides =
++            when {
++                mercurySettings.mercuryHardenedMode -> MercurySettingsFragment.RFP_PRESERVE_THEME_OVERRIDE
++                mercurySettings.mercuryCrowdBlendFpp -> MercurySettingsFragment.CROWD_BLEND_OVERRIDES
++                else -> ""
+             }
+-        }
++        defaultSettings.safeBrowsingV5Enabled = false
++        defaultSettings.safeBrowsingRealTimeEnabled = false
+ 
+         GeckoEngine(
+                 context = context,
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/PlayStoreReviewPromptController.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/PlayStoreReviewPromptController.kt
+index 7ec39a4..51c7166 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/PlayStoreReviewPromptController.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/PlayStoreReviewPromptController.kt
+@@ -36,68 +36,15 @@ class PlayStoreReviewPromptController(
+     /** Launch the in-app review flow, unless we've hit the quota. */
+     @Suppress("TooGenericExceptionCaught")
+     suspend fun tryPromptReview(activity: Activity): ReviewPromptAttemptResult {
+-        logger.info("tryPromptReview in progress...")
+-        val reviewInfoTask = manager.requestReviewFlow()
+-
+-        val result =
+-            try {
+-                val reviewInfo = reviewInfoTask.await()
+-
+-                logger.info("Review flow launched.")
+-                // Launch the in-app flow.
+-                manager.launchReviewFlow(activity, reviewInfo)
+-
+-                ReviewPromptAttemptResult.from(reviewInfo.toString())
+-            } catch (e: CancellationException) {
+-                throw e
+-            } catch (e: Exception) {
+-                Error(e)
+-            }
+-
+-        when (result) {
+-            NotDisplayed -> {
+-                logger.warn("In-app review flow reported as not displayed, even though there was no error.")
+-            }
+-
+-            is Error -> {
+-                val reviewErrorCode = (result.exception as? ReviewException)?.errorCode ?: ERROR_CODE_UNEXPECTED
+-                logger.warn("Failed to launch in-app review flow due to: $reviewErrorCode.")
+-            }
+-
+-            Displayed,
+-            Unknown -> {}
+-        }
+-
+-        recordReviewPromptEvent(
+-            promptAttemptResult = result,
+-            numberOfAppLaunches = numberOfAppLaunches(),
+-            now = Date(),
+-        )
+-
+-        logger.info("tryPromptReview completed.")
+-
+-        return result
++        return ReviewPromptAttemptResult.NotDisplayed
+     }
+ 
+-    /** Try to launch the play store review flow. */
++    /** Mercury: Google Play review prompts are disabled. */
+     fun tryLaunchPlayStoreReview(
+         activity: Activity,
+         openInNewTab: (url: String) -> Unit,
+     ) {
+-        logger.info("tryLaunchPlayStoreReview in progress...")
+-
+-        try {
+-            logger.info("Navigating to Play store listing.")
+-            activity.startActivity(Intent(Intent.ACTION_VIEW, SupportUtils.RATE_APP_URL.toUri()))
+-        } catch (e: ActivityNotFoundException) {
+-            // Device without the play store installed.
+-            // Opening the play store website.
+-            openInNewTab(SupportUtils.FENIX_PLAY_STORE_URL)
+-
+-            logger.warn("Failed to launch play store review flow due to: $e.")
+-        }
+-
+-        logger.info("tryLaunchPlayStoreReview completed.")
++        // No-op in Mercury
+     }
+ 
+     companion object {
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt
+index 5768a9f..136a2c5 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/accounts/MozillaAccountMenuItemProvider.kt
+@@ -40,6 +40,7 @@ import mozilla.components.service.fxa.store.SyncState
+ import mozilla.components.service.fxa.store.SyncStore
+ import mozilla.components.support.ktx.android.util.dpToPx
+ import mozilla.components.ui.icons.R as iconsR
++import org.mozilla.fenix.FenixApplication
+ import org.mozilla.fenix.NavGraphDirections
+ import org.mozilla.fenix.R
+ import org.mozilla.fenix.components.menu.MenuAccessPoint
+@@ -67,17 +68,22 @@ class MozillaAccountMenuItemProvider(
+             )
+             ?.let(::MenuItemIconDrawable)
+             ?: MenuItemIconRes(iconsR.drawable.mozac_ic_avatar_warning_circle_fill_multicolor_24)
+-    private val mutableItem = MutableStateFlow(syncStore.state.toMenuItem())
++    private val showSyncUi =
++        (context.applicationContext as? FenixApplication)?.components?.settings?.mercuryShowSyncUi == true
++
++    private val mutableItem = MutableStateFlow<MenuItem?>(if (showSyncUi) syncStore.state.toMenuItem() else null)
+ 
+     override val itemFlow: StateFlow<MenuItem?> = mutableItem.asStateFlow()
+ 
+     init {
+-        scope.launch {
+-            syncStore.stateFlow
+-                .distinctUntilChangedBy { it.account to it.accountState }
+-                .collectLatest { state ->
+-                    updateMenuItem(state)
+-                }
++        if (showSyncUi) {
++            scope.launch {
++                syncStore.stateFlow
++                    .distinctUntilChangedBy { it.account to it.accountState }
++                    .collectLatest { state ->
++                        updateMenuItem(state)
++                    }
++            }
+         }
+     }
+ 
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt
+index 25211dc..729fcad 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt
+@@ -549,12 +549,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
+                                 canGoForward = selectedTab?.content?.canGoForward ?: true,
+                                 extensionsMenuItemDescription = extensionsMenuItemDescription,
+                                 scrollState = scrollState,
+-                                showBanner = shouldShowMenuBanner && !defaultBrowser,
++                                showBanner = false,
+                                 isDownloadHighlighted = isDownloadHighlighted,
+                                 webExtensionMenuCount = webExtensionsCount,
+                                 isAllWebExtensionsDisabled = isAllWebExtensionsDisabled,
+-                                showIPProtection = components.ipProtection.store.state.isEligible,
++                                showIPProtection = false,
+                                 showPasswords = settings.isAutofillSupported,
++                                showMozillaAccount = settings.mercuryShowSyncUi,
+                                 ipProtectionMenuState = ipProtectionMenuState,
+                                 onMozillaAccountButtonClick = {
+                                     menuStore.dispatch(
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt
+index aec18f5..ecd7dc6 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/menu/compose/MainMenu.kt
+@@ -149,6 +149,7 @@ fun MainMenu(
+     webExtensionMenuCount: Int,
+     showIPProtection: Boolean,
+     showPasswords: Boolean,
++    showMozillaAccount: Boolean = false,
+     ipProtectionMenuState: IPProtectionMenuState,
+     onMoreMenuClick: () -> Unit,
+     onCustomizeReaderViewMenuClick: () -> Unit,
+@@ -317,11 +318,13 @@ fun MainMenu(
+         )
+ 
+         MenuGroup {
+-            MozillaAccountMenuItem(
+-                account = account,
+-                accountState = accountState,
+-                onClick = onMozillaAccountButtonClick,
+-            )
++            if (showMozillaAccount) {
++                MozillaAccountMenuItem(
++                    account = account,
++                    accountState = accountState,
++                    onClick = onMozillaAccountButtonClick,
++                )
++            }
+ 
+             if (accessPoint == MenuAccessPoint.Home) {
+                 MenuItem(
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/metrics/MetricController.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/metrics/MetricController.kt
+index c372cbd..a354a86 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/metrics/MetricController.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/metrics/MetricController.kt
+@@ -101,17 +101,8 @@ interface MetricController {
+             isUsageTelemetryEnabled: () -> Boolean,
+             settings: Settings,
+         ): MetricController {
+-            return if (BuildConfig.TELEMETRY) {
+-                ReleaseMetricController(
+-                    services,
+-                    isDataTelemetryEnabled,
+-                    isMarketingDataTelemetryEnabled,
+-                    isUsageTelemetryEnabled,
+-                    settings,
+-                )
+-            } else {
+-                DebugMetricController()
+-            }
++            // Mercury: permanently disable all telemetry, Adjust marketing, and Glean upload services.
++            return DebugMetricController()
+         }
+     }
+ }
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/crashes/SettingsCrashReportCache.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/crashes/SettingsCrashReportCache.kt
+index 256b98f..e4bc5af 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/crashes/SettingsCrashReportCache.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/crashes/SettingsCrashReportCache.kt
+@@ -43,17 +43,12 @@ class SettingsCrashReportCache(private val settings: Settings) : CrashReportCach
+             settings.crashPullDontShowBefore
+         }
+ 
+-    override suspend fun getReportOption(): CrashReportOption =
+-        try {
+-            CrashReportOption.fromLabel(settings.crashReportChoice)
+-        } catch (e: IllegalArgumentException) {
+-            CrashReportOption.Never
+-        }
++    override suspend fun getReportOption(): CrashReportOption = CrashReportOption.Never
+ 
+     override suspend fun setReportOption(option: CrashReportOption) {
+-        settings.crashReportChoice = option.toString()
++        // Mercury: crash reporting is permanently disabled.
+     }
+ }
+ 
+ /** Extension function to convert the crash report choice from settings to a [CrashReportOption]. */
+-fun Settings.crashReportOption(): CrashReportOption = CrashReportOption.fromLabel(crashReportChoice)
++fun Settings.crashReportOption(): CrashReportOption = CrashReportOption.Never
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
+index 1edcf54..771cb70 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
-@@ -109,25 +109,25 @@
+@@ -109,17 +109,17 @@ object GeckoProvider {
                  .experimentDelegate(NimbusExperimentDelegate())
                  .contentBlocking(
                      policy.toContentBlockingSetting(
 -                        queryParameterStripping = false,
 -                        queryParameterStrippingPrivateBrowsing = false,
-+                        queryParameterStripping = true,
-+                        queryParameterStrippingPrivateBrowsing = true,
++                        queryParameterStripping = context.components.settings.mercuryQueryStripping,
++                        queryParameterStrippingPrivateBrowsing = context.components.settings.mercuryQueryStripping,
                          queryParameterStrippingAllowList = "",
                          queryParameterStrippingStripList = "",
                          allowListBaselineTrackingProtection =
@@ -142,8 +793,7 @@
                          safeBrowsingRealTimeSimulationHitProbability = 5,
                          safeBrowsingRealTimeSimulationCacheTTLSec = 300,
                          safeBrowsingRealTimeSimulationNegativeCacheEnabled = false,
-                         safeBrowsingRealTimeSimulationNegativeCacheTTLSec = 300,
-                     )
+@@ -128,7 +128,7 @@ object GeckoProvider {
                  )
                  .consoleOutput(context.components.settings.enableGeckoLogs)
                  .debugLogging(Config.channel.isDebug || context.components.settings.enableGeckoLogs)
@@ -151,9 +801,39 @@
 +                .aboutConfigEnabled(true)
                  .extensionsProcessEnabled(true)
                  .extensionsWebAPIEnabled(true)
+                 .translationsOfferPopup(context.components.settings.offerTranslation)
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt
+index 4f14995..0b3dca3 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt
+@@ -43,9 +43,8 @@ class FenixOnboarding(context: Context) : PreferencesHolder {
+     }
+ 
+     fun userHasBeenOnboarded(): Boolean {
+-        return strictMode.allowViolation(StrictMode::allowThreadDiskReads) {
+-            onboardedVersion == CURRENT_ONBOARDING_VERSION
+-        }
++        // Mercury: skip Mozilla ToS/Glean/Sync/Marketing onboarding carousel on first launch.
++        return true
+     }
+ 
+     /** Invokes [onCompleted] when the user completes onboarding, for as long as [lifecycleOwner] is alive. */
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
+index 27584e3..ad2c555 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
-@@ -740,9 +740,7 @@
+@@ -367,6 +367,10 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment
+ 
+         val directions: NavDirections? =
+             when (preference.key) {
++                resources.getString(R.string.pref_key_mercury_settings) -> {
++                    SettingsFragmentDirections.actionSettingsFragmentToMercurySettingsFragment()
++                }
++
+                 /* Top level account preferences.
+                 Note: Only ONE of these preferences is visible at a time. */
+                 resources.getString(R.string.pref_key_sign_in) -> {
+@@ -740,9 +744,7 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment
          val preferenceAmoCollectionOverride =
              findPreference<Preference>(getPreferenceKey(R.string.pref_key_override_amo_collection))
  
@@ -164,9 +844,562 @@
          preferenceAmoCollectionOverride?.apply {
              isVisible = show
              summary = settings.overrideAmoCollection.ifEmpty { null }
+@@ -879,7 +881,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment
+     internal fun setupEmailMaskPreference(settings: Settings, components: Components) {
+         findPreference<Preference>(getPreferenceKey(R.string.pref_key_email_masks))?.let {
+             it.isVisible =
+-                settings.isEmailMaskFeatureEnabled &&
++                settings.mercuryShowSyncUi &&
++                    settings.isEmailMaskFeatureEnabled &&
+                     components.relayEligibilityStore.state.eligibilityState is Eligible
+         }
+     }
+@@ -894,7 +897,7 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment
+     @VisibleForTesting
+     internal fun setLinkSharingPreference() {
+         with(requirePreference<Preference>(R.string.pref_key_link_sharing)) {
+-            isVisible = FxNimbus.features.sentFromFirefox.value().enabled
++            isVisible = false
+         }
+     }
+ 
+@@ -913,8 +916,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment
+     @VisibleForTesting
+     internal fun setupIPProtectionPreferences(ipProtectionStore: IPProtectionStore) {
+         findPreference<IPProtectionPreference>(getPreferenceKey(R.string.pref_key_ip_protection_settings))?.apply {
+-            isVisible = ipProtectionStore.state.isEligible
+-            showBetaBadge = FxNimbus.features.ipProtection.value().showBetaBadge
++            isVisible = false
++            showBetaBadge = false
+         }
+     }
+ 
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SyncPreferenceView.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SyncPreferenceView.kt
+index 659929e..94ecff0 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SyncPreferenceView.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SyncPreferenceView.kt
+@@ -14,6 +14,7 @@ import mozilla.components.concept.sync.OAuthAccount
+ import mozilla.components.concept.sync.SyncEngine
+ import mozilla.components.service.fxa.manager.FxaAccountManager
+ import mozilla.components.service.fxa.manager.SyncEnginesStorage
++import org.mozilla.fenix.FenixApplication
+ 
+ /**
+  * A view to help manage the sync preference in the "Passwords" and "Payment Methods" settings. The provided
+@@ -44,6 +45,12 @@ class SyncPreferenceView(
+ ) {
+ 
+     init {
++        val showSyncUi =
++            (syncPreference.context.applicationContext as? FenixApplication)
++                ?.components?.settings?.mercuryShowSyncUi == true
++        if (!showSyncUi) {
++            syncPreference.isVisible = false
++        } else {
+         accountManager.register(
+             object : AccountObserver {
+                 override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
+@@ -69,6 +76,7 @@ class SyncPreferenceView(
+             accountExists -> updateSyncPreferenceStatus()
+             !accountExists -> updateSyncPreferenceNeedsLogin()
+         }
++        }
+     }
+ 
+     /** Shows a switch toggle for the sync preference when the user is logged in. */
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/about/AboutFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/about/AboutFragment.kt
+index 1a9f9ca..466d45d 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/about/AboutFragment.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/about/AboutFragment.kt
+@@ -198,36 +198,24 @@ class AboutFragment(private val toastHandler: ToastHandler = DefaultToastHandler
+             AboutPageItem(
+                 AboutItem.ExternalLink(
+                     WHATS_NEW,
+-                    SupportUtils.WHATS_NEW_URL,
++                    "https://github.com/canonrebel04/Mercury/releases",
+                 ),
+-                // Note: Fenix only has release notes for 'Release' versions, NOT 'Beta' & 'Nightly'.
+-                getString(R.string.about_whats_new, getString(R.string.firefox)),
++                getString(R.string.about_whats_new, appName),
+             ),
+             AboutPageItem(
+                 AboutItem.ExternalLink(
+                     SUPPORT,
+-                    SupportUtils.getSumoURLForTopic(context, SupportUtils.SumoTopic.HELP),
++                    "https://github.com/canonrebel04/Mercury/issues",
+                 ),
+                 getString(R.string.about_support),
+             ),
+-            AboutPageItem(
+-                AboutItem.Crashes,
+-                getString(R.string.about_crashes),
+-            ),
+             AboutPageItem(
+                 AboutItem.ExternalLink(
+                     PRIVACY_NOTICE,
+-                    SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVACY_NOTICE),
++                    "https://github.com/canonrebel04/Mercury/blob/main/docs/PRIVACY-OPTIONS.md",
+                 ),
+                 getString(R.string.about_privacy_notice),
+             ),
+-            AboutPageItem(
+-                AboutItem.ExternalLink(
+-                    RIGHTS,
+-                    SupportUtils.getSumoURLForTopic(context, SupportUtils.SumoTopic.YOUR_RIGHTS),
+-                ),
+-                getString(R.string.about_know_your_rights),
+-            ),
+             AboutPageItem(
+                 AboutItem.ExternalLink(LICENSING_INFO, ABOUT_LICENSE_URL),
+                 getString(R.string.about_licensing_information),
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/account/AccountUiView.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/account/AccountUiView.kt
+index 77c4c2c..553a523 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/account/AccountUiView.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/account/AccountUiView.kt
+@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
+ import mozilla.components.concept.fetch.Client
+ import mozilla.components.concept.sync.Profile
+ import mozilla.components.service.fxa.manager.FxaAccountManager
++import org.mozilla.fenix.FenixApplication
+ import org.mozilla.fenix.R
+ import org.mozilla.fenix.settings.requirePreference
+ 
+@@ -64,9 +65,10 @@ class AccountUiView(
+ 
+             preferenceFirefoxAccountAuthError.email = profile?.email
+ 
+-            // Signed-out.
++            // Signed-out: hide Sign-In card by default in Mercury (opt-in via Settings > Mercury).
+         } else {
+-            preferenceSignIn.isVisible = true
++            preferenceSignIn.isVisible =
++                (context.applicationContext as? FenixApplication)?.components?.settings?.mercuryShowSyncUi == true
+             preferenceFirefoxAccount.isVisible = false
+             preferenceFirefoxAccountAuthError.isVisible = false
+             accountPreferenceCategory.isVisible = false
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesMiddleware.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesMiddleware.kt
+index 38ec545..3693e23 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesMiddleware.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesMiddleware.kt
+@@ -45,35 +45,24 @@ internal class DataChoicesMiddleware(
+         when (action) {
+             is ViewCreated ->
+                 scope.launch {
++                    // Mercury: telemetry, studies, usage ping, marketing, and crash reporting are permanently disabled.
+                     store.dispatch(
+                         SettingsLoaded(
+-                            telemetryEnabled = settings.isTelemetryEnabled,
+-                            usagePingEnabled = settings.isDailyUsagePingEnabled,
+-                            studiesEnabled = settings.isExperimentationEnabled,
+-                            showMeasurementDataSection = settings.hasMadeMarketingTelemetrySelection,
+-                            measurementDataEnabled = settings.isMarketingTelemetryEnabled,
+-                            crashReportOption = crashReportCache.getReportOption(),
++                            telemetryEnabled = false,
++                            usagePingEnabled = false,
++                            studiesEnabled = false,
++                            showMeasurementDataSection = false,
++                            measurementDataEnabled = false,
++                            crashReportOption = CrashReportOption.Never,
+                         )
+                     )
+                 }
+-            is ChoiceAction.TelemetryClicked -> {
+-                updateTelemetryChoice()
+-                store.dispatch(StudiesLoaded(settings.isExperimentationEnabled))
+-            }
+-            is ChoiceAction.MeasurementDataClicked -> {
+-                updateMarketingDataChoice()
+-            }
+-            is ChoiceAction.UsagePingClicked -> {
+-                updateUsageChoice()
+-            }
+-            is ChoiceAction.StudiesClicked -> {
+-                val navAction = DataChoicesFragmentDirections.actionDataChoicesFragmentToStudiesFragment()
+-                navController?.nav(R.id.dataChoicesFragment, navAction)
+-            }
+-            is ChoiceAction.ReportOptionClicked ->
+-                scope.launch {
+-                    updateCrashChoice(action.reportOption)
+-                }
++            // Mercury: all Data Collection and Crash Report mutations are permanently locked off.
++            is ChoiceAction.TelemetryClicked,
++            is ChoiceAction.MeasurementDataClicked,
++            is ChoiceAction.UsagePingClicked,
++            is ChoiceAction.StudiesClicked,
++            is ChoiceAction.ReportOptionClicked -> {}
+ 
+             LearnMore.MeasurementDataLearnMoreClicked -> {
+                 learnMoreClicked(SupportUtils.SumoTopic.MARKETING_DATA)
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesScreen.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesScreen.kt
+index a7e5877..7246f9d 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesScreen.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/datachoices/DataChoicesScreen.kt
+@@ -233,7 +233,7 @@ private fun CrashReportsSection(
+         Spacer(modifier = Modifier.height(16.dp))
+ 
+         Text(
+-            text = stringResource(R.string.crash_reporting_description),
++            text = "Permanently disabled in Mercury for privacy. Telemetry, studies, marketing attribution, and crash reports are never collected or sent.",
+             modifier = Modifier.padding(horizontal = FirefoxTheme.layout.space.dynamic200),
+             style = FirefoxTheme.typography.body2,
+         )
+@@ -244,7 +244,8 @@ private fun CrashReportsSection(
+             CrashReportOption.entries.forEach { crashReportOption ->
+                 RadioButtonListItem(
+                     label = stringResource(crashReportOption.labelId),
+-                    selected = selectedOption == crashReportOption,
++                    selected = crashReportOption == CrashReportOption.Never,
++                    enabled = false,
+                     modifier =
+                         Modifier.semantics {
+                             testTag = "data.collection.$crashReportOption.option"
+@@ -252,7 +253,7 @@ private fun CrashReportsSection(
+                         },
+                     maxLabelLines = 1,
+                     maxDescriptionLines = 1,
+-                    onClick = { onOptionSelected(crashReportOption) },
++                    onClick = {},
+                 )
+             }
+         }
+@@ -295,17 +296,18 @@ private fun TogglePreferenceSection(
+ 
+         SwitchListItem(
+             label = preferenceTitle,
+-            checked = isToggled,
++            checked = false,
++            enabled = false,
+             modifier =
+                 Modifier.semantics {
+                     testTag = "data.collection.$preferenceTitle.toggle"
+                     testTagsAsResourceId = true
+                 },
+             maxLabelLines = Int.MAX_VALUE,
+-            description = preferenceSummary,
++            description = "$preferenceSummary (Permanently disabled in Mercury)",
+             maxDescriptionLines = Int.MAX_VALUE,
+             showSwitchAfter = true,
+-            onClick = { onToggleChanged() },
++            onClick = {},
+         )
+ 
+         Spacer(modifier = Modifier.height(16.dp))
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/doh/DohSettingsProvider.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/doh/DohSettingsProvider.kt
+index 5d8cfde..1930999 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/doh/DohSettingsProvider.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/doh/DohSettingsProvider.kt
+@@ -39,14 +39,31 @@ internal class DefaultDohSettingsProvider(
+         )
+     }
+ 
+-    // Bug 1946867 - Load DoH Provider List from Gecko instead of hardcoding
+     private val dohDefaultProviderUrl = settings.dohDefaultProviderUrl
+ 
++    private val adguard =
++        Provider.BuiltIn(
++            url = adguardUri,
++            name = "AdGuard DNS (Ad & Tracker Blocking)",
++            default = dohDefaultProviderUrl.isBlank() || dohDefaultProviderUrl == adguardUri,
++        )
++    private val quad9 =
++        Provider.BuiltIn(
++            url = quad9Uri,
++            name = "Quad9 (Security)",
++            default = dohDefaultProviderUrl == quad9Uri,
++        )
++    private val mullvad =
++        Provider.BuiltIn(
++            url = mullvadUri,
++            name = "Mullvad DNS (Ad & Tracker Blocking)",
++            default = dohDefaultProviderUrl == mullvadUri,
++        )
+     private val cloudflare =
+         Provider.BuiltIn(
+             url = cloudflareUri,
+             name = "Cloudflare",
+-            default = dohDefaultProviderUrl.isBlank() || dohDefaultProviderUrl == cloudflareUri,
++            default = dohDefaultProviderUrl == cloudflareUri,
+         )
+     private val nextDns =
+         Provider.BuiltIn(
+@@ -55,10 +72,11 @@ internal class DefaultDohSettingsProvider(
+             default = dohDefaultProviderUrl == nextDnsUri,
+         )
+     private val providerUrl = settings.dohProviderUrl
++    private val builtInUris = setOf(adguardUri, quad9Uri, mullvadUri, cloudflareUri, nextDnsUri)
+     private val custom =
+         Provider.Custom(
+             url =
+-                if (providerUrl != cloudflareUri && providerUrl != nextDnsUri) {
++                if (providerUrl !in builtInUris) {
+                     providerUrl
+                 } else {
+                     ""
+@@ -67,6 +85,9 @@ internal class DefaultDohSettingsProvider(
+ 
+     override fun getDefaultProviders(): List<Provider> =
+         listOf(
++            adguard,
++            quad9,
++            mullvad,
+             cloudflare,
+             nextDns,
+             custom,
+@@ -90,6 +111,9 @@ internal class DefaultDohSettingsProvider(
+ 
+             else -> {
+                 when (settings.dohProviderUrl) {
++                    adguardUri -> adguard
++                    quad9Uri -> quad9
++                    mullvadUri -> mullvad
+                     cloudflareUri -> cloudflare
+                     nextDnsUri -> nextDns
+                     "" -> getDefaultProviders().first()
+@@ -130,6 +154,12 @@ internal class DefaultDohSettingsProvider(
+     }
+ 
+     companion object {
++        @VisibleForTesting val adguardUri = "https://dns.adguard-dns.com/dns-query"
++
++        @VisibleForTesting val quad9Uri = "https://dns.quad9.net/dns-query"
++
++        @VisibleForTesting val mullvadUri = "https://adblock.dns.mullvad.net/dns-query"
++
+         @VisibleForTesting val cloudflareUri = "https://mozilla.cloudflare-dns.com/dns-query"
+ 
+         @VisibleForTesting val nextDnsUri = "https://firefox.dns.nextdns.io/"
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt
+index 3072be9..583ce5a 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt
+@@ -128,6 +128,7 @@ class DefaultFenixSettingsIndexer(
+                             }
+                             CHECKBOX_PREFERENCE_TAG,
+                             DEFAULT_BROWSER_PREFERENCE_TAG,
++                            LIST_PREFERENCE_TAG,
+                             PREFERENCE_TAG,
+                             SWITCH_PREFERENCE_TAG,
+                             SWITCH_PREFERENCE_PLAIN_TAG,
+@@ -335,6 +336,7 @@ class DefaultFenixSettingsIndexer(
+         // Attribute names
+         private const val PREFERENCE_CATEGORY_TAG = "androidx.preference.PreferenceCategory"
+         private const val CHECKBOX_PREFERENCE_TAG = "androidx.preference.CheckBoxPreference"
++        private const val LIST_PREFERENCE_TAG = "androidx.preference.ListPreference"
+         private const val PREFERENCE_TAG = "androidx.preference.Preference"
+         private const val SWITCH_PREFERENCE_TAG = "androidx.preference.SwitchPreferenceCompat"
+         private const val SWITCH_PREFERENCE_PLAIN_TAG = "SwitchPreferenceCompat"
+@@ -356,6 +358,7 @@ class DefaultFenixSettingsIndexer(
+         fun defaultPreferenceFileInformationList(includeAutofillPreferences: Boolean): List<PreferenceFileInformation> =
+             buildList {
+                 add(PreferenceFileInformation.GeneralPreferences)
++                add(PreferenceFileInformation.MercuryPreferences)
+                 add(PreferenceFileInformation.AccessibilityPreferences)
+                 if (includeAutofillPreferences) {
+                     add(PreferenceFileInformation.AutofillPreferences)
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/PreferenceFileInformation.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/PreferenceFileInformation.kt
+index 08049f3..ac2c849 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/PreferenceFileInformation.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/PreferenceFileInformation.kt
+@@ -24,6 +24,15 @@ sealed class PreferenceFileInformation(
+     val fragmentId: Int,
+ ) {
+ 
++    /** Represents the dedicated "Mercury" settings screen. */
++    object MercuryPreferences :
++        PreferenceFileInformation(
++            xmlResourceId = R.xml.preferences_mercury,
++            topBreadcrumbResourceId = R.string.preferences_mercury,
++            categoryHeaderResourceId = R.string.preferences_mercury,
++            fragmentId = R.id.mercurySettingsFragment,
++        )
++
+     /** Represents the main "General" settings screen. */
+     object GeneralPreferences :
+         PreferenceFileInformation(
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/tabstray/ui/tabpage/SyncedTabsPage.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/tabstray/ui/tabpage/SyncedTabsPage.kt
+index c6d3862..39bb72d 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/tabstray/ui/tabpage/SyncedTabsPage.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/tabstray/ui/tabpage/SyncedTabsPage.kt
+@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.platform.testTag
+ import androidx.compose.ui.res.painterResource
+ import androidx.compose.ui.res.stringResource
+@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
+ import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+ import mozilla.components.compose.base.button.TextButton
+ import mozilla.components.ui.icons.R as iconsR
++import org.mozilla.fenix.FenixApplication
+ import org.mozilla.fenix.R
+ import org.mozilla.fenix.tabstray.TabsTrayTestTag
+ import org.mozilla.fenix.tabstray.redux.state.TabsTrayState.SyncState
+@@ -89,8 +91,20 @@ private fun UnauthenticatedSyncedTabsPage(
+ 
+             Spacer(modifier = Modifier.height(8.dp))
+ 
++            val showSyncUi =
++                (LocalContext.current.applicationContext as? FenixApplication)
++                    ?.components?.settings?.mercuryShowSyncUi == true
++
+             Text(
+-                text = stringResource(id = R.string.tab_manager_empty_synced_tabs_page_header),
++                text =
++                    stringResource(
++                        id =
++                            if (showSyncUi) {
++                                R.string.tab_manager_empty_synced_tabs_page_header
++                            } else {
++                                R.string.mercury_sync_disabled_header
++                            },
++                    ),
+                 textAlign = TextAlign.Center,
+                 style = FirefoxTheme.typography.headline7,
+             )
+@@ -98,16 +112,26 @@ private fun UnauthenticatedSyncedTabsPage(
+             Spacer(modifier = Modifier.height(4.dp))
+ 
+             Text(
+-                text = stringResource(id = R.string.tab_manager_empty_synced_tabs_page_description),
++                text =
++                    stringResource(
++                        id =
++                            if (showSyncUi) {
++                                R.string.tab_manager_empty_synced_tabs_page_description
++                            } else {
++                                R.string.mercury_sync_disabled_description
++                            },
++                    ),
+                 textAlign = TextAlign.Center,
+                 style = FirefoxTheme.typography.caption,
+             )
+ 
+-            TextButton(
+-                text = stringResource(id = R.string.tab_manager_empty_synced_tabs_page_sign_in_cta),
+-                onClick = onSignInClick,
+-                colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
+-            )
++            if (showSyncUi) {
++                TextButton(
++                    text = stringResource(id = R.string.tab_manager_empty_synced_tabs_page_sign_in_cta),
++                    onClick = onSignInClick,
++                    colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
++                )
++            }
+         }
+     }
+ }
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/TermsOfUseManager.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/TermsOfUseManager.kt
+index 6021a0e..19ab9e8 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/TermsOfUseManager.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/TermsOfUseManager.kt
+@@ -37,10 +37,7 @@ class TermsOfUseManager(
+     internal fun shouldShowTermsOfUsePrompt(
+         ignoreFirstCheckSinceAppStart: Boolean = false,
+         currentTimeInMillis: Long = currentTimeMillis(),
+-    ): Boolean =
+-        repository.canShowTermsOfUsePrompt() &&
+-            !repository.userPostponedAndWithinCooldownPeriod(currentTimeInMillis) &&
+-            isFirstCheckFromAppStart(ignoreFirstCheckSinceAppStart)
++    ): Boolean = false // Mercury: Terms of Use prompt is disabled by default.
+ 
+     /**
+      * This is the first time checking to see if we should show the prompt since starting the app OR the [ignore] flag
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/PrivacyNoticeBannerRepository.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/PrivacyNoticeBannerRepository.kt
+index 0bca85d..d9869d8 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/PrivacyNoticeBannerRepository.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/PrivacyNoticeBannerRepository.kt
+@@ -26,14 +26,7 @@ class DefaultPrivacyNoticeBannerRepository(
+     }
+ 
+     override fun shouldShowPrivacyNoticeBanner(): Boolean {
+-        val termsOfUseTime =
+-            if (settings.isTermsOfUsePublishedDebugDateEnabled) {
+-                currentTimeMillis()
+-            } else {
+-                TOU_TIME_IN_MILLIS
+-            }
+-        return settings.hasAcceptedTermsOfService &&
+-            settings.termsOfUseAcceptedTimeInMillis < termsOfUseTime &&
+-            settings.privacyNoticeBannerLastDisplayedTimeInMillis < termsOfUseTime
++        // Mercury: Mozilla Privacy Notice banner is disabled by default.
++        return false
+     }
+ }
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/TermsOfUsePromptRepository.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/TermsOfUsePromptRepository.kt
+index 420b369..4f868d7 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/TermsOfUsePromptRepository.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/termsofuse/store/TermsOfUsePromptRepository.kt
+@@ -64,10 +64,7 @@ class DefaultTermsOfUsePromptRepository(
+     override var isShowingPrompt = false
+ 
+     override fun canShowTermsOfUsePrompt(): Boolean =
+-        !settings.hasAcceptedTermsOfService &&
+-            settings.isTermsOfUsePromptEnabled &&
+-            !hasExceededMaxDisplayCount() &&
+-            !isShowingPrompt
++        false // Mercury: Terms of Use prompt is disabled by default.
+ 
+     override fun userPostponedAndWithinCooldownPeriod(currentTimeMillis: Long): Boolean {
+         val durationSinceLastPrompt = currentTimeMillis - settings.lastTermsOfUsePromptTimeInMillis
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
+index c8f3815..baa9c48 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-@@ -201,7 +201,7 @@
+@@ -170,14 +170,49 @@ class Settings(
+         /** DoH is disabled, corresponds to TRR_MODE_DISABLED (5) from GeckoView */
+         private const val DOH_SETTINGS_OFF = 5
+ 
++        /** Mercury default DoH TRR URI: AdGuard DNS (Ad & Tracker Blocking) */
++        private const val ADGUARD_URI = "https://dns.adguard-dns.com/dns-query"
++
+         /** Bug 1946867 - Currently "hardcoded" to the DoH TRR URI of Cloudflare */
+         private const val CLOUDFLARE_URI = "https://mozilla.cloudflare-dns.com/dns-query"
+     }
+ 
+     private val logger = Logger("Settings")
+ 
++    // Mercury: crash reporting is permanently disabled and never transmits.
+     val isCrashReportingEnabled: Boolean
+-        get() = isCrashReportEnabledInBuild && crashReportOption() != CrashReportOption.Never
++        get() = false
++
++    // Mercury: hide Mozilla Account / Sync UI by default; opt-in via Settings > Mercury.
++    var mercuryShowSyncUi by
++        booleanPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_show_sync_ui),
++            default = false,
++        )
++
++    var mercuryHardenedMode by
++        booleanPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_hardened_mode),
++            default = false,
++        )
++
++    var mercuryCrowdBlendFpp by
++        booleanPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_crowd_blend_fpp),
++            default = true,
++        )
++
++    var mercurySecurityLevel by
++        stringPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_security_level),
++            default = "standard",
++        )
++
++    var mercuryQueryStripping by
++        booleanPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_query_stripping),
++            default = true,
++        )
+ 
+     override val preferences: SharedPreferences = appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
+ 
+@@ -201,7 +236,7 @@ class Settings(
          lazyFeatureFlagBooleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
              featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
@@ -175,16 +1408,105 @@
          )
  
      /** Indicates what simple toolbar shortcut key is currently selected. */
-@@ -726,7 +726,7 @@
-     var isTelemetryEnabled by
-         booleanPreference(
-             appContext.getPreferenceKey(R.string.pref_key_telemetry),
--            default = true,
-+            default = false,
+@@ -256,7 +291,9 @@ class Settings(
+ 
+     /** Indicates whether or not the "Synced Tabs" section should be shown on the home screen. */
+     val showSyncedTabs: Boolean
+-        get() = FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.SYNCED_TABS] == true
++        get() =
++            mercuryShowSyncUi &&
++                FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.SYNCED_TABS] == true
+ 
+     /** Indicates whether or not the "Collections" section should be shown on the home screen. */
+     val collections: Boolean
+@@ -714,7 +751,7 @@ class Settings(
+     var crashReportChoice by
+         stringPreference(
+             appContext.getPreferenceKey(R.string.pref_key_crash_reporting_choice),
+-            default = CrashReportOption.Ask.toString(),
++            default = CrashReportOption.Never.toString(),
          )
  
-     var isMarketingTelemetryEnabled by
-@@ -883,7 +883,7 @@
+     val isRemoteDebuggingEnabled by
+@@ -723,17 +760,14 @@ class Settings(
+             default = false,
+         )
+ 
+-    var isTelemetryEnabled by
+-        booleanPreference(
+-            appContext.getPreferenceKey(R.string.pref_key_telemetry),
+-            default = true,
+-        )
++    // Mercury: permanently locked OFF so Data Collection cannot be enabled.
++    var isTelemetryEnabled: Boolean
++        get() = false
++        set(_) {}
+ 
+-    var isMarketingTelemetryEnabled by
+-        booleanPreference(
+-            appContext.getPreferenceKey(R.string.pref_key_marketing_telemetry),
+-            default = false,
+-        )
++    var isMarketingTelemetryEnabled: Boolean
++        get() = false
++        set(_) {}
+ 
+     var hasMadeMarketingTelemetrySelection by
+         booleanPreference(
+@@ -741,10 +775,11 @@ class Settings(
+             default = false,
+         )
+ 
++    // Mercury: Mozilla Terms of Use / Privacy Notice gate is suppressed by default.
+     var hasAcceptedTermsOfService by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_terms_accepted),
+-            default = false,
++            default = true,
+             persistDefaultIfNotExists = true,
+         )
+ 
+@@ -785,11 +820,11 @@ class Settings(
+             default = { if (hasAcceptedTermsOfService) TOU_VERSION else 0 },
+         )
+ 
+-    /** Returns true if the terms of use feature flag is enabled */
++    /** Mercury: Terms of Use prompt is permanently disabled by default. */
+     var isTermsOfUsePromptEnabled by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_terms_prompt_enabled),
+-            default = { FxNimbus.features.termsOfUsePrompt.value().enabled },
++            default = { false },
+         )
+ 
+     /** Returns true if the nimbus flag for showing the terms of use drag handle is true. */
+@@ -852,18 +887,14 @@ class Settings(
+      * because this setting was added in early 2025 and we want to make sure that users who upgrade and had telemetry
+      * disabled don't start sending the daily usage ping telemetry.
+      */
+-    var isDailyUsagePingEnabled by
+-        booleanPreference(
+-            appContext.getPreferenceKey(R.string.pref_key_daily_usage_ping),
+-            default = isTelemetryEnabled,
+-            persistDefaultIfNotExists = true,
+-        )
++    // Mercury: permanently locked OFF.
++    var isDailyUsagePingEnabled: Boolean
++        get() = false
++        set(_) {}
+ 
+-    var isExperimentationEnabled by
+-        booleanPreference(
+-            appContext.getPreferenceKey(R.string.pref_key_experimentation_v2),
+-            default = isTelemetryEnabled,
+-        )
++    var isExperimentationEnabled: Boolean
++        get() = false
++        set(_) {}
+ 
+     /**
+      * This lets us know if the user has disabled experimentation manually so that we know if we should re-enable
+@@ -883,7 +914,7 @@ class Settings(
      var isRolloutsEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_rollouts),
@@ -193,7 +1515,84 @@
          )
  
      /**
-@@ -2382,7 +2382,7 @@
+@@ -1087,14 +1118,14 @@ class Settings(
+     var isLnaBlockingEnabled by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_blocking_enabled),
+-            default = { FxNimbus.features.lnaBlocking.value().blocking || Config.channel.isNightlyOrDebug },
++            default = { true },
+         )
+ 
+     /** Indicates if the Local Network / Local Device Access tracker blocking feature is enabled. */
+     var isLnaTrackerBlockingEnabled by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_tracker_blocking_enabled),
+-            default = { FxNimbus.features.lnaBlocking.value().blockTrackers },
++            default = { true },
+         )
+ 
+     /**
+@@ -1106,7 +1137,7 @@ class Settings(
+     var isLnaFeatureEnabled by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_feature_enabled),
+-            default = { FxNimbus.features.lnaBlocking.value().enabled || Config.channel.isNightlyOrDebug },
++            default = { true },
+         )
+ 
+     /** Indicates whether isolated content processes are enabled or not. */
+@@ -1321,7 +1352,7 @@ class Settings(
+     var shouldEnableGlobalPrivacyControl by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_privacy_enable_global_privacy_control),
+-            false,
++            true,
+         )
+ 
+     /**
+@@ -1352,13 +1383,13 @@ class Settings(
+     val useStandardTrackingProtection by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_tracking_protection_standard_option),
+-            true,
++            false,
+         )
+ 
+     val useStrictTrackingProtection by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_tracking_protection_strict_default),
+-            false,
++            true,
+         )
+ 
+     val useCustomTrackingProtection by
+@@ -1789,7 +1820,7 @@ class Settings(
+     val shouldShowSearchSuggestions by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions),
+-            default = true,
++            default = false,
+         )
+ 
+     val shouldAutocompleteInAwesomebar by
+@@ -1814,14 +1845,14 @@ class Settings(
+     internal var trendingSearchSuggestionsEnabled by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_show_trending_search_suggestions),
+-            default = true,
++            default = false,
+         )
+ 
+     /** Indicates if the user have enabled recent search in the search suggestions setting preference. */
+     internal var shouldShowRecentSearchSuggestions by
+         booleanPreference(
+             appContext.getPreferenceKey(R.string.pref_key_show_recent_search_suggestions),
+-            default = true,
++            default = false,
+         )
+ 
+     var showSearchSuggestionsInPrivateOnboardingFinished by
+@@ -2382,7 +2413,7 @@ class Settings(
      var showContileFeature by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_contile),
@@ -202,3 +1601,309 @@
          )
  
      /** Blocklist used to filter items from the home screen that have previously been removed. */
+@@ -2512,12 +2543,10 @@ class Settings(
+             default = { FxNimbus.features.migrateOnboardingState.value().enabled },
+         )
+ 
+-    /** Indicates if the marketing onboarding card should be shown to the user. */
+-    var shouldShowMarketingOnboarding by
+-        booleanPreference(
+-            appContext.getPreferenceKey(R.string.pref_key_should_show_marketing_onboarding),
+-            default = false,
+-        )
++    /** Mercury: marketing onboarding card is permanently disabled. */
++    var shouldShowMarketingOnboarding: Boolean
++        get() = false
++        set(_) {}
+ 
+     var shouldUseMinimalBottomToolbarWhenEnteringText by
+         booleanPreference(
+@@ -2773,10 +2802,11 @@ class Settings(
+         )
+ 
+     /** Indicates whether Email Mask is enabled or not. */
++    // Mercury: Mozilla Relay email masks require Mozilla Account; disabled by default.
+     var isEmailMaskFeatureEnabled by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_enable_email_masks),
+-            default = { FxNimbus.features.emailMasks.value().enabled },
++            default = { false },
+         )
+ 
+     /**
+@@ -3122,44 +3152,35 @@ class Settings(
+             default = false,
+         )
+ 
+-    /** Indicates whether or not to show the entry point for the DNS over HTTPS settings */
++    /** Mercury: DoH settings UI is always visible. */
+     val showDohEntryPoint by
+         booleanPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_enabled),
+-            default = { FxNimbus.features.doh.value().showUi },
++            default = { true },
+         )
+ 
+     /**
+      * Stores the current DoH mode as an integer preference.
+-     * - 0: Default mode
+-     * - 2: Increased protection
+-     * - 3: Maximum protection
+-     * - 5: DoH is disabled
++     * Mercury defaults to Increased Protection (2) with AdGuard Ad & Tracker Blocking DNS.
+      */
+     private var trrMode by
+         intPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_mode),
+-            default = DOH_SETTINGS_DEFAULT,
++            default = DOH_SETTINGS_INCREASED,
+         )
+ 
+-    /**
+-     * Stores the URI of the custom DoH provider selected by the user. Defaults to an empty string if no provider is
+-     * set.
+-     */
++    /** Stores the URI of the selected DoH provider. Mercury defaults to AdGuard DNS. */
+     var dohProviderUrl by
+         stringPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_doh_provider_uri),
+-            default = "",
++            default = ADGUARD_URI,
+         )
+ 
+-    /**
+-     * Stores the URI of the default DoH provider. Bug 1946867 - Currently "hardcoded" to
+-     * "https://mozilla.cloudflare-dns.com/dns-query"
+-     */
++    /** Stores the URI of the default DoH provider. Mercury defaults to AdGuard DNS. */
+     val dohDefaultProviderUrl by
+         stringPreference(
+             key = appContext.getPreferenceKey(R.string.pref_key_doh_default_provider_uri),
+-            default = CLOUDFLARE_URI,
++            default = ADGUARD_URI,
+         )
+ 
+     /** Stores a set of domains that are excluded from using DNS over HTTPS. */
+diff --git a/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml b/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml
+index ae5e7d1..208ea5e 100644
+--- a/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml
++++ b/mobile/android/fenix/app/src/main/res/navigation/nav_graph.xml
+@@ -607,6 +607,13 @@
+             android:id="@+id/action_settingsFragment_to_settingsSearchFragment"
+             app:destination="@id/settingsSearchFragment"
+             app:popUpTo="@id/settingsFragment" />
++        <action
++            android:id="@+id/action_settingsFragment_to_mercurySettingsFragment"
++            app:destination="@id/mercurySettingsFragment"
++            app:enterAnim="@anim/slide_in_right"
++            app:exitAnim="@anim/slide_out_left"
++            app:popEnterAnim="@anim/slide_in_left"
++            app:popExitAnim="@anim/slide_out_right" />
+         <action
+             android:id="@+id/action_settingsFragment_to_dataChoicesFragment"
+             app:destination="@id/dataChoicesFragment"
+@@ -953,6 +960,10 @@
+             app:argType="string"
+             app:nullable="true" />
+     </fragment>
++    <fragment
++        android:id="@+id/mercurySettingsFragment"
++        android:name="org.mozilla.fenix.settings.mercury.MercurySettingsFragment"
++        android:label="@string/preferences_mercury" />
+     <fragment
+         android:id="@+id/dataChoicesFragment"
+         android:name="org.mozilla.fenix.settings.datachoices.DataChoicesFragment"
+diff --git a/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json b/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json
+index d3370bf..268c73f 100644
+--- a/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json
++++ b/mobile/android/fenix/app/src/main/res/raw/default_shortcuts.json
+@@ -1,85 +1,3 @@
+ {
+-  "data": [
+-    {
+-      "url": "https://www.wikipedia.org/",
+-      "order": 0,
+-      "title": "Wikipedia",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [
+-        "CN",
+-        "JP"
+-      ],
+-      "include_locales": [],
+-      "include_regions": [],
+-      "exclude_experiments": [],
+-      "include_experiments": [],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://tenki.jp/",
+-      "order": 1,
+-      "title": "tenki.jp",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://m.yahoo.co.jp/",
+-      "order": 2,
+-      "title": "Yahoo! JAPAN",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://ameblo.jp/",
+-      "order": 3,
+-      "title": "Amebaブログ",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [],
+-      "id": "",
+-      "last_modified": 1
+-    },
+-    {
+-      "url": "https://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8",
+-      "order": 4,
+-      "title": "ウィキペディア",
+-      "schema": 1,
+-      "exclude_locales": [],
+-      "exclude_regions": [],
+-      "include_locales": [],
+-      "include_regions": [
+-        "JP"
+-      ],
+-      "exclude_experiments": [],
+-      "include_experiments": [],
+-      "id": "",
+-      "last_modified": 1
+-    }
+-  ]
++  "data": []
+ }
+diff --git a/mobile/android/fenix/app/src/main/res/values/preference_keys.xml b/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
+index 6f95d22..c8d5826 100644
+--- a/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
++++ b/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
+@@ -58,6 +58,7 @@
+     <string name="pref_key_about" translatable="false">pref_key_about</string>
+     <string name="pref_key_account" translatable="false">pref_key_account</string>
+     <string name="pref_key_sign_in" translatable="false">pref_key_sign_in</string>
++    <string name="pref_key_mercury_settings" translatable="false">pref_key_mercury_settings</string>
+     <string name="pref_key_account_auth_error" translatable="false">pref_key_account_auth_error</string>
+     <string name="pref_key_sync_debug" translatable="false">pref_key_sync_debug</string>
+     <string name="pref_key_override_fxa_server" translatable="false">pref_key_override_fxa_server</string>
+diff --git a/mobile/android/fenix/app/src/main/res/values/static_strings.xml b/mobile/android/fenix/app/src/main/res/values/static_strings.xml
+index c589c97..cd24281 100644
+--- a/mobile/android/fenix/app/src/main/res/values/static_strings.xml
++++ b/mobile/android/fenix/app/src/main/res/values/static_strings.xml
+@@ -4,8 +4,8 @@
+    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+ <resources xmlns:tools="http://schemas.android.com/tools">
+     <!-- Name of the application -->
+-    <string name="app_name" translatable="false">Firefox Fenix</string>
+-    <string name="firefox" translatable="false">Firefox</string>
++    <string name="app_name" translatable="false">Mercury</string>
++    <string name="firefox" translatable="false">Mercury</string>
+ 
+     <!-- Preference for developers -->
+     <string name="preference_leakcanary" translatable="false">LeakCanary</string>
+@@ -451,7 +451,7 @@
+     <string name="customize_toggle_weather" translatable="false">Weather</string>
+ 
+     <!--  Firefox brand name  -->
+-    <string name="app_name_firefox" tools:ignore="BrandUsage">Firefox</string>
++    <string name="app_name_firefox" tools:ignore="BrandUsage">Mercury</string>
+ 
+     <!--  Proper name for the Wrexham wallpaper section title. As it is a brand name we do not want it translated.-->
+     <string name="wallpaper_wrexham_title" translatable="false">Wrexham A.F.C.</string>
+diff --git a/mobile/android/fenix/app/src/main/res/xml/preferences.xml b/mobile/android/fenix/app/src/main/res/xml/preferences.xml
+index 78e2c51..904a933 100644
+--- a/mobile/android/fenix/app/src/main/res/xml/preferences.xml
++++ b/mobile/android/fenix/app/src/main/res/xml/preferences.xml
+@@ -6,11 +6,18 @@
+ <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto">
+ 
++    <androidx.preference.Preference
++        android:key="@string/pref_key_mercury_settings"
++        android:icon="@mipmap/ic_launcher_round"
++        android:title="@string/preferences_mercury"
++        android:summary="@string/preferences_mercury_summary" />
++
+     <androidx.preference.Preference
+         android:key="@string/pref_key_sign_in"
+         android:layout="@layout/sign_in_preference"
+         android:summary="@string/preferences_sign_in_description"
+         android:title="@string/preferences_sign_in"
++        app:isPreferenceVisible="false"
+         app:allowDividerBelow="false" />
+ 
+     <androidx.preference.PreferenceCategory
+@@ -137,7 +144,7 @@
+         <androidx.preference.Preference
+             android:key="@string/pref_key_doh_settings"
+             app:iconSpaceReserved="false"
+-            app:isPreferenceVisible="false"
++            app:isPreferenceVisible="true"
+             android:title="@string/preference_doh_title" />
+ 
+         <androidx.preference.Preference
+@@ -210,6 +217,7 @@
+         <androidx.preference.Preference
+             android:key="@string/pref_key_firefox_labs"
+             app:iconSpaceReserved="false"
++            app:isPreferenceVisible="false"
+             android:title="@string/firefox_labs_title" />
+ 
+         <androidx.preference.SwitchPreferenceCompat
+@@ -221,6 +229,7 @@
+         <androidx.preference.Preference
+             android:key="@string/pref_key_remote_improvements"
+             android:title="@string/preferences_remote_improvements"
++            app:isPreferenceVisible="false"
+             app:iconSpaceReserved="false" />
+ 
+         <androidx.preference.SwitchPreferenceCompat
+@@ -248,6 +257,7 @@
+         <androidx.preference.Preference
+             android:key="@string/pref_key_rate"
+             app:iconSpaceReserved="false"
++            app:isPreferenceVisible="false"
+             android:title="@string/preferences_rate" />
+ 
+         <androidx.preference.Preference
+diff --git a/mobile/android/fenix/app/src/release/res/values/static_strings.xml b/mobile/android/fenix/app/src/release/res/values/static_strings.xml
+index c13e4d4..09f261e 100644
+--- a/mobile/android/fenix/app/src/release/res/values/static_strings.xml
++++ b/mobile/android/fenix/app/src/release/res/values/static_strings.xml
+@@ -4,5 +4,5 @@
+    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+ <resources>
+     <!-- Name of the application -->
+-    <string name="app_name" translatable="false">Firefox</string>
++    <string name="app_name" translatable="false">Mercury</string>
+ </resources>

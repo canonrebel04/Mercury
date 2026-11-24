@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/mercury_category_identity"
+        android:layout="@layout/preference_category_no_icon_style">
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_hardened_mode"
+            app:iconSpaceReserved="false"
+            android:defaultValue="false"
+            android:title="@string/mercury_hardened_mode_title"
+            android:summary="@string/mercury_hardened_mode_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_crowd_blend_fpp"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_crowd_blend_fpp_title"
+            android:summary="@string/mercury_crowd_blend_fpp_summary" />
+
+        <androidx.preference.ListPreference
+            android:key="@string/pref_key_mercury_security_level"
+            app:iconSpaceReserved="false"
+            android:defaultValue="standard"
+            android:title="@string/mercury_security_level_title"
+            android:dialogTitle="@string/mercury_security_level_dialog_title"
+            android:entries="@array/mercury_security_level_entries"
+            android:entryValues="@array/mercury_security_level_values"
+            app:useSimpleSummaryProvider="true" />
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_new_identity"
+            app:iconSpaceReserved="false"
+            android:title="@string/mercury_new_identity_title"
+            android:summary="@string/mercury_new_identity_summary" />
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/mercury_category_network"
+        android:layout="@layout/preference_category_no_icon_style">
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_https_only"
+            app:iconSpaceReserved="false"
+            android:defaultValue="false"
+            android:title="@string/mercury_https_only_title"
+            android:summary="@string/mercury_https_only_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_strict_etp"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_strict_etp_title"
+            android:summary="@string/mercury_strict_etp_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_query_stripping"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_query_stripping_title"
+            android:summary="@string/mercury_query_stripping_summary" />
+
+        <androidx.preference.ListPreference
+            android:key="@string/pref_key_mercury_doh_provider"
+            app:iconSpaceReserved="false"
+            android:defaultValue="https://dns.adguard-dns.com/dns-query"
+            android:title="@string/mercury_doh_provider_title"
+            android:dialogTitle="@string/mercury_doh_provider_dialog_title"
+            android:entries="@array/mercury_doh_provider_entries"
+            android:entryValues="@array/mercury_doh_provider_values"
+            app:useSimpleSummaryProvider="true" />
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_open_doh"
+            app:iconSpaceReserved="false"
+            android:title="@string/mercury_open_doh_title"
+            android:summary="@string/mercury_open_doh_summary" />
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_open_etp"
+            app:iconSpaceReserved="false"
+            android:title="@string/mercury_open_etp_title"
+            android:summary="@string/mercury_open_etp_summary" />
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_open_https_only"
+            app:iconSpaceReserved="false"
+            android:title="@string/mercury_open_https_only_title"
+            android:summary="@string/mercury_open_https_only_summary" />
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/mercury_category_web_security"
+        android:layout="@layout/preference_category_no_icon_style">
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_webrtc"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_webrtc_title"
+            android:summary="@string/mercury_webrtc_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_webgl"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_webgl_title"
+            android:summary="@string/mercury_webgl_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_drm"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_drm_title"
+            android:summary="@string/mercury_drm_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_speculative_prefetch"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_speculative_prefetch_title"
+            android:summary="@string/mercury_speculative_prefetch_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_punycode"
+            app:iconSpaceReserved="false"
+            android:defaultValue="false"
+            android:title="@string/mercury_punycode_title"
+            android:summary="@string/mercury_punycode_summary" />
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/mercury_category_performance"
+        android:layout="@layout/preference_category_no_icon_style">
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_gpu_canvas"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_gpu_canvas_title"
+            android:summary="@string/mercury_gpu_canvas_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_webrender"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_webrender_title"
+            android:summary="@string/mercury_webrender_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_js_jit"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_js_jit_title"
+            android:summary="@string/mercury_js_jit_summary" />
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/mercury_category_advanced"
+        android:layout="@layout/preference_category_no_icon_style">
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_open_delete_on_quit"
+            app:iconSpaceReserved="false"
+            android:title="@string/mercury_open_delete_on_quit_title"
+            android:summary="@string/mercury_open_delete_on_quit_summary" />
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_open_about_config"
+            app:iconSpaceReserved="false"
+            android:title="@string/mercury_open_about_config_title"
+            android:summary="@string/mercury_open_about_config_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_show_sync_ui"
+            app:iconSpaceReserved="false"
+            android:defaultValue="false"
+            android:title="@string/mercury_show_sync_ui_title"
+            android:summary="@string/mercury_show_sync_ui_summary" />
+
+        <androidx.preference.Preference
+            android:key="@string/pref_key_mercury_privacy_summary"
+            app:iconSpaceReserved="false"
+            android:selectable="false"
+            android:title="@string/mercury_privacy_summary_title"
+            android:summary="@string/mercury_privacy_summary_body" />
+    </androidx.preference.PreferenceCategory>
+</androidx.preference.PreferenceScreen>

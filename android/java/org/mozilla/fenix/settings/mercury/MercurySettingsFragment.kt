@@ -1,0 +1,584 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package org.mozilla.fenix.settings.mercury
+
+import android.os.Bundle
+import android.widget.Toast
+import androidx.core.content.edit
+import androidx.navigation.fragment.findNavController
+import androidx.preference.ListPreference
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
+import mozilla.components.ExperimentalAndroidComponentsApi
+import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.preferences.Branch
+import mozilla.components.concept.engine.preferences.SetBrowserPreference
+import org.mozilla.fenix.R
+import org.mozilla.fenix.e2e.SystemInsetsPaddedFragment
+import org.mozilla.fenix.ext.getPreferenceKey
+import org.mozilla.fenix.ext.openToBrowser
+import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.showToolbar
+
+/**
+ * Dedicated Mercury Browser settings screen (Android) with desktop parity for
+ * Hardened Mode, Crowd-Blend FPP, Security Levels, New Identity, HTTPS-Only,
+ * Strict Tracking Protection, Query Stripping, DoH, Web APIs, and GPU controls.
+ */
+@OptIn(ExperimentalAndroidComponentsApi::class)
+class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment {
+
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        setPreferencesFromResource(R.xml.preferences_mercury, rootKey)
+        bindIdentityPreferences()
+        bindNetworkPreferences()
+        bindWebSecurityPreferences()
+        bindPerformancePreferences()
+        bindAdvancedPreferences()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        showToolbar(getString(R.string.preferences_mercury))
+        syncPreferenceStates()
+        arguments?.getString("preference_to_scroll_to")?.let { key ->
+            scrollToPreference(key)
+        }
+    }
+
+    private fun bindIdentityPreferences() {
+        findSwitch(R.string.pref_key_mercury_hardened_mode)?.apply {
+            isChecked = requireComponents.settings.mercuryHardenedMode
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                applyHardenedMode(enabled)
+                true
+            }
+        }
+
+        findSwitch(R.string.pref_key_mercury_crowd_blend_fpp)?.apply {
+            isChecked = requireComponents.settings.mercuryCrowdBlendFpp
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                applyCrowdBlendFpp(enabled)
+                true
+            }
+        }
+
+        findList(R.string.pref_key_mercury_security_level)?.apply {
+            value = requireComponents.settings.mercurySecurityLevel
+            setOnPreferenceChangeListener { _, newValue ->
+                val level = newValue as String
+                applySecurityLevel(level)
+                true
+            }
+        }
+    }
+
+    private fun bindNetworkPreferences() {
+        findSwitch(R.string.pref_key_mercury_https_only)?.apply {
+            isChecked = requireComponents.settings.shouldUseHttpsOnly
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                val settings = requireComponents.settings
+                settings.shouldUseHttpsOnly = enabled
+                if (enabled) {
+                    settings.shouldUseHttpsOnlyInAllTabs = true
+                    settings.shouldUseHttpsOnlyInPrivateTabsOnly = false
+                }
+                requireComponents.core.engine.settings.httpsOnlyMode = settings.getHttpsOnlyMode()
+                true
+            }
+        }
+
+        findSwitch(R.string.pref_key_mercury_strict_etp)?.apply {
+            isChecked = isStrictTrackingProtectionActive()
+            setOnPreferenceChangeListener { _, newValue ->
+                applyStrictTrackingProtection(newValue as Boolean)
+                true
+            }
+        }
+
+        findSwitch(R.string.pref_key_mercury_query_stripping)?.apply {
+            isChecked = requireComponents.settings.mercuryQueryStripping
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                requireComponents.settings.mercuryQueryStripping = enabled
+                val engine = requireComponents.core.engine
+                engine.settings.queryParameterStripping = enabled
+                engine.settings.queryParameterStrippingPrivateBrowsing = enabled
+                setBoolPref("privacy.query_stripping.strip_on_share.enabled", enabled)
+                true
+            }
+        }
+
+        findList(R.string.pref_key_mercury_doh_provider)?.apply {
+            value = currentDohPresetValue()
+            setOnPreferenceChangeListener { _, newValue ->
+                applyDohProvider(newValue as String)
+                true
+            }
+        }
+    }
+
+    private fun bindWebSecurityPreferences() {
+        findSwitch(R.string.pref_key_mercury_webrtc)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("media.peerconnection.enabled", newValue as Boolean)
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_webgl)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("webgl.disabled", !(newValue as Boolean))
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_drm)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("media.eme.enabled", newValue as Boolean)
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_speculative_prefetch)?.setOnPreferenceChangeListener { _, newValue ->
+            applySpeculativePrefetch(newValue as Boolean)
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_punycode)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("network.IDN_show_punycode", newValue as Boolean)
+            true
+        }
+    }
+
+    private fun bindPerformancePreferences() {
+        findSwitch(R.string.pref_key_mercury_gpu_canvas)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("gfx.canvas.accelerated", newValue as Boolean)
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_webrender)?.setOnPreferenceChangeListener { _, newValue ->
+            val enabled = newValue as Boolean
+            setGeckoPrefs(
+                listOf(
+                    SetBrowserPreference.setBoolPref("gfx.webrender.all", enabled, Branch.USER),
+                    SetBrowserPreference.setBoolPref("gfx.webrender.compositor", enabled, Branch.USER),
+                ),
+            )
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_js_jit)?.setOnPreferenceChangeListener { _, newValue ->
+            val enabled = newValue as Boolean
+            setGeckoPrefs(
+                listOf(
+                    SetBrowserPreference.setBoolPref("javascript.options.ion", enabled, Branch.USER),
+                    SetBrowserPreference.setBoolPref("javascript.options.baselinejit", enabled, Branch.USER),
+                    SetBrowserPreference.setBoolPref("javascript.options.blinterp", enabled, Branch.USER),
+                ),
+            )
+            true
+        }
+    }
+
+    private fun bindAdvancedPreferences() {
+        findSwitch(R.string.pref_key_mercury_show_sync_ui)?.apply {
+            isChecked = requireComponents.settings.mercuryShowSyncUi
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                requireComponents.settings.mercuryShowSyncUi = enabled
+                setBoolPref("identity.fxaccounts.enabled", enabled)
+                true
+            }
+        }
+    }
+
+    private fun syncPreferenceStates() {
+        val settings = requireComponents.settings
+        findSwitch(R.string.pref_key_mercury_hardened_mode)?.isChecked = settings.mercuryHardenedMode
+        findSwitch(R.string.pref_key_mercury_crowd_blend_fpp)?.isChecked = settings.mercuryCrowdBlendFpp
+        findList(R.string.pref_key_mercury_security_level)?.value = settings.mercurySecurityLevel
+        findSwitch(R.string.pref_key_mercury_https_only)?.isChecked = settings.shouldUseHttpsOnly
+        findSwitch(R.string.pref_key_mercury_strict_etp)?.isChecked = isStrictTrackingProtectionActive()
+        findSwitch(R.string.pref_key_mercury_query_stripping)?.isChecked = settings.mercuryQueryStripping
+        findList(R.string.pref_key_mercury_doh_provider)?.value = currentDohPresetValue()
+        findSwitch(R.string.pref_key_mercury_show_sync_ui)?.isChecked = settings.mercuryShowSyncUi
+
+        val prefNames =
+            listOf(
+                "media.peerconnection.enabled",
+                "webgl.disabled",
+                "media.eme.enabled",
+                "network.dns.disablePrefetch",
+                "network.IDN_show_punycode",
+                "gfx.canvas.accelerated",
+                "gfx.webrender.all",
+                "javascript.options.ion",
+            )
+        requireComponents.core.engine.getBrowserPrefs(
+            prefs = prefNames,
+            onSuccess = { prefs ->
+                if (!isAdded) return@getBrowserPrefs
+                val byName = prefs.associateBy { it.pref }
+                (byName["media.peerconnection.enabled"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_webrtc)?.isChecked = it
+                }
+                (byName["webgl.disabled"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_webgl)?.isChecked = !it
+                }
+                (byName["media.eme.enabled"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_drm)?.isChecked = it
+                }
+                (byName["network.dns.disablePrefetch"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_speculative_prefetch)?.isChecked = !it
+                }
+                (byName["network.IDN_show_punycode"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_punycode)?.isChecked = it
+                }
+                (byName["gfx.canvas.accelerated"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_gpu_canvas)?.isChecked = it
+                }
+                (byName["gfx.webrender.all"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_webrender)?.isChecked = it
+                }
+                (byName["javascript.options.ion"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_js_jit)?.isChecked = it
+                }
+            },
+            onError = {},
+        )
+    }
+
+    private fun applyHardenedMode(enabled: Boolean) {
+        val components = requireComponents
+        val settings = components.settings
+        val engine = components.core.engine
+        settings.mercuryHardenedMode = enabled
+
+        if (enabled) {
+            setGeckoPrefs(
+                listOf(
+                    SetBrowserPreference.setBoolPref("mercury.hardened.enabled", true, Branch.USER),
+                    SetBrowserPreference.setBoolPref("privacy.resistFingerprinting", true, Branch.USER),
+                    SetBrowserPreference.setBoolPref("privacy.resistFingerprinting.letterboxing", true, Branch.USER),
+                    SetBrowserPreference.setBoolPref("network.IDN_show_punycode", true, Branch.USER),
+                ),
+            )
+            engine.settings.fingerprintingProtection = true
+            engine.settings.fingerprintingProtectionPrivateBrowsing = true
+            engine.settings.fingerprintingProtectionOverrides = RFP_PRESERVE_THEME_OVERRIDE
+
+            applyStrictTrackingProtection(true)
+
+            settings.shouldUseHttpsOnly = true
+            settings.shouldUseHttpsOnlyInAllTabs = true
+            settings.shouldUseHttpsOnlyInPrivateTabsOnly = false
+            engine.settings.httpsOnlyMode = settings.getHttpsOnlyMode()
+
+            settings.shouldDeleteBrowsingDataOnQuit = true
+
+            // Upgrade DoH to Increased Protection if currently Off or Default (never downgrade Max).
+            val dohMode = settings.getDohSettingsMode()
+            if (dohMode == Engine.DohSettingsMode.OFF || dohMode == Engine.DohSettingsMode.DEFAULT) {
+                val uri = settings.dohProviderUrl.ifBlank { DEFAULT_DOH_URI }
+                settings.dohProviderUrl = uri
+                settings.setDohSettingsMode(Engine.DohSettingsMode.INCREASED)
+                engine.settings.dohSettingsMode = Engine.DohSettingsMode.INCREASED
+                engine.settings.dohProviderUrl = uri
+            }
+
+            applySpeculativePrefetch(false)
+
+            findSwitch(R.string.pref_key_mercury_https_only)?.isChecked = true
+            findSwitch(R.string.pref_key_mercury_strict_etp)?.isChecked = true
+            findSwitch(R.string.pref_key_mercury_speculative_prefetch)?.isChecked = false
+            findSwitch(R.string.pref_key_mercury_punycode)?.isChecked = true
+            findList(R.string.pref_key_mercury_doh_provider)?.value = currentDohPresetValue()
+        } else {
+            setGeckoPrefs(
+                listOf(
+                    SetBrowserPreference.setBoolPref("mercury.hardened.enabled", false, Branch.USER),
+                    SetBrowserPreference.setBoolPref("privacy.resistFingerprinting", false, Branch.USER),
+                    SetBrowserPreference.setBoolPref("privacy.resistFingerprinting.letterboxing", false, Branch.USER),
+                    SetBrowserPreference.setBoolPref("network.IDN_show_punycode", false, Branch.USER),
+                ),
+            )
+            applyCrowdBlendFpp(settings.mercuryCrowdBlendFpp)
+
+            settings.shouldUseHttpsOnly = false
+            engine.settings.httpsOnlyMode = settings.getHttpsOnlyMode()
+            settings.shouldDeleteBrowsingDataOnQuit = false
+            applySpeculativePrefetch(true)
+
+            findSwitch(R.string.pref_key_mercury_https_only)?.isChecked = false
+            findSwitch(R.string.pref_key_mercury_speculative_prefetch)?.isChecked = true
+            findSwitch(R.string.pref_key_mercury_punycode)?.isChecked = false
+        }
+    }
+
+    private fun applyCrowdBlendFpp(enabled: Boolean) {
+        val settings = requireComponents.settings
+        val engine = requireComponents.core.engine
+        settings.mercuryCrowdBlendFpp = enabled
+        engine.settings.fingerprintingProtection = enabled
+        engine.settings.fingerprintingProtectionPrivateBrowsing = enabled
+        engine.settings.fingerprintingProtectionOverrides =
+            when {
+                settings.mercuryHardenedMode -> RFP_PRESERVE_THEME_OVERRIDE
+                enabled -> CROWD_BLEND_OVERRIDES
+                else -> ""
+            }
+    }
+
+    private fun applySecurityLevel(level: String) {
+        val safeLevel = if (level == "safer" || level == "safest") level else "standard"
+        requireComponents.settings.mercurySecurityLevel = safeLevel
+        val engine = requireComponents.core.engine
+
+        setStringPref("mercury.security.level", safeLevel)
+
+        when (safeLevel) {
+            "standard" -> {
+                clearPrefs(
+                    listOf(
+                        "javascript.options.ion",
+                        "javascript.options.baselinejit",
+                        "javascript.options.blinterp",
+                        "javascript.options.wasm",
+                        "javascript.options.wasm_baselinejit",
+                        "javascript.options.wasm_optimizingjit",
+                        "mathml.disabled",
+                        "gfx.font_rendering.opentype_svg.enabled",
+                        "webgl.disabled",
+                        "gfx.downloadable_fonts.enabled",
+                    ),
+                )
+                engine.settings.webFontsEnabled = true
+                findSwitch(R.string.pref_key_mercury_webgl)?.isChecked = true
+                findSwitch(R.string.pref_key_mercury_js_jit)?.isChecked = true
+            }
+
+            "safer" -> {
+                setGeckoPrefs(
+                    listOf(
+                        SetBrowserPreference.setBoolPref("javascript.options.ion", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.wasm", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.wasm_baselinejit", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.wasm_optimizingjit", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("mathml.disabled", true, Branch.USER),
+                        SetBrowserPreference.setBoolPref("gfx.font_rendering.opentype_svg.enabled", false, Branch.USER),
+                    ),
+                )
+                clearPrefs(
+                    listOf(
+                        "javascript.options.baselinejit",
+                        "javascript.options.blinterp",
+                        "webgl.disabled",
+                        "gfx.downloadable_fonts.enabled",
+                    ),
+                )
+                engine.settings.webFontsEnabled = true
+                findSwitch(R.string.pref_key_mercury_webgl)?.isChecked = true
+                findSwitch(R.string.pref_key_mercury_js_jit)?.isChecked = false
+            }
+
+            else -> {
+                setGeckoPrefs(
+                    listOf(
+                        SetBrowserPreference.setBoolPref("javascript.options.ion", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.baselinejit", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.blinterp", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.wasm", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.wasm_baselinejit", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("javascript.options.wasm_optimizingjit", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("mathml.disabled", true, Branch.USER),
+                        SetBrowserPreference.setBoolPref("gfx.font_rendering.opentype_svg.enabled", false, Branch.USER),
+                        SetBrowserPreference.setBoolPref("webgl.disabled", true, Branch.USER),
+                        SetBrowserPreference.setBoolPref("gfx.downloadable_fonts.enabled", false, Branch.USER),
+                    ),
+                )
+                engine.settings.webFontsEnabled = false
+                findSwitch(R.string.pref_key_mercury_webgl)?.isChecked = false
+                findSwitch(R.string.pref_key_mercury_js_jit)?.isChecked = false
+            }
+        }
+    }
+
+    private fun isStrictTrackingProtectionActive(): Boolean {
+        val settings = requireComponents.settings
+        return settings.shouldUseTrackingProtection && settings.useStrictTrackingProtection
+    }
+
+    private fun applyStrictTrackingProtection(strict: Boolean) {
+        val context = requireContext()
+        val components = requireComponents
+        val settings = components.settings
+        settings.shouldUseTrackingProtection = true
+        settings.preferences.edit {
+            putBoolean(context.getPreferenceKey(R.string.pref_key_tracking_protection_strict_default), strict)
+            putBoolean(context.getPreferenceKey(R.string.pref_key_tracking_protection_standard_option), !strict)
+            putBoolean(context.getPreferenceKey(R.string.pref_key_tracking_protection_custom_option), false)
+        }
+        val policy = components.core.trackingProtectionPolicyFactory.createTrackingProtectionPolicy()
+        components.useCases.settingsUseCases.updateTrackingProtection(policy)
+        components.useCases.sessionUseCases.reload()
+    }
+
+    private fun currentDohPresetValue(): String {
+        val settings = requireComponents.settings
+        if (settings.getDohSettingsMode() == Engine.DohSettingsMode.OFF) {
+            return DOH_OFF_VALUE
+        }
+        val uri = settings.dohProviderUrl.ifBlank { DEFAULT_DOH_URI }
+        return if (uri in KNOWN_DOH_URIS) uri else DEFAULT_DOH_URI
+    }
+
+    private fun applyDohProvider(value: String) {
+        val settings = requireComponents.settings
+        val engineSettings = requireComponents.core.engine.settings
+        if (value == DOH_OFF_VALUE) {
+            settings.setDohSettingsMode(Engine.DohSettingsMode.OFF)
+            engineSettings.dohSettingsMode = Engine.DohSettingsMode.OFF
+            return
+        }
+        settings.dohProviderUrl = value
+        if (settings.getDohSettingsMode() == Engine.DohSettingsMode.OFF ||
+            settings.getDohSettingsMode() == Engine.DohSettingsMode.DEFAULT
+        ) {
+            settings.setDohSettingsMode(Engine.DohSettingsMode.INCREASED)
+            engineSettings.dohSettingsMode = Engine.DohSettingsMode.INCREASED
+        }
+        engineSettings.dohProviderUrl = value
+    }
+
+    private fun applySpeculativePrefetch(enabled: Boolean) {
+        setGeckoPrefs(
+            listOf(
+                SetBrowserPreference.setBoolPref("network.dns.disablePrefetch", !enabled, Branch.USER),
+                SetBrowserPreference.setBoolPref("network.dns.disablePrefetchFromHTTPS", !enabled, Branch.USER),
+                SetBrowserPreference.setBoolPref("network.prefetch-next", enabled, Branch.USER),
+                SetBrowserPreference.setIntPref(
+                    "network.http.speculative-parallel-limit",
+                    if (enabled) 20 else 0,
+                    Branch.USER,
+                ),
+                SetBrowserPreference.setBoolPref("network.predictor.enabled", enabled, Branch.USER),
+                SetBrowserPreference.setBoolPref("network.predictor.enable-prefetch", enabled, Branch.USER),
+            ),
+        )
+    }
+
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        when (preference.key) {
+            getPreferenceKey(R.string.pref_key_mercury_new_identity) -> {
+                val components = requireComponents
+                components.useCases.tabsUseCases.removeAllTabs()
+                components.core.engine.clearData(Engine.BrowsingData.all())
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.mercury_new_identity_toast),
+                    Toast.LENGTH_LONG,
+                ).show()
+                return true
+            }
+
+            getPreferenceKey(R.string.pref_key_mercury_open_doh) -> {
+                findNavController().navigate(R.id.dohSettingsFragment)
+                return true
+            }
+
+            getPreferenceKey(R.string.pref_key_mercury_open_etp) -> {
+                findNavController().navigate(R.id.trackingProtectionFragment)
+                return true
+            }
+
+            getPreferenceKey(R.string.pref_key_mercury_open_https_only) -> {
+                findNavController().navigate(R.id.httpsOnlyFragment)
+                return true
+            }
+
+            getPreferenceKey(R.string.pref_key_mercury_open_delete_on_quit) -> {
+                findNavController().navigate(R.id.deleteBrowsingDataOnQuitFragment)
+                return true
+            }
+
+            getPreferenceKey(R.string.pref_key_mercury_open_about_config) -> {
+                findNavController().openToBrowser()
+                requireComponents.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                    searchTermOrURL = "about:config",
+                    newTab = true,
+                )
+                return true
+            }
+        }
+        return super.onPreferenceTreeClick(preference)
+    }
+
+    private fun findSwitch(keyResId: Int): SwitchPreferenceCompat? =
+        findPreference(getPreferenceKey(keyResId))
+
+    private fun findList(keyResId: Int): ListPreference? =
+        findPreference(getPreferenceKey(keyResId))
+
+    private fun setBoolPref(pref: String, value: Boolean) {
+        requireComponents.core.engine.setBrowserPref(
+            pref = pref,
+            value = value,
+            branch = Branch.USER,
+            onSuccess = {},
+            onError = {},
+        )
+    }
+
+    private fun setStringPref(pref: String, value: String) {
+        requireComponents.core.engine.setBrowserPref(
+            pref = pref,
+            value = value,
+            branch = Branch.USER,
+            onSuccess = {},
+            onError = {},
+        )
+    }
+
+    private fun setGeckoPrefs(prefs: List<SetBrowserPreference<*>>) {
+        requireComponents.core.engine.setBrowserPrefs(
+            prefs = prefs,
+            onSuccess = {},
+            onError = {},
+        )
+    }
+
+    private fun clearPrefs(prefs: List<String>) {
+        val engine = requireComponents.core.engine
+        for (pref in prefs) {
+            engine.clearBrowserUserPref(
+                pref = pref,
+                onSuccess = {},
+                onError = {},
+            )
+        }
+    }
+
+    companion object {
+        const val DEFAULT_DOH_URI = "https://dns.adguard-dns.com/dns-query"
+        private const val DOH_OFF_VALUE = "off"
+        const val RFP_PRESERVE_THEME_OVERRIDE = "-CSSPrefersColorScheme"
+
+        const val CROWD_BLEND_OVERRIDES =
+            "+EfficientCanvasRandomization,-CanvasRandomization,+FontVisibilityLangPack," +
+                "+ScreenAvailToResolution,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse," +
+                "+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+Gamepad,+DeviceSensors," +
+                "+AudioSampleRate,+MediaDevices,+SpeechSynthesis,+NetworkConnection,+CSSColorInfo," +
+                "+CSSVideoDynamicRange,+CSSPointerCapabilities,+VideoElementPlaybackQuality," +
+                "-JSMathFdlibm,-CSSPrefersColorScheme"
+
+        private val KNOWN_DOH_URIS =
+            setOf(
+                "https://dns.adguard-dns.com/dns-query",
+                "https://dns.quad9.net/dns-query",
+                "https://adblock.dns.mullvad.net/dns-query",
+                "https://mozilla.cloudflare-dns.com/dns-query",
+                "https://firefox.dns.nextdns.io/",
+            )
+    }
+}

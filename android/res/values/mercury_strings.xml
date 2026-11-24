@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<resources>
+    <!-- Top-level Mercury Settings entry -->
+    <string name="preferences_mercury">Mercury</string>
+    <string name="preferences_mercury_summary">Hardened mode, Crowd-Blend FPP, Security Level, DoH, Web APIs &amp; GPU</string>
+
+    <!-- Preference keys (non-translatable) -->
+    <string name="pref_key_mercury_hardened_mode" translatable="false">pref_key_mercury_hardened_mode</string>
+    <string name="pref_key_mercury_crowd_blend_fpp" translatable="false">pref_key_mercury_crowd_blend_fpp</string>
+    <string name="pref_key_mercury_security_level" translatable="false">pref_key_mercury_security_level</string>
+    <string name="pref_key_mercury_new_identity" translatable="false">pref_key_mercury_new_identity</string>
+    <string name="pref_key_mercury_https_only" translatable="false">pref_key_mercury_https_only</string>
+    <string name="pref_key_mercury_strict_etp" translatable="false">pref_key_mercury_strict_etp</string>
+    <string name="pref_key_mercury_query_stripping" translatable="false">pref_key_mercury_query_stripping</string>
+    <string name="pref_key_mercury_doh_provider" translatable="false">pref_key_mercury_doh_provider</string>
+    <string name="pref_key_mercury_open_doh" translatable="false">pref_key_mercury_open_doh</string>
+    <string name="pref_key_mercury_open_etp" translatable="false">pref_key_mercury_open_etp</string>
+    <string name="pref_key_mercury_open_https_only" translatable="false">pref_key_mercury_open_https_only</string>
+    <string name="pref_key_mercury_webrtc" translatable="false">pref_key_mercury_webrtc</string>
+    <string name="pref_key_mercury_webgl" translatable="false">pref_key_mercury_webgl</string>
+    <string name="pref_key_mercury_drm" translatable="false">pref_key_mercury_drm</string>
+    <string name="pref_key_mercury_speculative_prefetch" translatable="false">pref_key_mercury_speculative_prefetch</string>
+    <string name="pref_key_mercury_punycode" translatable="false">pref_key_mercury_punycode</string>
+    <string name="pref_key_mercury_gpu_canvas" translatable="false">pref_key_mercury_gpu_canvas</string>
+    <string name="pref_key_mercury_webrender" translatable="false">pref_key_mercury_webrender</string>
+    <string name="pref_key_mercury_js_jit" translatable="false">pref_key_mercury_js_jit</string>
+    <string name="pref_key_mercury_open_delete_on_quit" translatable="false">pref_key_mercury_open_delete_on_quit</string>
+    <string name="pref_key_mercury_open_about_config" translatable="false">pref_key_mercury_open_about_config</string>
+    <string name="pref_key_mercury_show_sync_ui" translatable="false">pref_key_mercury_show_sync_ui</string>
+    <string name="pref_key_mercury_privacy_summary" translatable="false">pref_key_mercury_privacy_summary</string>
+
+    <!-- Category titles -->
+    <string name="mercury_category_identity">Identity &amp; Privacy Profiles</string>
+    <string name="mercury_category_network">Network, Tracking &amp; HTTPS</string>
+    <string name="mercury_category_web_security">Web APIs &amp; Attack Surface</string>
+    <string name="mercury_category_performance">Performance &amp; GPU Engine</string>
+    <string name="mercury_category_advanced">Advanced &amp; Account Controls</string>
+
+    <!-- Category 1: Identity & Privacy Profiles -->
+    <string name="mercury_hardened_mode_title">Hardened Mode</string>
+    <string name="mercury_hardened_mode_summary">Enables full Resist Fingerprinting, letterboxing, Strict ETP, HTTPS-Only, DoH, Punycode IDN, Delete on Quit, and disables prefetching</string>
+
+    <string name="mercury_crowd_blend_fpp_title">Crowd-Blend Fingerprinting Protection</string>
+    <string name="mercury_crowd_blend_fpp_summary">Sanitizes canvas, WebGL, fonts, hardware cores, audio, and sensors while preserving system theme and site compatibility</string>
+
+    <string name="mercury_security_level_title">Security Level</string>
+    <string name="mercury_security_level_dialog_title">Choose Security Level</string>
+    <string name="mercury_security_level_standard">Standard — Full JIT &amp; WebAssembly speed</string>
+    <string name="mercury_security_level_safer">Safer — Disables Ion JIT, WebAssembly, MathML &amp; SVG fonts</string>
+    <string name="mercury_security_level_safest">Safest — Disables all JS JITs, WebAssembly, WebGL &amp; remote fonts</string>
+
+    <string-array name="mercury_security_level_entries">
+        <item>@string/mercury_security_level_standard</item>
+        <item>@string/mercury_security_level_safer</item>
+        <item>@string/mercury_security_level_safest</item>
+    </string-array>
+    <string-array name="mercury_security_level_values">
+        <item>standard</item>
+        <item>safer</item>
+        <item>safest</item>
+    </string-array>
+
+    <string name="mercury_new_identity_title">New Identity (Clear Session &amp; Site Data)</string>
+    <string name="mercury_new_identity_summary">Close all open tabs and clear cookies, caches, DOM storage, and session state</string>
+    <string name="mercury_new_identity_toast">Mercury: Session, cookies, caches, and site storage cleared.</string>
+
+    <!-- Category 2: Network, Tracking & HTTPS -->
+    <string name="mercury_https_only_title">HTTPS-Only Mode</string>
+    <string name="mercury_https_only_summary">Upgrade every connection in all tabs to HTTPS (HTTPS-First is enabled by default)</string>
+
+    <string name="mercury_strict_etp_title">Strict Tracking Protection</string>
+    <string name="mercury_strict_etp_summary">Blocks known trackers, social trackers, cryptominers, fingerprinters, and bounce trackers</string>
+
+    <string name="mercury_query_stripping_title">Query Parameter Stripping</string>
+    <string name="mercury_query_stripping_summary">Automatically removes cross-site tracking parameters (fbclid, gclid, utm_*, etc.) from URLs</string>
+
+    <string name="mercury_doh_provider_title">DNS-over-HTTPS Provider</string>
+    <string name="mercury_doh_provider_dialog_title">Select DNS-over-HTTPS Provider</string>
+    <string name="mercury_doh_adguard">AdGuard DNS (Ad &amp; Tracker Blocking — Default)</string>
+    <string name="mercury_doh_quad9">Quad9 (Malware &amp; Security Blocking)</string>
+    <string name="mercury_doh_mullvad">Mullvad DNS (Ad &amp; Tracker Blocking)</string>
+    <string name="mercury_doh_cloudflare">Cloudflare</string>
+    <string name="mercury_doh_nextdns">NextDNS</string>
+    <string name="mercury_doh_off">Off (Use System DNS)</string>
+
+    <string-array name="mercury_doh_provider_entries">
+        <item>@string/mercury_doh_adguard</item>
+        <item>@string/mercury_doh_quad9</item>
+        <item>@string/mercury_doh_mullvad</item>
+        <item>@string/mercury_doh_cloudflare</item>
+        <item>@string/mercury_doh_nextdns</item>
+        <item>@string/mercury_doh_off</item>
+    </string-array>
+    <string-array name="mercury_doh_provider_values">
+        <item>https://dns.adguard-dns.com/dns-query</item>
+        <item>https://dns.quad9.net/dns-query</item>
+        <item>https://adblock.dns.mullvad.net/dns-query</item>
+        <item>https://mozilla.cloudflare-dns.com/dns-query</item>
+        <item>https://firefox.dns.nextdns.io/</item>
+        <item>off</item>
+    </string-array>
+
+    <string name="mercury_open_doh_title">Advanced DNS-over-HTTPS Settings</string>
+    <string name="mercury_open_doh_summary">Configure custom DoH endpoints, Max Protection mode, and domain exclusions</string>
+
+    <string name="mercury_open_etp_title">Enhanced Tracking Protection Details</string>
+    <string name="mercury_open_etp_summary">Customize tracking protection exceptions, GPC, and custom blocking rules</string>
+
+    <string name="mercury_open_https_only_title">HTTPS-Only Mode Details</string>
+    <string name="mercury_open_https_only_summary">Switch between all tabs, private tabs only, or disabled</string>
+
+    <!-- Category 3: Web APIs & Attack Surface -->
+    <string name="mercury_webrtc_title">WebRTC Peer Connections</string>
+    <string name="mercury_webrtc_summary">Allow WebRTC audio/video calls with LAN IP masking; disable to eliminate WebRTC IP leak surface</string>
+
+    <string name="mercury_webgl_title">WebGL Graphics</string>
+    <string name="mercury_webgl_summary">Allow WebGL with Crowd-Blend GPU sanitization; disable to reduce GPU attack surface</string>
+
+    <string name="mercury_drm_title">Protected Media Playback (DRM / Widevine)</string>
+    <string name="mercury_drm_summary">Allow Encrypted Media Extensions for DRM streaming sites; disable to block EME</string>
+
+    <string name="mercury_speculative_prefetch_title">Speculative Prefetch &amp; Preconnect</string>
+    <string name="mercury_speculative_prefetch_summary">Pre-resolve DNS and preconnect to links for faster loads (automatically disabled in Hardened Mode)</string>
+
+    <string name="mercury_punycode_title">Show Punycode for Internationalized Domains</string>
+    <string name="mercury_punycode_summary">Display IDN domains as xn-- ASCII to prevent homograph spoofing attacks</string>
+
+    <!-- Category 4: Performance & GPU Engine -->
+    <string name="mercury_gpu_canvas_title">GPU-Accelerated 2D Canvas</string>
+    <string name="mercury_gpu_canvas_summary">Use hardware-accelerated WebGL/Skia 2D Canvas rendering for maximum frame rates</string>
+
+    <string name="mercury_webrender_title">WebRender Hardware Compositor</string>
+    <string name="mercury_webrender_summary">Keep GPU WebRender compositing enabled (restart required to take full effect)</string>
+
+    <string name="mercury_js_jit_title">JavaScript JIT Compiler</string>
+    <string name="mercury_js_jit_summary">Enable SpiderMonkey Ion &amp; Baseline JIT compilation for maximum JS speed (off in Safest mode)</string>
+
+    <!-- Category 5: Advanced & Account Controls -->
+    <string name="mercury_open_delete_on_quit_title">Delete Browsing Data on Quit</string>
+    <string name="mercury_open_delete_on_quit_summary">Automatically clear cookies, cache, and site data when quitting Mercury</string>
+
+    <string name="mercury_open_about_config_title">Open about:config (All Engine &amp; RFP Prefs)</string>
+    <string name="mercury_open_about_config_summary">Fine-tune Post-Quantum ML-KEM, ECH, LNA defense, letterboxing, and SpiderMonkey JIT prefs</string>
+
+    <string name="mercury_show_sync_ui_title">Show Mozilla Account &amp; Sync UI</string>
+    <string name="mercury_show_sync_ui_summary">Off by default to remove Firefox Account sign-in prompts from menus, bookmarks, and settings</string>
+
+    <string name="mercury_privacy_summary_title">Active Mercury Protections</string>
+    <string name="mercury_privacy_summary_body">DuckDuckGo default + 18 selectable engines • AdGuard DoH + ECH • Post-Quantum TLS ML-KEM-1024 &amp; WebRTC ML-KEM-768 • LNA Tracker Blocking • Active Bounce Tracking Purge • Schemeful SameSite • Zero Telemetry, ToS Prompts &amp; Crash Uploads</string>
+
+    <!-- Synced Tabs disabled state when FxA/Sync UI is off -->
+    <string name="mercury_sync_disabled_header">Sync is disabled in Mercury</string>
+    <string name="mercury_sync_disabled_description">Mozilla Account and Sync sign-in prompts are disabled by default for privacy. You can enable them in Settings → Mercury.</string>
+</resources>
