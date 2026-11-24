@@ -72,9 +72,9 @@ if [ "${MERCURY_FAST_BUILD:-0}" = "1" ]; then
     ac_add_options --enable-optimize="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
     export RUSTC_OPT_LEVEL="2"
     ac_add_options RUSTC_OPT_LEVEL="2"
-    export CFLAGS="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
-    export CPPFLAGS="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
-    export CXXFLAGS="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
+    export CFLAGS="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76 -mbranch-protection=standard"
+    export CPPFLAGS="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76 -mbranch-protection=standard"
+    export CXXFLAGS="-O2 -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76 -mbranch-protection=standard"
     export LDFLAGS="-Wl,-O1"
     export RUSTFLAGS="-C target-cpu=cortex-a76 -C target-feature=+fp16,+rcpc,+dotprod,+crypto -C codegen-units=16"
 else
@@ -134,9 +134,9 @@ else
         ac_add_options --enable-lto="${_mercury_lto}"
     fi
 
-    export CFLAGS="-O3 -ffp-contract=fast -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
-    export CPPFLAGS="-O3 -ffp-contract=fast -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
-    export CXXFLAGS="-O3 -ffp-contract=fast -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76"
+    export CFLAGS="-O3 -ffp-contract=fast -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76 -mbranch-protection=standard"
+    export CPPFLAGS="-O3 -ffp-contract=fast -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76 -mbranch-protection=standard"
+    export CXXFLAGS="-O3 -ffp-contract=fast -march=armv8.2-a+fp16+rcpc+dotprod+crypto -mtune=cortex-a76 -mbranch-protection=standard"
     export LDFLAGS="-Wl,-O3 -Wl,-mllvm,-fp-contract=fast -Wl,-plugin-opt=-import-instr-limit=45"
     if [ "${MERCURY_BOLT:-0}" = "1" ]; then
         export LDFLAGS="${LDFLAGS} -Wl,--emit-relocs"

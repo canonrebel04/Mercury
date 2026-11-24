@@ -157,6 +157,61 @@ run_static_checks() {
 	if command -v clang >/dev/null 2>&1; then
 		info "system clang:         $(clang --version | head -n 1)"
 	fi
+
+	info "=== 5. Compiler & binary exploit mitigation checks ==="
+	for mc in \
+		mozconfigs/mozconfig-avx2 \
+		mozconfigs/mozconfig \
+		mozconfigs/mozconfig-sse3 \
+		mozconfigs/mozconfig-sse4; do
+		local full_mc="${MERCURY_SRC_DIR}/${mc}"
+		if grep -q -- '-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3' "${full_mc}" && \
+		   grep -q -- '-fcf-protection=branch' "${full_mc}"; then
+			pass "${mc} enables -D_FORTIFY_SOURCE=3 and -fcf-protection=branch"
+		else
+			fail "${mc} missing -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 or -fcf-protection=branch"
+		fi
+	done
+
+	for mc in mozconfigs/mozconfig-arm64 mozconfigs/mozconfig-android-arm64; do
+		local full_mc="${MERCURY_SRC_DIR}/${mc}"
+		if grep -q -- '-mbranch-protection=standard' "${full_mc}"; then
+			pass "${mc} enables -mbranch-protection=standard"
+		else
+			fail "${mc} missing -mbranch-protection=standard"
+		fi
+	done
+	if grep -q -- '-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3' "${MERCURY_SRC_DIR}/mozconfigs/mozconfig-arm64"; then
+		pass "mozconfigs/mozconfig-arm64 enables -D_FORTIFY_SOURCE=3"
+	else
+		fail "mozconfigs/mozconfig-arm64 missing -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3"
+	fi
+
+	for mc in \
+		"${MERCURY_SRC_DIR}"/mozconfigs/mozconfig-win* \
+		"${MERCURY_SRC_DIR}/mozconfigs/mozconfig-debug"; do
+		[ -f "${mc}" ] || continue
+		local rel_mc="${mc#${MERCURY_SRC_DIR}/}"
+		if grep -qE -- '-fcf-protection=|-D_FORTIFY_SOURCE=3|-mbranch-protection=' "${mc}"; then
+			fail "${rel_mc} unexpectedly contains GNU/ARM64 release hardening flags"
+		else
+			pass "${rel_mc} free of incompatible GNU/ARM64 hardening flags"
+		fi
+	done
+
+	local clang_checked=0
+	for cc_bin in "${mb_clang}" "$(command -v clang || true)"; do
+		[ -n "${cc_bin}" ] && [ -x "${cc_bin}" ] || continue
+		clang_checked=1
+		if "${cc_bin}" -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch -Werror -x c -c /dev/null -o /dev/null 2>/dev/null; then
+			pass "${cc_bin} accepts -D_FORTIFY_SOURCE=3 + -fcf-protection=branch"
+		else
+			fail "${cc_bin} rejected -D_FORTIFY_SOURCE=3 or -fcf-protection=branch"
+		fi
+	done
+	if [ "${clang_checked}" -eq 0 ]; then
+		fail "No clang binary available to verify hardening flags"
+	fi
 }
 
 run_inspect() {

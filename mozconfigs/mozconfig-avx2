@@ -96,9 +96,9 @@ if [ "${MERCURY_FAST_BUILD:-0}" = "1" ]; then
     ac_add_options --disable-geckodriver
     export RUSTC_OPT_LEVEL="2"
     ac_add_options RUSTC_OPT_LEVEL="2"
-    export CFLAGS="-O2 -march=x86-64-v3"
-    export CPPFLAGS="-O2 -march=x86-64-v3"
-    export CXXFLAGS="-O2 -march=x86-64-v3"
+    export CFLAGS="-O2 -march=x86-64-v3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch"
+    export CPPFLAGS="-O2 -march=x86-64-v3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch"
+    export CXXFLAGS="-O2 -march=x86-64-v3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch"
     export LDFLAGS="-Wl,-O1 -march=x86-64-v3"
     export RUSTFLAGS="-C target-cpu=x86-64-v3 -C target-feature=+avx2 -C codegen-units=16"
 else
@@ -178,9 +178,9 @@ else
         fi
     fi
 
-    export CFLAGS="-O3 -ffp-contract=fast -march=x86-64-v3"
-    export CPPFLAGS="-O3 -ffp-contract=fast -march=x86-64-v3"
-    export CXXFLAGS="-O3 -ffp-contract=fast -march=x86-64-v3"
+    export CFLAGS="-O3 -ffp-contract=fast -march=x86-64-v3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch"
+    export CPPFLAGS="-O3 -ffp-contract=fast -march=x86-64-v3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch"
+    export CXXFLAGS="-O3 -ffp-contract=fast -march=x86-64-v3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fcf-protection=branch"
     export LDFLAGS="-Wl,-O3 -Wl,-mllvm,-fp-contract=fast -Wl,-plugin-opt=-import-instr-limit=45 -march=x86-64-v3"
     if [ "${MERCURY_BOLT:-0}" = "1" ] && [ "${MERCURY_PGO_GENERATE:-0}" != "1" ] && [ -z "${GEN_PGO:-}" ]; then
         export LDFLAGS="${LDFLAGS} -Wl,--emit-relocs"
