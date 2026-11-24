@@ -31,6 +31,8 @@ ac_add_options --enable-install-strip
 ac_add_options --disable-elf-hack
 ac_add_options --enable-jemalloc
 ac_add_options --enable-rust-simd
+ac_add_options --enable-fontations
+export USE_LIBZ_RS=1
 ac_add_options --enable-hardening
 ac_add_options --disable-dmd
 ac_add_options --disable-necko-wifi

@@ -212,6 +212,21 @@ run_static_checks() {
 	if [ "${clang_checked}" -eq 0 ]; then
 		fail "No clang binary available to verify hardening flags"
 	fi
+
+	info "=== 6. Pure-Rust Fontations & zlib-rs (USE_LIBZ_RS=1) release mozconfig checks ==="
+	for mc in "${MERCURY_SRC_DIR}"/mozconfigs/mozconfig*; do
+		[ -f "${mc}" ] || continue
+		case "${mc}" in
+			*debug*) continue ;;
+		esac
+		local rel_mc="${mc#${MERCURY_SRC_DIR}/}"
+		if grep -qE '^\s*ac_add_options\s+--enable-fontations\b' "${mc}" && \
+		   grep -qE '^\s*export\s+USE_LIBZ_RS=1\b' "${mc}"; then
+			pass "${rel_mc} enables --enable-fontations and USE_LIBZ_RS=1"
+		else
+			fail "${rel_mc} missing --enable-fontations or export USE_LIBZ_RS=1"
+		fi
+	done
 }
 
 run_inspect() {

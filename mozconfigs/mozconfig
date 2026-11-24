@@ -24,6 +24,8 @@ ac_add_options --disable-elf-hack
 ac_add_options --enable-jemalloc
 ac_add_options --enable-optimize="-O3 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -maes"
 ac_add_options --enable-rust-simd
+ac_add_options --enable-fontations
+export USE_LIBZ_RS=1
 ac_add_options --enable-hardening
 ac_add_options --disable-dmd
 ac_add_options --disable-necko-wifi
