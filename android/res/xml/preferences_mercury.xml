@@ -33,6 +33,15 @@
             android:entryValues="@array/mercury_security_level_values"
             app:useSimpleSummaryProvider="true" />
 
+        <androidx.preference.EditTextPreference
+            android:key="@string/pref_key_mercury_jit_allowlist"
+            app:iconSpaceReserved="false"
+            android:defaultValue=""
+            android:title="@string/mercury_jit_allowlist_title"
+            android:summary="@string/mercury_jit_allowlist_summary_empty"
+            android:dialogTitle="@string/mercury_jit_allowlist_dialog_title"
+            android:dialogMessage="@string/mercury_jit_allowlist_dialog_message" />
+
         <androidx.preference.Preference
             android:key="@string/pref_key_mercury_new_identity"
             app:iconSpaceReserved="false"
@@ -153,6 +162,20 @@
             android:defaultValue="false"
             android:title="@string/mercury_punycode_title"
             android:summary="@string/mercury_punycode_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_main_process_no_jit"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_main_process_no_jit_title"
+            android:summary="@string/mercury_main_process_no_jit_summary" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_fission_isolate_all"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_fission_isolate_all_title"
+            android:summary="@string/mercury_fission_isolate_all_summary" />
     </androidx.preference.PreferenceCategory>
 
     <androidx.preference.PreferenceCategory

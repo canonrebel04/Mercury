@@ -11,6 +11,7 @@
     <string name="pref_key_mercury_hardened_mode" translatable="false">pref_key_mercury_hardened_mode</string>
     <string name="pref_key_mercury_crowd_blend_fpp" translatable="false">pref_key_mercury_crowd_blend_fpp</string>
     <string name="pref_key_mercury_security_level" translatable="false">pref_key_mercury_security_level</string>
+    <string name="pref_key_mercury_jit_allowlist" translatable="false">pref_key_mercury_jit_allowlist</string>
     <string name="pref_key_mercury_new_identity" translatable="false">pref_key_mercury_new_identity</string>
     <string name="pref_key_mercury_https_only" translatable="false">pref_key_mercury_https_only</string>
     <string name="pref_key_mercury_strict_etp" translatable="false">pref_key_mercury_strict_etp</string>
@@ -27,6 +28,8 @@
     <string name="pref_key_mercury_drm" translatable="false">pref_key_mercury_drm</string>
     <string name="pref_key_mercury_speculative_prefetch" translatable="false">pref_key_mercury_speculative_prefetch</string>
     <string name="pref_key_mercury_punycode" translatable="false">pref_key_mercury_punycode</string>
+    <string name="pref_key_mercury_main_process_no_jit" translatable="false">pref_key_mercury_main_process_no_jit</string>
+    <string name="pref_key_mercury_fission_isolate_all" translatable="false">pref_key_mercury_fission_isolate_all</string>
     <string name="pref_key_mercury_gpu_canvas" translatable="false">pref_key_mercury_gpu_canvas</string>
     <string name="pref_key_mercury_webrender" translatable="false">pref_key_mercury_webrender</string>
     <string name="pref_key_mercury_js_jit" translatable="false">pref_key_mercury_js_jit</string>
@@ -69,6 +72,11 @@
     <string name="mercury_new_identity_title">New Identity (Clear Session &amp; Site Data)</string>
     <string name="mercury_new_identity_summary">Close all open tabs and clear cookies, caches, DOM storage, and session state</string>
     <string name="mercury_new_identity_toast">Mercury: Session, cookies, caches, and site storage cleared.</string>
+
+    <string name="mercury_jit_allowlist_title">Trusted JIT &amp; WebAssembly Sites</string>
+    <string name="mercury_jit_allowlist_summary_empty">None — add comma-separated origins (e.g. https://figma.com) to allow JIT &amp; WASM in Safer/Safest mode</string>
+    <string name="mercury_jit_allowlist_dialog_title">Trusted JIT &amp; WebAssembly Sites</string>
+    <string name="mercury_jit_allowlist_dialog_message">Enter comma-separated origins (e.g. figma.com, https://photopea.com). Exact origin match only; wildcards and paths are rejected.</string>
 
     <!-- Category 2: Network, Tracking & HTTPS -->
     <string name="mercury_https_only_title">HTTPS-Only Mode</string>
@@ -139,6 +147,12 @@
 
     <string name="mercury_punycode_title">Show Punycode for Internationalized Domains</string>
     <string name="mercury_punycode_summary">Display IDN domains as xn-- ASCII to prevent homograph spoofing attacks</string>
+
+    <string name="mercury_main_process_no_jit_title">Parent-Process JIT Killswitch</string>
+    <string name="mercury_main_process_no_jit_summary">Disable JavaScript JIT compilation in the privileged parent process (restart required)</string>
+
+    <string name="mercury_fission_isolate_all_title">Strict Fission Site Isolation</string>
+    <string name="mercury_fission_isolate_all_summary">Isolate every website into its own dedicated webIsolated process (IsolateEverything)</string>
 
     <!-- Category 4: Performance & GPU Engine -->
     <string name="mercury_gpu_canvas_title">GPU-Accelerated 2D Canvas</string>

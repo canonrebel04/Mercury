@@ -8,12 +8,15 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.core.content.edit
 import androidx.navigation.fragment.findNavController
+import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import java.util.Locale
 import mozilla.components.ExperimentalAndroidComponentsApi
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.fission.WebContentIsolationStrategy
 import mozilla.components.concept.engine.preferences.Branch
 import mozilla.components.concept.engine.preferences.SetBrowserPreference
 import org.mozilla.fenix.R
@@ -74,6 +77,18 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
                 val level = newValue as String
                 applySecurityLevel(level)
                 true
+            }
+        }
+
+        findEditText(R.string.pref_key_mercury_jit_allowlist)?.apply {
+            setOnPreferenceChangeListener { pref, newValue ->
+                val normalized = formatJitAllowlist(newValue as? String ?: "")
+                setStringPref(PREF_JIT_ALLOWLIST, normalized)
+                (pref as? EditTextPreference)?.apply {
+                    text = normalized
+                    summary = normalized.ifBlank { getString(R.string.mercury_jit_allowlist_summary_empty) }
+                }
+                false
             }
         }
     }
@@ -176,6 +191,26 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
             setBoolPref("network.IDN_show_punycode", newValue as Boolean)
             true
         }
+
+        findSwitch(R.string.pref_key_mercury_main_process_no_jit)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("javascript.options.main_process_disable_jit", newValue as Boolean)
+            true
+        }
+
+        findSwitch(R.string.pref_key_mercury_fission_isolate_all)?.apply {
+            isChecked = requireComponents.settings.mercuryFissionIsolateAll
+            setOnPreferenceChangeListener { _, newValue ->
+                val isolateAll = newValue as Boolean
+                requireComponents.settings.mercuryFissionIsolateAll = isolateAll
+                requireComponents.core.engine.settings.webContentIsolationStrategy =
+                    if (isolateAll) {
+                        WebContentIsolationStrategy.ISOLATE_EVERYTHING
+                    } else {
+                        WebContentIsolationStrategy.ISOLATE_HIGH_VALUE
+                    }
+                true
+            }
+        }
     }
 
     private fun bindPerformancePreferences() {
@@ -229,10 +264,13 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
         findSwitch(R.string.pref_key_mercury_strict_etp)?.isChecked = isStrictTrackingProtectionActive()
         findSwitch(R.string.pref_key_mercury_query_stripping)?.isChecked = settings.mercuryQueryStripping
         findList(R.string.pref_key_mercury_doh_provider)?.value = currentDohPresetValue()
+        findSwitch(R.string.pref_key_mercury_fission_isolate_all)?.isChecked = settings.mercuryFissionIsolateAll
         findSwitch(R.string.pref_key_mercury_show_sync_ui)?.isChecked = settings.mercuryShowSyncUi
 
         val prefNames =
             listOf(
+                PREF_JIT_ALLOWLIST,
+                "javascript.options.main_process_disable_jit",
                 "privacy.query_stripping.redirect",
                 "dom.storage_access.auto_grants",
                 "dom.storage_access.headers.enabled",
@@ -252,6 +290,16 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
             onSuccess = { prefs ->
                 if (!isAdded) return@getBrowserPrefs
                 val byName = prefs.associateBy { it.pref }
+                (byName[PREF_JIT_ALLOWLIST]?.value as? String)?.let { raw ->
+                    val normalized = formatJitAllowlist(raw)
+                    findEditText(R.string.pref_key_mercury_jit_allowlist)?.apply {
+                        text = normalized
+                        summary = normalized.ifBlank { getString(R.string.mercury_jit_allowlist_summary_empty) }
+                    }
+                }
+                (byName["javascript.options.main_process_disable_jit"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_main_process_no_jit)?.isChecked = it
+                }
                 (byName["privacy.query_stripping.redirect"]?.value as? Boolean)?.let {
                     findSwitch(R.string.pref_key_mercury_redirect_query_stripping)?.isChecked = it
                 }
@@ -567,6 +615,9 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
     private fun findList(keyResId: Int): ListPreference? =
         findPreference(getPreferenceKey(keyResId))
 
+    private fun findEditText(keyResId: Int): EditTextPreference? =
+        findPreference(getPreferenceKey(keyResId))
+
     private fun setBoolPref(pref: String, value: Boolean) {
         requireComponents.core.engine.setBrowserPref(
             pref = pref,
@@ -607,9 +658,95 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
     }
 
     companion object {
+        const val PREF_JIT_ALLOWLIST = "mercury.security.jitAllowlist"
         const val DEFAULT_DOH_URI = "https://dns.adguard-dns.com/dns-query"
         private const val DOH_OFF_VALUE = "off"
         const val RFP_PRESERVE_THEME_OVERRIDE = "-CSSPrefersColorScheme"
+
+        /**
+         * Normalizes a single JIT allowlist origin matching desktop MercuryHardened.normalizeJitOrigin
+         * and 0043 C++ XPCJSContext rules: lowercase scheme://host[:port], bare host defaults to
+         * https://, rejects wildcards, paths, queries, fragments, userinfo, and non-http(s) schemes.
+         */
+        fun normalizeJitOrigin(input: String): String? {
+            var s = input.trim().lowercase(Locale.ROOT)
+            if (s.isEmpty() || '*' in s || '?' in s || '#' in s || '@' in s || s.any { it.isWhitespace() }) {
+                return null
+            }
+            val scheme: String
+            var rest: String
+            val schemeIdx = s.indexOf("://")
+            if (schemeIdx >= 0) {
+                scheme = s.substring(0, schemeIdx)
+                if (scheme != "https" && scheme != "http") return null
+                rest = s.substring(schemeIdx + 3)
+            } else {
+                if (':' in s && s.indexOf(':') < s.length && !s.startsWith("[")) {
+                    val colon = s.indexOf(':')
+                    val maybePort = s.substring(colon + 1).removeSuffix("/")
+                    if (maybePort.isEmpty() || !maybePort.all { it.isDigit() }) return null
+                }
+                scheme = "https"
+                rest = s
+            }
+            if (rest.endsWith("/")) {
+                rest = rest.dropLast(1)
+            }
+            if (rest.isEmpty() || '/' in rest) return null
+
+            val host: String
+            var portStr: String? = null
+            if (rest.startsWith("[")) {
+                val close = rest.indexOf(']')
+                if (close <= 1) return null
+                host = rest.substring(0, close + 1)
+                val tail = rest.substring(close + 1)
+                if (tail.isNotEmpty()) {
+                    if (!tail.startsWith(":")) return null
+                    portStr = tail.substring(1)
+                }
+            } else {
+                val colon = rest.indexOf(':')
+                if (colon >= 0) {
+                    host = rest.substring(0, colon)
+                    portStr = rest.substring(colon + 1)
+                } else {
+                    host = rest
+                }
+                if (host.isEmpty() || host.startsWith(".") || host.endsWith(".") || ".." in host) {
+                    return null
+                }
+                if (!host.all { it in 'a'..'z' || it in '0'..'9' || it == '.' || it == '-' }) {
+                    return null
+                }
+            }
+
+            val normalizedPort =
+                if (portStr != null) {
+                    if (portStr.isEmpty() || !portStr.all { it.isDigit() }) return null
+                    val portNum = portStr.toIntOrNull() ?: return null
+                    if (portNum !in 1..65535) return null
+                    if ((scheme == "https" && portNum == 443) || (scheme == "http" && portNum == 80)) {
+                        ""
+                    } else {
+                        ":$portNum"
+                    }
+                } else {
+                    ""
+                }
+
+            return "$scheme://$host$normalizedPort"
+        }
+
+        fun parseJitAllowlist(raw: String): List<String> {
+            val seen = LinkedHashSet<String>()
+            for (token in raw.split(',', ' ', '\t', '\n', '\r')) {
+                normalizeJitOrigin(token)?.let { seen.add(it) }
+            }
+            return seen.toList()
+        }
+
+        fun formatJitAllowlist(raw: String): String = parseJitAllowlist(raw).joinToString(",")
 
         const val CROWD_BLEND_OVERRIDES =
             "+EfficientCanvasRandomization,-CanvasRandomization,+CanvasExtractionFromThirdPartiesIsBlocked," +

@@ -132,10 +132,10 @@ index 9a7364d..6600385 100644
      private fun buildEnvironment(
          region: RegionState,
 diff --git a/mobile/android/app/geckoview-prefs.js b/mobile/android/app/geckoview-prefs.js
-index 3cf841d..f1a6e8e 100644
+index 3cf841d..94f90c5 100644
 --- a/mobile/android/app/geckoview-prefs.js
 +++ b/mobile/android/app/geckoview-prefs.js
-@@ -383,7 +383,188 @@ pref("xpinstall.signatures.required", true);
+@@ -383,7 +383,199 @@ pref("xpinstall.signatures.required", true);
  pref("xpinstall.whitelist.add", "https://addons.mozilla.org");
  pref("xpinstall.whitelist.fileRequest", false);
  
@@ -267,7 +267,17 @@ index 3cf841d..f1a6e8e 100644
 +pref("dom.security.https_first_pbm", true);
 +pref("dom.security.https_first_schemeless", true);
 +pref("security.mixed_content.upgrade_display_content", true);
++pref("security.mixed_content.block_display_content", true);
++pref("security.tls.version.min", 3);
++pref("security.ssl.require_safe_negotiation", true);
 +pref("security.ssl.treat_unsafe_negotiation_as_broken", true);
++pref("dom.security.https_only_mode_send_http_background_request", false);
++pref("security.csp.reporting.enabled", false);
++pref("security.dialog_enable_delay", 1000);
++pref("javascript.options.main_process_disable_jit", true);
++pref("javascript.options.content_process_write_protect_code", true);
++pref("fission.autostart", true);
++pref("fission.webContentIsolationStrategy", 1);
 +
 +// Referer, Query Stripping, WebRTC LAN IP Masking, CRLite-only Certs
 +pref("browser.send_pings", false);
@@ -318,6 +328,7 @@ index 3cf841d..f1a6e8e 100644
 +// Mercury Android Settings defaults (toggleable at runtime via Settings > Mercury)
 +pref("mercury.hardened.enabled", false);
 +pref("mercury.security.level", "standard");
++pref("mercury.security.jitAllowlist", "");
 +pref("mercury.rfp.preserveSystemTheme", true);
 +pref("privacy.resistFingerprinting", false);
 +pref("privacy.resistFingerprinting.letterboxing", false);
@@ -483,7 +494,7 @@ index 6774a4e..7845908 100644
      }
  
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
-index e3007a5..071c8e1 100644
+index e3007a5..122461d 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/Core.kt
 @@ -139,6 +139,7 @@ import org.mozilla.fenix.perf.StrictModeManager
@@ -494,7 +505,7 @@ index e3007a5..071c8e1 100644
  import org.mozilla.fenix.share.DefaultSentFromFirefoxManager
  import org.mozilla.fenix.share.DefaultSentFromStorage
  import org.mozilla.fenix.share.SaveToPDFMiddleware
-@@ -192,7 +193,7 @@ class Core(
+@@ -192,14 +193,18 @@ class Core(
                  dohDefaultProviderUrl = context.components.settings.dohDefaultProviderUrl,
                  dohExceptionsList = context.components.settings.dohExceptionsList.toList(),
                  globalPrivacyControlEnabled = context.components.settings.shouldEnableGlobalPrivacyControl,
@@ -503,7 +514,19 @@ index e3007a5..071c8e1 100644
                  emailTrackerBlockingPrivateBrowsing = true,
                  userCharacteristicPingCurrentVersion = FxNimbus.features.userCharacteristics.value().currentVersion,
                  getDesktopMode = {
-@@ -221,42 +222,19 @@ class Core(
+                     store.state.desktopMode
+                 },
+                 webContentIsolationStrategy =
+-                    WebContentIsolationStrategy.fromValue(FxNimbus.features.fission.value().isolationStrategy),
++                    if (context.components.settings.mercuryFissionIsolateAll) {
++                        WebContentIsolationStrategy.ISOLATE_EVERYTHING
++                    } else {
++                        WebContentIsolationStrategy.ISOLATE_HIGH_VALUE
++                    },
+                 fetchPriorityEnabled = true,
+                 parallelMarkingEnabled = FxNimbus.features.javascript.value().parallelMarkingEnabled,
+                 certificateTransparencyMode = FxNimbus.features.pki.value().certificateTransparencyMode,
+@@ -221,42 +226,19 @@ class Core(
                  useContentBlockingDatabase = true,
              )
  
@@ -777,7 +800,7 @@ index 256b98f..e4bc5af 100644
 -fun Settings.crashReportOption(): CrashReportOption = CrashReportOption.fromLabel(crashReportChoice)
 +fun Settings.crashReportOption(): CrashReportOption = CrashReportOption.Never
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
-index 1edcf54..6977132 100644
+index 1edcf54..fcc7655 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/gecko/GeckoProvider.kt
 @@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
@@ -830,6 +853,18 @@ index 1edcf54..6977132 100644
                  .extensionsProcessEnabled(true)
                  .extensionsWebAPIEnabled(true)
                  .translationsOfferPopup(context.components.settings.offerTranslation)
+@@ -142,9 +145,8 @@ object GeckoProvider {
+                 .isolatedProcessEnabled(context.components.settings.isIsolatedProcessEnabled)
+                 .appZygoteProcessEnabled(context.components.settings.isAppZygoteEnabled)
+ 
+-        if (FxNimbus.features.fission.value().shouldUseNimbus) {
+-            builder.fissionEnabled(FxNimbus.features.fission.value().enabled)
+-        }
++        // Mercury: keep Fission site isolation enabled by default (do not let Nimbus disable it).
++        builder.fissionEnabled(true)
+ 
+         return builder.build()
+     }
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt
 index 4f14995..0b3dca3 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/onboarding/FenixOnboarding.kt
@@ -1197,26 +1232,28 @@ index 5d8cfde..1930999 100644
  
          @VisibleForTesting val nextDnsUri = "https://firefox.dns.nextdns.io/"
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt
-index 3072be9..583ce5a 100644
+index 3072be9..c26c57c 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/settingssearch/DefaultFenixSettingsIndexer.kt
-@@ -128,6 +128,7 @@ class DefaultFenixSettingsIndexer(
+@@ -128,6 +128,8 @@ class DefaultFenixSettingsIndexer(
                              }
                              CHECKBOX_PREFERENCE_TAG,
                              DEFAULT_BROWSER_PREFERENCE_TAG,
++                            EDIT_TEXT_PREFERENCE_TAG,
 +                            LIST_PREFERENCE_TAG,
                              PREFERENCE_TAG,
                              SWITCH_PREFERENCE_TAG,
                              SWITCH_PREFERENCE_PLAIN_TAG,
-@@ -335,6 +336,7 @@ class DefaultFenixSettingsIndexer(
+@@ -335,6 +337,8 @@ class DefaultFenixSettingsIndexer(
          // Attribute names
          private const val PREFERENCE_CATEGORY_TAG = "androidx.preference.PreferenceCategory"
          private const val CHECKBOX_PREFERENCE_TAG = "androidx.preference.CheckBoxPreference"
++        private const val EDIT_TEXT_PREFERENCE_TAG = "androidx.preference.EditTextPreference"
 +        private const val LIST_PREFERENCE_TAG = "androidx.preference.ListPreference"
          private const val PREFERENCE_TAG = "androidx.preference.Preference"
          private const val SWITCH_PREFERENCE_TAG = "androidx.preference.SwitchPreferenceCompat"
          private const val SWITCH_PREFERENCE_PLAIN_TAG = "SwitchPreferenceCompat"
-@@ -356,6 +358,7 @@ class DefaultFenixSettingsIndexer(
+@@ -356,6 +360,7 @@ class DefaultFenixSettingsIndexer(
          fun defaultPreferenceFileInformationList(includeAutofillPreferences: Boolean): List<PreferenceFileInformation> =
              buildList {
                  add(PreferenceFileInformation.GeneralPreferences)
@@ -1373,10 +1410,10 @@ index 420b369..4f868d7 100644
      override fun userPostponedAndWithinCooldownPeriod(currentTimeMillis: Long): Boolean {
          val durationSinceLastPrompt = currentTimeMillis - settings.lastTermsOfUsePromptTimeInMillis
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-index c8f3815..baa9c48 100644
+index c8f3815..b611b2e 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-@@ -170,14 +170,49 @@ class Settings(
+@@ -170,14 +170,55 @@ class Settings(
          /** DoH is disabled, corresponds to TRR_MODE_DISABLED (5) from GeckoView */
          private const val DOH_SETTINGS_OFF = 5
  
@@ -1424,10 +1461,16 @@ index c8f3815..baa9c48 100644
 +            appContext.getPreferenceKey(R.string.pref_key_mercury_query_stripping),
 +            default = true,
 +        )
++
++    var mercuryFissionIsolateAll by
++        booleanPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_fission_isolate_all),
++            default = true,
++        )
  
      override val preferences: SharedPreferences = appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
  
-@@ -201,7 +236,7 @@ class Settings(
+@@ -201,7 +242,7 @@ class Settings(
          lazyFeatureFlagBooleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
              featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
@@ -1436,7 +1479,7 @@ index c8f3815..baa9c48 100644
          )
  
      /** Indicates what simple toolbar shortcut key is currently selected. */
-@@ -256,7 +291,9 @@ class Settings(
+@@ -256,7 +297,9 @@ class Settings(
  
      /** Indicates whether or not the "Synced Tabs" section should be shown on the home screen. */
      val showSyncedTabs: Boolean
@@ -1447,7 +1490,7 @@ index c8f3815..baa9c48 100644
  
      /** Indicates whether or not the "Collections" section should be shown on the home screen. */
      val collections: Boolean
-@@ -714,7 +751,7 @@ class Settings(
+@@ -714,7 +757,7 @@ class Settings(
      var crashReportChoice by
          stringPreference(
              appContext.getPreferenceKey(R.string.pref_key_crash_reporting_choice),
@@ -1456,7 +1499,7 @@ index c8f3815..baa9c48 100644
          )
  
      val isRemoteDebuggingEnabled by
-@@ -723,17 +760,14 @@ class Settings(
+@@ -723,17 +766,14 @@ class Settings(
              default = false,
          )
  
@@ -1481,7 +1524,7 @@ index c8f3815..baa9c48 100644
  
      var hasMadeMarketingTelemetrySelection by
          booleanPreference(
-@@ -741,10 +775,11 @@ class Settings(
+@@ -741,10 +781,11 @@ class Settings(
              default = false,
          )
  
@@ -1494,7 +1537,7 @@ index c8f3815..baa9c48 100644
              persistDefaultIfNotExists = true,
          )
  
-@@ -785,11 +820,11 @@ class Settings(
+@@ -785,11 +826,11 @@ class Settings(
              default = { if (hasAcceptedTermsOfService) TOU_VERSION else 0 },
          )
  
@@ -1508,7 +1551,7 @@ index c8f3815..baa9c48 100644
          )
  
      /** Returns true if the nimbus flag for showing the terms of use drag handle is true. */
-@@ -852,18 +887,14 @@ class Settings(
+@@ -852,18 +893,14 @@ class Settings(
       * because this setting was added in early 2025 and we want to make sure that users who upgrade and had telemetry
       * disabled don't start sending the daily usage ping telemetry.
       */
@@ -1534,7 +1577,7 @@ index c8f3815..baa9c48 100644
  
      /**
       * This lets us know if the user has disabled experimentation manually so that we know if we should re-enable
-@@ -883,7 +914,7 @@ class Settings(
+@@ -883,7 +920,7 @@ class Settings(
      var isRolloutsEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_rollouts),
@@ -1543,7 +1586,7 @@ index c8f3815..baa9c48 100644
          )
  
      /**
-@@ -1087,14 +1118,14 @@ class Settings(
+@@ -1087,14 +1124,14 @@ class Settings(
      var isLnaBlockingEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_blocking_enabled),
@@ -1560,7 +1603,7 @@ index c8f3815..baa9c48 100644
          )
  
      /**
-@@ -1106,7 +1137,7 @@ class Settings(
+@@ -1106,7 +1143,7 @@ class Settings(
      var isLnaFeatureEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_feature_enabled),
@@ -1569,7 +1612,7 @@ index c8f3815..baa9c48 100644
          )
  
      /** Indicates whether isolated content processes are enabled or not. */
-@@ -1321,7 +1352,7 @@ class Settings(
+@@ -1321,7 +1358,7 @@ class Settings(
      var shouldEnableGlobalPrivacyControl by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_privacy_enable_global_privacy_control),
@@ -1578,7 +1621,7 @@ index c8f3815..baa9c48 100644
          )
  
      /**
-@@ -1352,13 +1383,13 @@ class Settings(
+@@ -1352,13 +1389,13 @@ class Settings(
      val useStandardTrackingProtection by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_tracking_protection_standard_option),
@@ -1594,7 +1637,7 @@ index c8f3815..baa9c48 100644
          )
  
      val useCustomTrackingProtection by
-@@ -1789,7 +1820,7 @@ class Settings(
+@@ -1789,7 +1826,7 @@ class Settings(
      val shouldShowSearchSuggestions by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions),
@@ -1603,7 +1646,7 @@ index c8f3815..baa9c48 100644
          )
  
      val shouldAutocompleteInAwesomebar by
-@@ -1814,14 +1845,14 @@ class Settings(
+@@ -1814,14 +1851,14 @@ class Settings(
      internal var trendingSearchSuggestionsEnabled by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_show_trending_search_suggestions),
@@ -1620,7 +1663,7 @@ index c8f3815..baa9c48 100644
          )
  
      var showSearchSuggestionsInPrivateOnboardingFinished by
-@@ -2382,7 +2413,7 @@ class Settings(
+@@ -2382,7 +2419,7 @@ class Settings(
      var showContileFeature by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_contile),
@@ -1629,7 +1672,7 @@ index c8f3815..baa9c48 100644
          )
  
      /** Blocklist used to filter items from the home screen that have previously been removed. */
-@@ -2512,12 +2543,10 @@ class Settings(
+@@ -2512,12 +2549,10 @@ class Settings(
              default = { FxNimbus.features.migrateOnboardingState.value().enabled },
          )
  
@@ -1646,7 +1689,7 @@ index c8f3815..baa9c48 100644
  
      var shouldUseMinimalBottomToolbarWhenEnteringText by
          booleanPreference(
-@@ -2773,10 +2802,11 @@ class Settings(
+@@ -2773,10 +2808,11 @@ class Settings(
          )
  
      /** Indicates whether Email Mask is enabled or not. */
@@ -1659,7 +1702,7 @@ index c8f3815..baa9c48 100644
          )
  
      /**
-@@ -3122,44 +3152,35 @@ class Settings(
+@@ -3122,44 +3158,35 @@ class Settings(
              default = false,
          )
  
