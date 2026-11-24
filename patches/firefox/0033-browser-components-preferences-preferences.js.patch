@@ -1,6 +1,23 @@
+diff --git a/browser/components/preferences/preferences.js b/browser/components/preferences/preferences.js
+index df1663c..50bcece 100644
 --- a/browser/components/preferences/preferences.js
 +++ b/browser/components/preferences/preferences.js
-@@ -452,6 +452,8 @@
+@@ -400,7 +400,13 @@ const CONFIG_PANES = Object.freeze({
+       "chrome://browser/content/preferences/config/passwords-autofill.mjs",
+   },
+   profiles: {
+-    parent: srdSectionEnabled("sync") ? "sync" : "general",
++    parent:
++      srdSectionEnabled("sync") &&
++      Services.prefs.getBoolPref("identity.fxaccounts.enabled", false)
++        ? "sync"
++        : srdSectionPrefs.all
++          ? "home"
++          : "general",
+     l10nId: "preferences-profiles-group-header",
+     groupIds: ["profilePane"],
+   },
+@@ -452,12 +458,26 @@ const CONFIG_PANES = Object.freeze({
        "cookiesAndSiteData2",
        "history2",
        "nonTechnicalPrivacy2",
@@ -9,3 +26,67 @@
        "dnsOverHttps",
        "connectionLink",
      ],
+     module: "chrome://browser/content/preferences/config/privacy.mjs",
+     replaces: "privacy",
+   },
++  mercury: {
++    l10nId: "pane-mercury-section",
++    iconSrc: "chrome://branding/content/icon32.png",
++    groupIds: [
++      "mercuryIdentity",
++      "mercuryFingerprinting",
++      "mercuryNetwork",
++      "mercuryPerformance",
++      "mercuryBehavior",
++    ],
++    module: "chrome://browser/content/preferences/config/mercury.mjs",
++  },
+   search: {
+     l10nId: "search-section",
+     groupIds: [
+@@ -485,6 +505,7 @@ const CONFIG_PANES = Object.freeze({
+       "referrals",
+     ],
+     module: "chrome://browser/content/preferences/config/account-sync.mjs",
++    visible: () => Services.prefs.getBoolPref("identity.fxaccounts.enabled", false),
+     replaces: "sync",
+   },
+   moreFromMozilla: {
+@@ -615,9 +636,11 @@ function init_all() {
+   );
+   let categorySync = document.getElementById("category-sync");
+   if (redesignEnabled) {
+-    categorySync.setAttribute("data-l10n-id", "pane-account-sync-title2");
+-    categorySync.iconSrc = "chrome://browser/skin/fxa/avatar-empty.svg";
+-    categorySync.hidden = false;
++    if (accountsEnabled) {
++      categorySync.setAttribute("data-l10n-id", "pane-account-sync-title2");
++      categorySync.iconSrc = "chrome://browser/skin/fxa/avatar-empty.svg";
++      categorySync.hidden = false;
++    }
+   } else if (accountsEnabled) {
+     categorySync.hidden = false;
+     register_module("paneSync", gSyncPane);
+@@ -760,10 +783,20 @@ async function gotoPref(
+ ) {
+   let redesignEnabled = srdSectionPrefs.all;
+   let categories = document.getElementById("categories");
++  let accountsEnabled = Services.prefs.getBoolPref(
++    "identity.fxaccounts.enabled",
++    false
++  );
+   const kDefaultCategoryInternalName = redesignEnabled
+-    ? "paneSync"
++    ? accountsEnabled
++      ? "paneSync"
++      : "paneHome"
+     : "paneGeneral";
+-  const kDefaultCategory = redesignEnabled ? "sync" : "general";
++  const kDefaultCategory = redesignEnabled
++    ? accountsEnabled
++      ? "sync"
++      : "home"
++    : "general";
+   let hash = document.location.hash;
+   let category = aCategory || hash.substring(1) || kDefaultCategoryInternalName;
+ 

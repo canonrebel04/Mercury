@@ -1,6 +1,8 @@
+diff --git a/browser/components/BrowserGlue.sys.mjs b/browser/components/BrowserGlue.sys.mjs
+index c51e55f..220c5d0 100644
 --- a/browser/components/BrowserGlue.sys.mjs
 +++ b/browser/components/BrowserGlue.sys.mjs
-@@ -39,6 +39,10 @@
+@@ -39,6 +39,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
    LoginBreaches:
      "moz-src:///browser/components/aboutlogins/LoginBreaches.sys.mjs",
    LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
@@ -11,7 +13,7 @@
    MigrationUtils:
      "moz-src:///browser/components/migration/MigrationUtils.sys.mjs",
    NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-@@ -404,6 +408,18 @@
+@@ -404,6 +408,18 @@ BrowserGlue.prototype = {
      // handle any UI migration
      this._migrateUI();
  
@@ -30,8 +32,35 @@
      if (!Services.prefs.prefHasUserValue(PREF_PDFJS_ISDEFAULT_CACHE_STATE)) {
        lazy.PdfJs.checkIsDefault(this._isNewProfile);
      }
-@@ -1096,8 +1108,17 @@
-       },
+@@ -731,8 +747,11 @@ BrowserGlue.prototype = {
+ 
+     this._checkForOldBuildUpdates();
+ 
+-    // Check if Sync is configured
+-    if (Services.prefs.prefHasUserValue("services.sync.username")) {
++    // Check if Sync is configured (only when FxA is enabled)
++    if (
++      Services.prefs.getBoolPref("identity.fxaccounts.enabled", false) &&
++      Services.prefs.prefHasUserValue("services.sync.username")
++    ) {
+       lazy.WeaveService.init();
+     }
+ 
+@@ -805,7 +824,12 @@ BrowserGlue.prototype = {
+     }
+     this._windowsWereRestored = true;
+ 
+-    lazy.PreonboardingSplash.maybeShowStartupSplash();
++    if (
++      !Services.prefs.getBoolPref("termsofuse.bypassNotification", true) &&
++      Services.prefs.getBoolPref("browser.preonboarding.enabled", false)
++    ) {
++      lazy.PreonboardingSplash.maybeShowStartupSplash();
++    }
+     lazy.BrowserUsageTelemetry.init();
+     lazy.SearchSERPTelemetry.init();
+ 
+@@ -1082,6 +1106,15 @@ BrowserGlue.prototype = {
  
        {
          name: "ASRouterNewTabHook.createInstance",
@@ -47,8 +76,18 @@
          task: () => {
            lazy.ASRouterNewTabHook.createInstance(lazy.ASRouterDefaultConfig());
          },
-       },
-@@ -1180,6 +1197,15 @@
+@@ -1126,6 +1159,10 @@ BrowserGlue.prototype = {
+       // Schedule a sync (if enabled) after we've loaded
+       {
+         name: "WeaveService",
++        condition: Services.prefs.getBoolPref(
++          "identity.fxaccounts.enabled",
++          false
++        ),
+         task: async () => {
+           if (lazy.WeaveService.enabled) {
+             await lazy.WeaveService.whenLoaded();
+@@ -1180,6 +1217,15 @@ BrowserGlue.prototype = {
          task: () => Services.sysinfo.diskInfo,
        },
  

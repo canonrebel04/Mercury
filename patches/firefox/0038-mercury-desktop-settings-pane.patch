@@ -1,0 +1,28 @@
+diff --git a/browser/components/preferences/jar.mn b/browser/components/preferences/jar.mn
+index 3ea5d2abc770..9f323194c02e 100644
+--- a/browser/components/preferences/jar.mn
++++ b/browser/components/preferences/jar.mn
+@@ -36,6 +36,7 @@ browser.jar:
+    content/browser/preferences/config/aiFeatures.mjs                    (config/aiFeatures.mjs)
+    content/browser/preferences/config/firefoxLabs.mjs                   (config/firefoxLabs.mjs)
+    content/browser/preferences/config/moreFromMozilla.mjs               (config/moreFromMozilla.mjs)
++   content/browser/preferences/config/mercury.mjs                       (config/mercury.mjs)
+    content/browser/preferences/config/downloads.mjs                     (config/downloads.mjs)
+    content/browser/preferences/config/passwords-autofill.mjs            (config/passwords-autofill.mjs)
+    content/browser/preferences/config/block-ai-confirmation-dialog.css  (config/block-ai-confirmation-dialog.css)
+diff --git a/browser/components/preferences/preferences.xhtml b/browser/components/preferences/preferences.xhtml
+index 8e0c6483d6ed..51ba7d4d3820 100644
+--- a/browser/components/preferences/preferences.xhtml
++++ b/browser/components/preferences/preferences.xhtml
+@@ -144,6 +144,11 @@
+         iconsrc="chrome://browser/skin/preferences/category-privacy-security.svg"
+         data-l10n-id="pane-privacy-title3">
+       </html:moz-page-nav-button>
++      <html:moz-page-nav-button id="category-mercury"
++        view="paneMercury"
++        iconsrc="chrome://branding/content/icon32.png"
++        data-l10n-id="pane-mercury-title">
++      </html:moz-page-nav-button>
+       <html:moz-page-nav-button id="category-passwords-autofill"
+         view="panePasswordsAutofill"
+         iconsrc="chrome://browser/skin/login.svg"

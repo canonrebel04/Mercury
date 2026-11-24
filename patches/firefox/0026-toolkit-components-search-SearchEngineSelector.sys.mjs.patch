@@ -1,30 +1,27 @@
---- a/toolkit/components/search/SearchEngineSelector.sys.mjs	2026-11-14 12:59:03.987998708 -0600
-+++ b/toolkit/components/search/SearchEngineSelector.sys.mjs	2026-11-14 12:59:04.012000336 -0600
-@@ -39,6 +39,36 @@
+diff --git a/toolkit/components/search/SearchEngineSelector.sys.mjs b/toolkit/components/search/SearchEngineSelector.sys.mjs
+index 8c2a5b482601..287fb5fcee7e 100644
+--- a/toolkit/components/search/SearchEngineSelector.sys.mjs
++++ b/toolkit/components/search/SearchEngineSelector.sys.mjs
+@@ -38,6 +38,80 @@ const lazy = XPCOMUtils.declareLazy({
+     }),
  });
  
- /**
-+ * Mercury: returns true for search engines Mercury never offers (Google,
-+ * Bing, eBay, Perplexity). Matches on the config identifier and on the
-+ * search URL host, so a renamed or new record in a remote config update
-+ * is caught too.
-+ *
-+ * @param {string} [identifier]
-+ * @param {string} [searchUrlBase]
-+ * @returns {boolean}
++/**
++ * Mercury: returns true for spam/commercial search engines Mercury never offers
++ * (eBay, Perplexity, Amazon). Google & Bing remain selectable (never default),
++ * with partner tracking parameters stripped.
 + */
 +function mercuryIsBlockedEngine(identifier, searchUrlBase) {
-+  if (identifier && /^(google|bing|ebay|perplexity)(\b|[-_])/i.test(identifier)) {
++  if (identifier && /^(ebay|perplexity|amazon)(\b|[-_])/i.test(identifier)) {
 +    return true;
 +  }
 +  if (searchUrlBase) {
 +    try {
 +      let host = new URL(searchUrlBase).hostname;
 +      if (
-+        /(^|\.)google\.[a-z.]+$/i.test(host) ||
-+        /(^|\.)bing\.com$/i.test(host) ||
 +        /(^|\.)ebay\.[a-z.]+$/i.test(host) ||
-+        /(^|\.)perplexity\.ai$/i.test(host)
++        /(^|\.)perplexity\.ai$/i.test(host) ||
++        /(^|\.)amazon\.[a-z.]+$/i.test(host)
 +      ) {
 +        return true;
 +      }
@@ -34,10 +31,59 @@
 +}
 +
 +/**
++ * Mercury curated privacy & SearXNG search engines (inspired by iodé browser),
++ * injected cleanly into the refined config so both Desktop and Android offer
++ * DuckDuckGo as default plus selectable privacy engines.
++ */
++const MERCURY_EXTRA_ENGINES = [
++  { id: "mercury-brave", name: "Brave Search", base: "https://search.brave.com/search", param: "q", aliases: ["@brave"] },
++  { id: "mercury-startpage", name: "Startpage", base: "https://www.startpage.com/sp/search", param: "query", aliases: ["@startpage", "@sp"] },
++  { id: "mercury-qwant", name: "Qwant", base: "https://www.qwant.com/", param: "q", aliases: ["@qwant"] },
++  { id: "mercury-ecosia", name: "Ecosia", base: "https://www.ecosia.org/search", param: "q", aliases: ["@ecosia"] },
++  { id: "mercury-metager", name: "MetaGer", base: "https://metager.org/meta/meta.ger3", param: "eingabe", aliases: ["@metager"] },
++  { id: "mercury-mojeek", name: "Mojeek", base: "https://www.mojeek.com/search", param: "q", aliases: ["@mojeek"] },
++  { id: "mercury-swisscows", name: "Swisscows", base: "https://swisscows.com/en/web", param: "query", aliases: ["@swisscows"] },
++  { id: "mercury-gibiru", name: "Gibiru", base: "https://gibiru.com/results.html", param: "q", aliases: ["@gibiru"] },
++  { id: "mercury-privacywall", name: "PrivacyWall", base: "https://www.privacywall.org/search/secure/", param: "q", aliases: ["@privacywall"] },
++  { id: "mercury-searx-neocities", name: "SearX Random (neocities)", base: "https://searx.neocities.org/", param: "q", aliases: ["@searx"] },
++  { id: "mercury-searxng-rhscz", name: "SearXNG (rhscz.eu)", base: "https://search.rhscz.eu/search", param: "q", aliases: ["@rhscz"] },
++  { id: "mercury-searxng-deggo", name: "SearXNG (deggo.fyi)", base: "https://searxng.deggo.fyi/search", param: "q", aliases: ["@deggo"] },
++  { id: "mercury-searxng-oloke", name: "SearXNG (oloke.xyz)", base: "https://searx.oloke.xyz/search", param: "q", aliases: ["@oloke"] },
++  { id: "mercury-searxng-paulgo", name: "SearXNG (paulgo.io)", base: "https://paulgo.io/search", param: "q", aliases: ["@paulgo"] },
++  { id: "mercury-searxng-privau", name: "SearXNG (priv.au)", base: "https://priv.au/search", param: "q", aliases: ["@privau"] },
++  { id: "mercury-searxng-tiekoetter", name: "SearXNG (tiekoetter)", base: "https://searx.tiekoetter.com/search", param: "q", aliases: ["@tiekoetter"] },
++];
++
++function mercuryMakeEngineDef(spec, orderHint) {
++  return {
++    aliases: spec.aliases,
++    charset: "UTF-8",
++    classification: "general",
++    identifier: spec.id,
++    isNewUntil: null,
++    name: spec.name,
++    optional: false,
++    orderHint,
++    partnerCode: "",
++    telemetrySuffix: "",
++    urls: {
++      search: {
++        base: spec.base,
++        method: "GET",
++        params: [],
++        searchTermParamName: spec.param,
++      },
++      suggestions: null,
++      trending: null,
++      searchForm: null,
++    },
++  };
++}
++
+ /**
   * SearchEngineSelector parses the JSON configuration for
   * search engines and returns the applicable engines depending
-  * on their region + locale.
-@@ -139,7 +169,10 @@
+@@ -139,7 +213,10 @@ export class SearchEngineSelector {
     */
    async findContextualSearchEngineByHost(host) {
      for (let config of this.#configuration) {
@@ -49,7 +95,7 @@
          continue;
        }
        let searchHost = new URL(config.base.urls.search.base).hostname;
-@@ -167,7 +200,10 @@
+@@ -167,7 +244,10 @@ export class SearchEngineSelector {
     */
    async findContextualSearchEngineById(id) {
      for (let config of this.#configuration) {
@@ -61,17 +107,30 @@
          continue;
        }
        if (config.identifier == id) {
-@@ -257,6 +293,22 @@
+@@ -257,6 +337,35 @@ export class SearchEngineSelector {
        );
      }
  
-+    // Mercury: never offer Google, Bing, eBay or Perplexity, even if a
-+    // remote search-config update brings them back (covers both v2 and
-+    // the new v3 config path), and make DuckDuckGo the default (normal
-+    // and private windows) in every region.
-+    refinedSearchConfig.engines = refinedSearchConfig.engines.filter(
-+      e => !mercuryIsBlockedEngine(e.identifier, e.urls?.search?.base)
-+    );
++    // Mercury: remove eBay/Perplexity/Amazon, strip partner tracking params,
++    // inject Mercury's curated privacy & SearXNG engines, and enforce
++    // DuckDuckGo as the default (normal and private windows) in every region.
++    refinedSearchConfig.engines = refinedSearchConfig.engines
++      .filter(e => !mercuryIsBlockedEngine(e.identifier, e.urls?.search?.base))
++      .map(e => {
++        if (e.urls?.search?.params?.length) {
++          e.urls.search.params = e.urls.search.params.filter(
++            p => !/^(client|channel|pc|t|form|sourceid)$/i.test(p.name || "")
++          );
++        }
++        return e;
++      });
++    const existingIds = new Set(refinedSearchConfig.engines.map(e => e.identifier));
++    let nextOrder = 200;
++    for (const spec of MERCURY_EXTRA_ENGINES) {
++      if (!existingIds.has(spec.id)) {
++        refinedSearchConfig.engines.push(mercuryMakeEngineDef(spec, nextOrder--));
++      }
++    }
 +    if (refinedSearchConfig.engines.some(e => e.identifier == "ddg")) {
 +      refinedSearchConfig.appDefaultEngineId = "ddg";
 +      refinedSearchConfig.appPrivateDefaultEngineId = "ddg";

@@ -1,6 +1,24 @@
 {
   "policies": {
     "HardwareAcceleration": true,
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisableFeedbackCommands": true,
+    "DisableFirefoxAccounts": true,
+    "SkipTermsOfUse": true,
+    "DontCheckDefaultBrowser": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "UserMessaging": {
+      "WhatsNew": false,
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "UrlbarInterventions": false,
+      "SkipOnboarding": true,
+      "MoreFromMozilla": false,
+      "FirefoxLabs": false
+    },
     "Extensions": {
       "Install": [
         "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi"
@@ -14,10 +32,9 @@
     "SearchEngines": {
       "Default": "DuckDuckGo",
       "Remove": [
-        "Google",
-        "Bing",
         "eBay",
-        "Perplexity"
+        "Perplexity",
+        "Amazon.com"
       ]
     }
   }

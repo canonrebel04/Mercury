@@ -1,6 +1,8 @@
+diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
+index fe38d02..d11c576 100644
 --- a/modules/libpref/init/all.js
 +++ b/modules/libpref/init/all.js
-@@ -3068,7 +3068,9 @@
+@@ -3068,7 +3068,9 @@ pref("network.tcp.keepalive.idle_time", 600); // seconds; 10 mins
  // All the Geolocation preferences are here.
  //
  #if !defined(ANDROID) && !defined(XP_WIN)
@@ -11,7 +13,7 @@
  
    // Timeout to wait before sending the location request.
    pref("geo.provider.network.timeToWaitBeforeSending", 5000);
-@@ -3270,21 +3272,16 @@
+@@ -3270,21 +3272,16 @@ pref("captivedetect.pollingTime", 3000);
  pref("captivedetect.maxRetryCount", 5);
  
  // The tables used for Safebrowsing phishing and malware checks
@@ -39,7 +41,7 @@
  
  // Tables for anti-tracking features
  pref("urlclassifier.trackingAnnotationTable", "moztest-track-simple,ads-track-digest256,social-track-digest256,analytics-track-digest256,content-track-digest256");
-@@ -3316,14 +3313,16 @@
+@@ -3316,14 +3313,16 @@ pref("urlclassifier.features.antifraud.annotate.blocklistTables", "anti-fraud-tr
  pref("urlclassifier.features.antifraud.annotate.allowlistTables", "mozstd-trackwhite-digest256");
  
  // These tables will never trigger a gethash call.
@@ -58,7 +60,7 @@
  
  // The migration for this pref disables both allow-list categories (convenience
  // and baseline) for users in ETP "strict" and "custom" mode.
-@@ -3361,7 +3360,7 @@
+@@ -3361,7 +3360,7 @@ pref("browser.safebrowsing.allowOverride", true);
  pref("browser.safebrowsing.downloads.enabled", true);
  pref("browser.safebrowsing.downloads.remote.enabled", true);
  pref("browser.safebrowsing.downloads.remote.timeout_ms", 15000);
@@ -67,7 +69,7 @@
  pref("browser.safebrowsing.downloads.remote.block_dangerous",            true);
  pref("browser.safebrowsing.downloads.remote.block_dangerous_host",       true);
  pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", true);
-@@ -3370,40 +3369,8 @@
+@@ -3370,40 +3369,8 @@ pref("browser.safebrowsing.downloads.remote.block_uncommon",             true);
  // Android SafeBrowsing's configuration is in ContentBlocking.java, keep in sync.
  #ifndef MOZ_WIDGET_ANDROID
  
@@ -110,3 +112,74 @@
  
  #endif // ifndef MOZ_WIDGET_ANDROID
  
+@@ -3723,24 +3690,24 @@ pref("toolkit.aboutProcesses.profileDuration", 5);
+ pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
+ 
+ #ifdef MOZ_DATA_REPORTING
+-  pref("datareporting.policy.dataSubmissionEnabled", true);
+-  pref("datareporting.policy.dataSubmissionPolicyNotifiedTime", "0");
+-  pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 0);
++  // Mercury: disable data reporting and bypass all Privacy Notice / ToS prompts.
++  pref("datareporting.policy.dataSubmissionEnabled", false);
++  pref("datareporting.policy.dataSubmissionPolicyNotifiedTime", "1735689600000");
++  pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 999);
+   pref("datareporting.policy.currentPolicyVersion", 2);
+   pref("datareporting.policy.minimumPolicyVersion", 1);
+   pref("datareporting.policy.minimumPolicyVersion.channel-beta", 2);
+-  pref("datareporting.policy.firstRunURL", "https://www.mozilla.org/privacy/firefox/");
+-  pref("datareporting.policy.dataSubmissionPolicyBypassNotification", false);
++  pref("datareporting.policy.firstRunURL", "");
++  pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+ #endif
+ 
+ #ifdef MOZ_SERVICES_HEALTHREPORT
+   #if !defined(ANDROID)
+     pref("datareporting.healthreport.infoURL", "https://www.mozilla.org/legal/privacy/firefox.html#health-report");
+ 
+-    // Health Report is enabled by default on all channels.
+-    // Do note that the toggle on Fenix and Focus does NOT reflect to this pref.
+-    pref("datareporting.healthreport.uploadEnabled", true);
+-    pref("datareporting.usage.uploadEnabled", true);
++    // Mercury: Health Report and usage uploads disabled by default.
++    pref("datareporting.healthreport.uploadEnabled", false);
++    pref("datareporting.usage.uploadEnabled", false);
+   #endif
+ #endif
+ 
+@@ -3749,8 +3716,9 @@ pref("services.common.log.logger.rest.response", "Debug");
+ pref("services.common.log.logger.tokenserverclient", "Debug");
+ 
+ #ifdef MOZ_SERVICES_SYNC
++  // Mercury: Firefox Sync engines and version telemetry disabled by default.
+   pref("services.sync.lastversion", "firstrun");
+-  pref("services.sync.sendVersionInfo", true);
++  pref("services.sync.sendVersionInfo", false);
+ 
+   pref("services.sync.scheduler.idleInterval", 3600);  // 1 hour
+   pref("services.sync.scheduler.activeInterval", 600);   // 10 minutes
+@@ -3759,19 +3727,14 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
+ 
+   pref("services.sync.scheduler.fxa.singleDeviceInterval", 3600); // 1 hour
+ 
+-  // Note that new engines are typically added with a default of disabled, so
+-  // when an existing sync user gets the Firefox upgrade that supports the engine
+-  // it starts as disabled until the user has explicitly opted in.
+-  // The sync "create account" process typically *will* offer these engines, so
+-  // they may be flipped to enabled at that time.
+-  pref("services.sync.engine.addons", true);
++  pref("services.sync.engine.addons", false);
+   pref("services.sync.engine.addresses", false);
+-  pref("services.sync.engine.bookmarks", true);
++  pref("services.sync.engine.bookmarks", false);
+   pref("services.sync.engine.creditcards", false);
+-  pref("services.sync.engine.history", true);
+-  pref("services.sync.engine.passwords", true);
+-  pref("services.sync.engine.prefs", true);
+-  pref("services.sync.engine.tabs", true);
++  pref("services.sync.engine.history", false);
++  pref("services.sync.engine.passwords", false);
++  pref("services.sync.engine.prefs", false);
++  pref("services.sync.engine.tabs", false);
+   pref("services.sync.engine.tabs.filteredSchemes", "about|resource|chrome|file|blob|moz-extension|data");
+ 
+   // The addresses and CC engines might not actually be available at all.

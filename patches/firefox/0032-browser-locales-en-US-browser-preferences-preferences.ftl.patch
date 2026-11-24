@@ -1,6 +1,8 @@
+diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
+index e36e667..36dc889 100644
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
-@@ -12,6 +12,16 @@
+@@ -12,6 +12,16 @@ global-privacy-control-description =
  non-technical-privacy-group =
      .label = Website Privacy Preferences
  
@@ -12,8 +14,207 @@
 +
 +mercury-hardened-enabled =
 +    .label = Use Hardened mode
-+    .description = Resists fingerprinting (reports UTC as your timezone and adds letterboxing), uses Strict tracking protection, HTTPS-Only Mode and DNS over HTTPS (Quad9 unless you pick a provider), deletes cookies and site data when { -brand-short-name } closes (except sites you allow), stops address-bar preconnects and shows punycode domains. Restart { -brand-short-name } for all changes to apply.
++    .description = Resists fingerprinting (reports UTC as your timezone and adds letterboxing), uses Strict tracking protection, HTTPS-Only Mode and DNS over HTTPS (AdGuard DNS unless you pick a provider), deletes cookies and site data when { -brand-short-name } closes (except sites you allow), stops address-bar preconnects and shows punycode domains. Restart { -brand-short-name } for all changes to apply.
 +
  do-not-track-removal3 =
      .message = We no longer support the “Do Not Track” feature.
  
+@@ -2864,3 +2874,198 @@ referrals-section-header2 =
+ # use the browser. "Share" here means recommending or referring the browser
+ referrals-link2 =
+   .label = Share { -brand-product-name }
++
++
++## Mercury Browser Settings Pane
++
++pane-mercury-title = Mercury
++  .title = Mercury
++pane-mercury-section =
++  .heading = Mercury
++  .description = Crowd-blending anti-fingerprinting, bleeding-edge security, DNS, and GPU engine controls.
++
++mercury-group-identity =
++  .label = Identity & Privacy Mode
++  .description = Inspired by Tor Browser and Mullvad Browser: blend into the crowd by default, or switch to maximum uniformity and stricter exploit defenses.
++
++mercury-security-level =
++  .label = Security Level
++  .description = Controls JavaScript JIT, WebAssembly, and font attack surface.
++mercury-security-level-standard =
++  .label = Standard — Full JIT & WebAssembly speed (default)
++mercury-security-level-safer =
++  .label = Safer — Disables Ion JIT, WebAssembly, MathML & SVG fonts
++mercury-security-level-safest =
++  .label = Safest — Disables all JITs, WebAssembly, WebGL & remote fonts
++
++mercury-new-identity-button =
++  .label = New Identity (Clear Session, Cookies, Cache & TLS Tickets)
++mercury-new-identity-alert-title = { -brand-short-name } — New Identity
++mercury-new-identity-alert-body = Cookies, caches, site storage, HTTP auth, and TLS session state have been cleared.
++
++mercury-group-fingerprinting =
++  .label = Anti-Fingerprinting & Crowd-Blending
++  .description = Fine-grained controls that let you toggle Crowd-Blend FPP, Letterboxing, RFP, Canvas, WebGL, and CPU reporting independently while keeping Enhanced Tracking Protection Strict active.
++
++mercury-strict-tracking =
++  .label = Strict Enhanced Tracking Protection
++  .description = Blocks third-party tracking scripts, social/email trackers, cryptominers, and fingerprinters with Total Cookie Protection enabled.
++
++mercury-crowd-blend-fpp =
++  .label = Crowd-Blend Fingerprinting Protection (FPP)
++  .description = Standardizes hardware, GPU, font, audio, screen, and sensor fingerprints while keeping standard Web APIs intact so { -brand-short-name } blends into the modern crowd.
++
++mercury-letterboxing =
++  .label = Enable Letterboxing (window-size bucketing)
++  .description = Rounds page viewport dimensions into standard buckets with subtle margins. Works independently of full RFP without forcing UTC timezone or light mode.
++
++mercury-resist-fingerprinting =
++  .label = Full Resist Fingerprinting (RFP)
++  .description = Forces UTC timezone, strict timer coarsening, and Tor-style uniform browser APIs.
++
++mercury-preserve-system-theme =
++  .label = Preserve system dark/light theme on websites
++  .description = Keeps prefers-color-scheme matching your OS dark/light mode so websites never break theme switching, even under Hardened mode or RFP.
++
++mercury-canvas-mode =
++  .label = Canvas Fingerprinting Protection
++mercury-canvas-mode-efficient =
++  .label = Efficient Randomization — Per-site sparse noise, zero GPU FPS cost (default)
++mercury-canvas-mode-strict =
++  .label = Strict Randomization — Full pixel randomization on readback
++mercury-canvas-mode-off =
++  .label = Off — Unrestricted canvas readback
++
++mercury-cpu-cores-mode =
++  .label = CPU Thread Reporting (navigator.hardwareConcurrency)
++mercury-cpu-cores-tiered =
++  .label = Tiered Crowd-Blend (4 or 8 threads — default)
++mercury-cpu-cores-fixed4 =
++  .label = Fixed 4 threads (Tor / Mullvad uniformity)
++mercury-cpu-cores-full =
++  .label = Full hardware threads (maximum benchmark parallelism)
++
++mercury-webgl-mode =
++  .label = WebGL Protection
++mercury-webgl-sanitized =
++  .label = Sanitized ("Mozilla" GPU model — hides exact GPU without breaking WebGL, default)
++mercury-webgl-disabled =
++  .label = Disabled (blocks WebGL globally)
++mercury-webgl-unrestricted =
++  .label = Unrestricted (exposes hardware renderer info)
++
++mercury-webgpu-enabled =
++  .label = Enable WebGPU
++  .description = Off by default to avoid exposing low-level GPU adapter details.
++
++mercury-webrtc-enabled =
++  .label = Enable WebRTC (voice & video calls)
++mercury-webrtc-mask-lan =
++  .label = Mask local LAN & VPN host IPs in WebRTC
++  .description = Keeps voice/video calls working while preventing private IP enumeration.
++
++mercury-gpc =
++  .label = Send Global Privacy Control (GPC) signal
++mercury-query-stripping =
++  .label = Strip tracking parameters from URLs & shared links
++  .description = Removes utm_*, fbclid, gclid, and known tracking parameters on navigation and Copy Clean Link.
++
++mercury-referer-policy =
++  .label = Cross-Origin Referer Trimming
++mercury-referer-origin =
++  .label = Send origin only (recommended default)
++mercury-referer-scheme-host =
++  .label = Send scheme, host, and port
++mercury-referer-full =
++  .label = Send full URL
++
++mercury-group-network =
++  .label = Network, DNS & Bleeding-Edge Security
++  .description = Post-quantum cryptography, Encrypted Client Hello, Local Network Access defense, and AdGuard ad/tracker-blocking DNS-over-HTTPS.
++
++mercury-doh-preset =
++  .label = DNS-over-HTTPS Provider
++mercury-doh-adguard =
++  .label = AdGuard DNS — Ad & Tracker Blocking (default)
++mercury-doh-quad9 =
++  .label = Quad9 — Security & Malware Blocking
++mercury-doh-mullvad =
++  .label = Mullvad DNS — Ad & Tracker Blocking
++mercury-doh-cloudflare =
++  .label = Cloudflare
++mercury-doh-nextdns =
++  .label = NextDNS
++mercury-doh-custom =
++  .label = Custom
++mercury-doh-off =
++  .label = Off (use system DNS)
++
++mercury-doh-custom-uri =
++  .label = Custom DNS-over-HTTPS URL
++  .placeholder = https://example.com/dns-query
++
++mercury-post-quantum =
++  .label = Post-Quantum Cryptography (TLS ML-KEM-1024 & WebRTC DTLS ML-KEM-768)
++  .description = Protects TLS and WebRTC calls against harvest-now-decrypt-later quantum attacks.
++
++mercury-ech =
++  .label = Encrypted Client Hello (ECH)
++  .description = Encrypts the target domain name (SNI) during TLS 1.3 handshakes when supported by DNS HTTPS records.
++
++mercury-lna-defense =
++  .label = Local Network Access (LNA) Tracker & Insecure-Context Blocking
++  .description = Blocks third-party trackers and insecure HTTP pages from probing localhost or LAN devices.
++
++mercury-bounce-tracking =
++  .label = Active Bounce Tracking Purge
++  .description = Automatically purges cookies and storage dropped by redirect-chain bounce trackers.
++
++mercury-disable-0rtt =
++  .label = Disable TLS 1.3 & HTTP/3 0-RTT early data
++  .description = Prevents 0-RTT replay attacks and cross-network session-ticket linkability.
++
++mercury-block-beacons =
++  .label = Block navigator.sendBeacon & hyperlink auditing pings
++  .description = Stops pages from firing background analytics beacons and <a ping> tracking requests.
++
++mercury-https-only =
++  .label = HTTPS-Only Mode in all windows
++mercury-speculative-connect =
++  .label = Allow speculative preconnect & DNS prefetch
++  .description = Improves page load speed; disable for zero unsolicited pre-connections.
++mercury-punycode =
++  .label = Show Punycode for international domain names (anti-spoofing)
++mercury-clear-on-close =
++  .label = Clear cookies and site data when { -brand-short-name } closes
++
++mercury-group-performance =
++  .label = Performance & GPU Engine
++mercury-hardware-accel =
++  .label = Hardware acceleration & WebRender GPU compositing (requires restart)
++  .description = Uses your GPU for page compositing and shaders. Disable only if troubleshooting driver glitches.
++mercury-gpu-canvas2d =
++  .label = GPU-Accelerated Canvas2D & Mercury Curve/Circle Fast-Paths
++mercury-webrender-svg =
++  .label = WebRender Native GPU SVG Primitives
++mercury-uncapped-framerate =
++  .label = Uncapped high-refresh VSync (-1)
++mercury-bytecode-cache =
++  .label = Speculative JS parsing & bytecode disk cache
++mercury-wayland-dmabuf =
++  .label = Force Linux Wayland DMA-BUF GPU sharing
++
++mercury-group-behavior =
++  .label = Browser Behavior & Optional Features
++mercury-block-ai-features =
++  .label = Block built-in AI features by default
++  .description = Keeps all built-in AI features and local model downloads blocked until you opt in. Use AI controls below to manage individual features.
++mercury-open-ai-controls =
++  .label = Manage individual AI controls…
++mercury-allow-drm =
++  .label = Allow DRM-controlled content (Widevine)
++  .description = Off by default; enabling downloads Google's Widevine CDM.
++mercury-search-suggestions =
++  .label = Show search engine suggestions in address bar
++  .description = Off by default so typed URL-bar characters are never sent to search engines.
++mercury-update-check =
++  .label = Check GitHub daily for newer { -brand-short-name } releases

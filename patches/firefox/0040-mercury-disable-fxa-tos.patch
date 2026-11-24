@@ -1,0 +1,77 @@
+diff --git a/browser/base/content/aboutDialog.xhtml b/browser/base/content/aboutDialog.xhtml
+index 6effd77..6a7b8d5 100644
+--- a/browser/base/content/aboutDialog.xhtml
++++ b/browser/base/content/aboutDialog.xhtml
+@@ -144,8 +144,6 @@
+     <vbox id="bottomBox">
+       <hbox pack="center">
+         <label is="text-link" class="bottom-link" useoriginprincipal="true" href="about:license" data-l10n-id="bottomLinks-license"/>
+-        <label is="text-link" class="bottom-link" href="https://www.mozilla.org/about/legal/terms/firefox/" data-l10n-id="bottom-links-terms"/>
+-        <label is="text-link" class="bottom-link" href="https://www.mozilla.org/privacy/firefox/?utm_source=firefox-browser&#38;utm_medium=firefox-desktop&#38;utm_campaign=about-dialog" data-l10n-id="bottom-links-privacy"/>
+       </hbox>
+       <description id="trademark" data-l10n-id="trademarkInfo"></description>
+     </vbox>
+diff --git a/browser/base/content/browser-menubar.inc.xhtml b/browser/base/content/browser-menubar.inc.xhtml
+index 4c0f4eb..35fa0cc 100644
+--- a/browser/base/content/browser-menubar.inc.xhtml
++++ b/browser/base/content/browser-menubar.inc.xhtml
+@@ -460,6 +460,8 @@
+                 appmenu-data-l10n-id="appmenu-help-not-deceptive"
+                 hidden="true"/>
+       <menuitem id="helpSwitchDevice"
++                class="sync-ui-item"
++                hidden="true"
+                 data-l10n-id="menu-help-switch-device"
+                 appmenu-data-l10n-id="appmenu-help-switch-device"/>
+ #ifndef XP_MACOSX
+diff --git a/browser/base/content/browser-sync.js b/browser/base/content/browser-sync.js
+index b850813..ee1808b 100644
+--- a/browser/base/content/browser-sync.js
++++ b/browser/base/content/browser-sync.js
+@@ -3982,6 +3982,19 @@ var gSync = {
+     for (const item of toHide) {
+       item.hidden = true;
+     }
++
++    for (const id of [
++      "appMenu-fxa-sign-in-promo",
++      "PanelUI-history-sync-promo",
++      "PanelUI-bookmarks-sync-promo",
++      "sync-tabs-menuitem",
++    ]) {
++      const el =
++        PanelMultiView.getViewNode(document, id) || document.getElementById(id);
++      if (el) {
++        el.hidden = true;
++      }
++    }
+   },
+ 
+   /**
+diff --git a/browser/components/preferences/config/account-sync.mjs b/browser/components/preferences/config/account-sync.mjs
+index 664a7dc..ddd4219 100644
+--- a/browser/components/preferences/config/account-sync.mjs
++++ b/browser/components/preferences/config/account-sync.mjs
+@@ -847,7 +847,7 @@ SettingGroupManager.registerGroups({
+   }),
+   accountDisabled: {
+     inProgress: true,
+-    hidden: accountsEnabled,
++    hidden: true,
+     items: [
+       {
+         id: "fxaAccountDisabled",
+diff --git a/browser/components/sidebar/SidebarManager.sys.mjs b/browser/components/sidebar/SidebarManager.sys.mjs
+index c067640..5ac6a34 100644
+--- a/browser/components/sidebar/SidebarManager.sys.mjs
++++ b/browser/components/sidebar/SidebarManager.sys.mjs
+@@ -26,8 +26,7 @@ const DEFAULT_HORIZONTAL_VISIBILITY = "hide-on-close";
+ // New panels that are ready to be introduced to new sidebar users should be added to this list;
+ // ensure your feature flag is enabled at the same time you do this and that its the same value as
+ // what you added to .
+-const DEFAULT_LAUNCHER_TOOLS =
+-  "opentabs,bookmarks,aichat,history,syncedtabs,passwords";
++const DEFAULT_LAUNCHER_TOOLS = "opentabs,bookmarks,history,passwords";
+ const lazy = {};
+ ChromeUtils.defineESModuleGetters(lazy, {
+   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",

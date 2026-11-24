@@ -1,6 +1,8 @@
+diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
+index 15a12b6..fe60f08 100644
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -150,9 +150,194 @@
+@@ -150,9 +150,190 @@ pref("app.update.notifyDuringDownload", false);
  // should no longer be used directly. Instead, getAppUpdateAutoEnabled and
  // getAppUpdateAutoEnabled from UpdateUtils.sys.mjs should be used.
  #ifndef XP_WIN
@@ -9,18 +11,18 @@
  #endif
  
 +// MISC. MERCURY SETTINGS
-+// Enable Do Not Track and GPC by default.
++// Enable Do Not Track by default (GPC is set in the privacy defaults block below).
 +pref("privacy.donottrackheader.enabled", true);
-+pref("privacy.globalprivacycontrol.enabled", true);
-+// Disable more telemetry
-+pref("toolkit.telemetry.enabled", false);
++// Disable more telemetry (core telemetry prefs are locked off in the block below).
 +pref("browser.ping-centre.telemetry", false);
 +pref("browser.attribution.enabled", false);
 +pref("toolkit.telemetry.pioneer-new-studies-available", false);
 +// Enables search SERP telemetry (impressions, engagements and abandonment)
 +pref("browser.search.serpEventTelemetry.enabled", false);
-+// Disable Auto Update
-+pref("app.update.auto", false);
++// Disable Auto Update on Windows too (non-Windows is set directly above).
++#ifdef XP_WIN
++  pref("app.update.auto", false);
++#endif
 +// Allow WebAudio to play automatically.
 +pref("media.autoplay.block-webaudio", false);
 +// Disable all annoying new tab page stuff except for top sites.
@@ -38,8 +40,7 @@
 +pref("browser.newtabpage.activity-stream.telemetry", false);
 +// Disable Firefox View
 +pref("browser.tabs.firefox-view", false);
-+// Enable AutoScrolling and Smooth Scroll by default
-+pref("general.autoScroll", true);
++// Enable Smooth Scroll by default (general.autoScroll is set in-place below).
 +pref("general.smoothScroll", true);
 +// Force enable GPU accelerated compositing and shader disk cache.
 +pref("layers.acceleration.force-enabled", true);
@@ -59,9 +60,8 @@
 +pref("gfx.webrender.svg-images.opacity", true);
 +pref("gfx.webrender.svg-filter-effects.also-convert-css-filters", true);
 +pref("gfx.canvas.accelerated", true);
-+// Always show menu bar and view image info.
++// Always show menu bar (browser.menu.showViewImageInfo is enabled in-place below).
 +// pref("ui.key.menuAccessKeyFocuses", false);
-+pref("browser.menu.showViewImageInfo", true);
 +// Disable overlay scrollbars and enable Vulkan HW video decode on Linux.
 +#if defined(XP_LINUX)
 +  pref("widget.gtk.overlay-scrollbars.enabled", false);
@@ -82,8 +82,6 @@
 +pref("browser.shell.defaultBrowserAgent.thanksURL", "https://thorium.rocks/mercury");
 +// Default top site tiles on the NTP
 +pref("browser.newtabpage.activity-stream.default.sites", "https://addons.mozilla.org,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/");
-+// Allow offline apps
-+pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
 +
 +// Betterfox Fastfox.js + Mercury Speed Tuning
 +pref("nglayout.initialpaint.delay", 0); // default=5; used to be 250
@@ -196,7 +194,18 @@
  // If set to true, the Update Service will apply updates in the background
  // when it finishes downloading them.
  pref("app.update.staging.enabled", true);
-@@ -250,7 +365,7 @@
+@@ -242,15 +423,15 @@ pref("extensions.update.interval", 86400);  // Check for updates to Extensions a
+   pref("browser.eme.ui.enabled", false);
+ #endif
+ 
+-// UI tour experience.
+-pref("browser.uitour.enabled", true);
++// UI tour experience (disabled in Mercury).
++pref("browser.uitour.enabled", false);
+ pref("browser.uitour.loglevel", "Error");
+-pref("browser.uitour.url", "https://www.mozilla.org/%LOCALE%/firefox/%VERSION%/tour/");
++pref("browser.uitour.url", "");
+ // How long to show a Hearbeat survey (two hours, in seconds)
  pref("browser.uitour.surveyDuration", 7200);
  
  #ifdef UNIX_BUT_NOT_MAC
@@ -205,7 +214,7 @@
  #else
    pref("general.autoScroll", true);
  #endif
-@@ -284,11 +399,11 @@
+@@ -284,11 +465,11 @@ pref("browser.compactmode.auto.threshold", "0.05");
  pref("browser.compactmode.show", false);
  
  // At startup, check if we're the default browser and prompt user if not.
@@ -220,7 +229,7 @@
  pref("browser.shell.defaultBrowserCheckCount", 0);
  #if defined(XP_WIN)
  // Attempt to set the default browser on Windows 10 using the UserChoice registry keys,
-@@ -299,7 +414,7 @@
+@@ -299,7 +480,7 @@ pref("browser.shell.setDefaultBrowserUserChoice", true);
  pref("browser.shell.setDefaultBrowserUserChoice.regRename", true);
  // When setting the default browser on Windows 10 using the UserChoice
  // registry keys, also try to set Firefox as the default PDF handler.
@@ -229,7 +238,7 @@
  // When setting Firefox as the default PDF handler (subject to conditions
  // above), only set Firefox as the default PDF handler when the existing handler
  // is a known browser, and not when existing handler is another PDF handler such
-@@ -334,7 +449,7 @@
+@@ -334,7 +515,7 @@ pref("browser.shell.setDefaultPDFHandler.attemptWaitTimeMs", 30000);
  
  // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
  // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
@@ -238,7 +247,7 @@
  pref("browser.startup.homepage",            "about:home");
  pref("browser.startup.homepage.abouthome_cache.enabled", true);
  pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
-@@ -379,7 +494,7 @@
+@@ -379,7 +560,7 @@ pref("browser.warnOnQuit", true);
  #if defined(XP_WIN)
    pref("browser.warnOnQuitShortcut", false);
  #else
@@ -247,7 +256,7 @@
  #endif
  
  // TODO bug 1702563: Renable fullscreen autohide by default on macOS.
-@@ -680,7 +795,7 @@
+@@ -680,7 +861,7 @@ pref("browser.urlbar.smartbar.maxResults", 7);
  // is longer than this.
  pref("browser.urlbar.maxCharsForSearchSuggestions", 100);
  
@@ -256,7 +265,7 @@
  pref("browser.urlbar.trimHttps", false);
  pref("browser.urlbar.trimWww", false);
  pref("browser.urlbar.untrimOnUserInteraction.featureGate", false);
-@@ -830,7 +945,7 @@
+@@ -830,7 +1011,7 @@ pref("browser.urlbar.yelp.serviceResultDistinction", false);
  
  // If `browser.urlbar.yelp.featureGate` is true, this controls whether
  // Yelp suggestions are turned on.
@@ -265,7 +274,7 @@
  
  // Feature gate pref for Fakespot suggestions in the urlbar.
  // TODO Bug 1982966: Remove this after all experiments and rollouts using it
-@@ -909,7 +1024,7 @@
+@@ -909,7 +1090,7 @@ pref("browser.urlbar.lastUrlbarSearchSeconds", 0);
  // their URLs with strings that explain why they're shown.
  pref("browser.urlbar.resultExplanations.featureGate", false);
  
@@ -274,7 +283,7 @@
  
  // Number of milliseconds to wait for the http headers (and thus
  // the Content-Disposition filename) before giving up and falling back to
-@@ -980,7 +1095,7 @@
+@@ -980,7 +1161,7 @@ pref("browser.search.separatePrivateDefault.featureGate", false);
  pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
  
  // Enables search SERP telemetry page categorization.
@@ -283,7 +292,7 @@
  
  // A count of Glean SERP categorization event metrics that have been recorded
  // but not yet submitted in a ping. Needed to prevent sending a ping with only
-@@ -1131,8 +1246,8 @@
+@@ -1131,8 +1312,8 @@ pref("browser.tabs.maxOpenBeforeWarn", 15);
  pref("browser.tabs.loadDivertedInBackground", false);
  pref("browser.tabs.loadBookmarksInBackground", false);
  pref("browser.tabs.loadBookmarksInTabs", false);
@@ -294,7 +303,7 @@
  
  // When tabs opened by links in other tabs via a combination of
  // browser.link.open_newwindow being set to 3 and target="_blank" etc are
-@@ -1218,7 +1333,7 @@
+@@ -1218,7 +1399,7 @@ pref("security.allow_parent_unrestricted_js_loads", false);
  #if defined(XP_MACOSX) || defined(XP_WIN)
      pref("browser.tabs.unloadOnLowMemory", true);
  #else
@@ -303,7 +312,7 @@
  #endif
  
  // Tab Unloader does not unload tabs whose last inactive period is longer than
-@@ -1299,7 +1414,7 @@
+@@ -1299,7 +1480,7 @@ pref("browser.bookmarks.openInTabClosesMenu", true);
  // the bookmarks toolbar as a default.
  pref("browser.bookmarks.defaultLocation", "toolbar");
  
@@ -312,7 +321,7 @@
  
  // Scripts & Windows prefs
  pref("dom.disable_open_during_load",              true);
-@@ -1445,7 +1560,9 @@
+@@ -1445,7 +1626,9 @@ pref("browser.history_swipe_animation.disabled", false);
    // who want to keep using this feature, let's enable it with alt+wheel.  This
    // is better for consistency with macOS users.
    pref("mousewheel.with_shift.action", 4);
@@ -322,7 +331,7 @@
  #endif
  
  pref("mousewheel.with_meta.action", 1);
-@@ -1534,7 +1651,7 @@
+@@ -1534,7 +1717,7 @@ pref("browser.proton.toolbar.version", 0);
  // 0 goes Back/Forward
  // 1 act like PgUp/PgDown
  // 2 and other values, nothing
@@ -331,7 +340,7 @@
  
  pref("intl.regional_prefs.use_os_locales", false);
  
-@@ -1592,11 +1709,11 @@
+@@ -1592,11 +1775,11 @@ pref("browser.sessionstore.logFlushIntervalSeconds", 3600);
  // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
  pref("browser.sessionstore.privacy_level", 0);
  // how many tabs can be reopened (per window)
@@ -345,7 +354,7 @@
  // number of crashes that can occur before the about:sessionrestore page is displayed
  // (this pref has no effect if more than 6 hours have passed since the last crash)
  pref("browser.sessionstore.max_resumed_crashes", 1);
-@@ -1611,7 +1728,7 @@
+@@ -1611,7 +1794,7 @@ pref("browser.sessionstore.max_serialize_forward", -1);
  // Selected tabs are always restored regardless of this pref.
  pref("browser.sessionstore.restore_on_demand", true);
  // Whether to automatically restore hidden tabs (i.e., tabs in other tab groups) or not
@@ -354,7 +363,7 @@
  // If restore_on_demand is set, pinned tabs are restored on startup by default.
  // When set to true, this pref overrides that behavior, and pinned tabs will only
  // be restored when they are focused.
-@@ -1795,20 +1912,20 @@
+@@ -1795,20 +1978,20 @@ pref("services.sync.prefs.sync.browser.contentblocking.features.strict", true);
  pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", true);
  pref("services.sync.prefs.sync.browser.ctrlTab.sortByRecentlyUsed", true);
  pref("services.sync.prefs.sync.browser.download.useDownloadDir", true);
@@ -381,7 +390,7 @@
  // Some linux distributions disable all highlights by default.
  pref("services.sync.prefs.sync-seen.browser.newtabpage.activity-stream.section.highlights", false);
  pref("services.sync.prefs.sync.browser.newtabpage.activity-stream.section.highlights.includeVisited", true);
-@@ -1937,7 +2054,7 @@
+@@ -1937,7 +2120,7 @@ pref("browser.topsites.component.enabled", false);
  
  pref("browser.topsites.useRemoteSetting", true);
  // Fetch sponsored Top Sites from Mozilla Tiles Service (Contile)
@@ -390,7 +399,22 @@
  pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
  
  // Activates preloading of the new tab url.
-@@ -1982,8 +2099,9 @@
+@@ -1968,12 +2151,8 @@ pref("termsofuse.minimumVersion", 4);
+ #endif
+ 
+ // Should we bypass auto-triggering actions that show an OS-level consent
+-// prompt, currently only true for local/non-official builds
+-#ifdef MOZILLA_OFFICIAL
+-  pref("browser.bypassAutoTriggerActions", false);
+-#else
+-  pref("browser.bypassAutoTriggerActions", true);
+-#endif
++// prompt (always bypassed in Mercury, including official builds).
++pref("browser.bypassAutoTriggerActions", true);
+ 
+ // Show "Download Firefox for mobile" QR code modal on newtab
+ pref("browser.newtabpage.activity-stream.mobileDownloadModal.enabled", false);
+@@ -1982,8 +2161,9 @@ pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-b", false);
  pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-c", false);
  
  // Mozilla Ad Routing Service (MARS) unified ads service
@@ -402,7 +426,15 @@
  pref("browser.newtabpage.activity-stream.unifiedAds.endpoint", "https://ads.mozilla.org/");
  pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled", false);
  pref("browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled", true);
-@@ -2095,7 +2213,7 @@
+@@ -2088,14 +2268,14 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiment
+ // ASRouter user prefs
+ pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
+ pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", true);
+-pref("messaging-system.askForFeedback", true);
++pref("messaging-system.askForFeedback", false);
+ 
+ // The pref that controls if ASRouter uses the remote fluent files.
+ // It's enabled by default, but could be disabled to force ASRouter to use the local files.
  pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
  
  // These prefs control if Discovery Stream is enabled.
@@ -411,7 +443,7 @@
  pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hybridLayout.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
-@@ -2108,7 +2226,7 @@
+@@ -2108,7 +2288,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.compactImages.enabled",
  pref("browser.newtabpage.activity-stream.discoverystream.imageGradient.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.titleLines", 3);
  pref("browser.newtabpage.activity-stream.discoverystream.descLines", 3);
@@ -420,50 +452,86 @@
  pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabled", false);
  pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
  
-@@ -2652,19 +2770,19 @@
+@@ -2244,15 +2424,12 @@ pref("browser.newtabpage.trainhopAddon.xpiBaseURL", "https://archive.mozilla.org
  
- // Telemetry settings.
- // Determines if Telemetry pings can be archived locally.
--pref("toolkit.telemetry.archive.enabled", true);
-+pref("toolkit.telemetry.archive.enabled", false);
- // Enables sending the shutdown ping when Firefox shuts down.
--pref("toolkit.telemetry.shutdownPingSender.enabled", true);
-+pref("toolkit.telemetry.shutdownPingSender.enabled", false);
- // Enables using the `pingsender` background task.
- pref("toolkit.telemetry.shutdownPingSender.backgroundtask.enabled", false);
- // Enables sending the shutdown ping using the pingsender from the first session.
- pref("toolkit.telemetry.shutdownPingSender.enabledFirstSession", false);
- // Enables sending a duplicate of the first shutdown ping from the first session.
--pref("toolkit.telemetry.firstShutdownPing.enabled", true);
-+pref("toolkit.telemetry.firstShutdownPing.enabled", false);
- // Enables sending the 'new-profile' ping on new profiles.
--pref("toolkit.telemetry.newProfilePing.enabled", true);
-+pref("toolkit.telemetry.newProfilePing.enabled", false);
- // Enables sending 'bhr' pings when the browser hangs.
--pref("toolkit.telemetry.bhrPing.enabled", true);
-+pref("toolkit.telemetry.bhrPing.enabled", false);
+ pref("browser.newtabpage.sponsor-protection.enabled", true);
  
- // Enable GMP support in the addon manager.
- pref("media.gmp-provider.enabled", true);
-@@ -3101,7 +3219,7 @@
- // Normandy client preferences
- pref("app.normandy.api_url", "https://normandy.cdn.mozilla.net/api/v1");
- pref("app.normandy.dev_mode", false);
--pref("app.normandy.enabled", true);
-+pref("app.normandy.enabled", false);
- pref("app.normandy.first_run", true);
- pref("app.normandy.logging.level", 50); // Warn
- pref("app.normandy.run_interval_seconds", 21600); // 6 hours
-@@ -3141,7 +3259,7 @@
- #endif
+-// Separate about welcome
+-pref("browser.aboutwelcome.enabled", true);
++// Separate about welcome (disabled in Mercury).
++pref("browser.aboutwelcome.enabled", false);
+ // Used to set multistage welcome UX
+ pref("browser.aboutwelcome.screens", "");
+ // Whether to gate loading about:welcome on Nimbus experiments having loaded.
+-// The gate shows a splash screen while experiments load, then auto-advances.
+-// On platforms where experiments are already loaded when the modal opens,
+-// skipSplashIfLoaded causes the splash to be skipped via screen targeting.
+-pref("browser.aboutwelcome.experimentsGate.enabled", true);
++pref("browser.aboutwelcome.experimentsGate.enabled", false);
+ // Whether to skip showing the experiment loading splash screen if Nimbus is
+ // already initialized when the preonboarding modal's screen targeting is
+ // evaluated.
+@@ -2334,7 +2511,7 @@ pref("sidebar.animation.expand-on-hover.delay-duration-ms", 200);
+ // This pref is used to store user customized tools in the sidebar launcher and shouldn't be changed.
+ // See https://firefox-source-docs.mozilla.org/browser/components/sidebar/docs/index.html for ways
+ // you can introduce a new tool to the sidebar launcher.
+-pref("sidebar.main.tools", "");
++pref("sidebar.main.tools", "opentabs,bookmarks,history,passwords");
+ pref("sidebar.installed.extensions", "");
+ pref("sidebar.verticalTabs", false);
+ pref("sidebar.verticalTabs.dragToPinPromo.dismissed", false);
+@@ -2533,8 +2710,8 @@ pref("browser.uiCustomization.debug", false);
+ pref("browser.uiCustomization.state", "");
  
- // Enable personalized extension recommendations
--pref("browser.discovery.enabled", true);
-+pref("browser.discovery.enabled", false);
+ // If set to false, FxAccounts and Sync will be unavailable.
+-// A restart is mandatory after flipping that preference.
+-pref("identity.fxaccounts.enabled", true);
++// Mercury: disabled by default.
++pref("identity.fxaccounts.enabled", false);
  
- pref("browser.engagement.recent_visited_origins.expiry", 86400); // 24 * 60 * 60 (24 hours in seconds)
- pref("browser.engagement.downloads-button.has-used", false);
-@@ -3151,7 +3269,7 @@
+ // The remote FxA root content URL. Must use HTTPS.
+ pref("identity.fxaccounts.remote.root", "https://accounts.firefox.com/");
+@@ -2549,7 +2726,7 @@ pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox
+ pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
+ 
+ // Whether FxA pairing using QR codes is enabled.
+-pref("identity.fxaccounts.pairing.enabled", true);
++pref("identity.fxaccounts.pairing.enabled", false);
+ 
+ // The version of the pairing flow to be used by FxA.
+ pref("identity.fxaccounts.pairing.version", 2);
+@@ -2581,14 +2758,14 @@ pref("identity.fxaccounts.commands.missed.fetch_interval", 86400);
+ 
+ // Controls whether this client can send and receive "close tab"
+ // commands from other FxA clients
+-pref("identity.fxaccounts.commands.remoteTabManagement.enabled", true);
++pref("identity.fxaccounts.commands.remoteTabManagement.enabled", false);
+ 
+ // Controls whether or not the client association ping has values set on it
+ // when the sync-ui-state:update notification fires.
+-pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", true);
++pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", false);
+ 
+ // Controls whether the fxAccouintsClientInfo ping is submitted.
+-pref("identity.fxaccounts.telemetry.clientInfoPing.enabled", true);
++pref("identity.fxaccounts.telemetry.clientInfoPing.enabled", false);
+ 
+ // Note: when media.gmp-*.visible is true, provided we're running on a
+ // supported platform/OS version, the corresponding CDM appears in the
+@@ -2801,10 +2978,10 @@ pref("browser.vpn_promo.enabled", true);
+ pref("browser.contentblocking.report.vpn_regions", "as,at,au,bd,be,bg,br,ca,ch,cl,co,cy,cz,de,dk,ee,eg,es,fi,fr,gb,gg,gr,hr,hu,id,ie,im,in,io,it,je,ke,kr,lt,lu,lv,ma,mp,mt,mx,my,ng,nl,no,nz,pl,pr,pt,ro,sa,se,sg,si,sk,sn,th,tr,tw,ua,ug,uk,um,us,vg,vi,vn,za");
+ 
+ // Default to enabling pin promos to be shown where allowed.
+-pref("browser.promo.pin.enabled", true);
++pref("browser.promo.pin.enabled", false);
+ 
+ // Default to enabling Relay promos to be shown where allowed.
+-pref("browser.promo.relay.enabled", true);
++pref("browser.promo.relay.enabled", false);
+ 
+ pref("browser.contentblocking.report.hide_vpn_banner", false);
+ pref("browser.contentblocking.report.vpn_sub_id", "sub_HrfCZF7VPHzZkA");
+@@ -3151,7 +3328,7 @@ pref("browser.engagement.sidebar-button.has-used", false);
  pref("browser.engagement.library-button.has-used", false);
  pref("browser.engagement.ctrlTab.has-used", false);
  
@@ -472,7 +540,7 @@
  
  pref("browser.toolbars.keyboard_navigation", true);
  
-@@ -3159,7 +3277,7 @@
+@@ -3159,7 +3336,7 @@ pref("browser.toolbars.keyboard_navigation", true);
  // "newtab": Show on the New Tab Page
  // "always": Always show
  // "never": Never show
@@ -481,26 +549,39 @@
  
  // Visibility of the "Show Other Bookmarks" menuitem in the
  // bookmarks toolbar contextmenu.
-@@ -3186,14 +3304,14 @@
+@@ -3184,16 +3361,16 @@ pref("security.certerrors.felt-privacy-v1", true);
+ // This pref will surface existing Firefox Account information
+ // as a button next to the hamburger menu. It allows
  // quick access to sign-in and manage your Firefox Account.
- pref("identity.fxaccounts.toolbar.enabled", true);
+-pref("identity.fxaccounts.toolbar.enabled", true);
++pref("identity.fxaccounts.toolbar.enabled", false);
  pref("identity.fxaccounts.toolbar.accessed", false);
 -pref("identity.fxaccounts.toolbar.defaultVisible", true);
 +pref("identity.fxaccounts.toolbar.defaultVisible", false);
  
  // Prefs to control Firefox Account panels that shows call to actions
  // for other supported Mozilla products
- pref("identity.fxaccounts.toolbar.pxiToolbarEnabled", true);
+-pref("identity.fxaccounts.toolbar.pxiToolbarEnabled", true);
 -pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.monitorEnabled", true);
 -pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.relayEnabled", true);
 -pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled", true);
++pref("identity.fxaccounts.toolbar.pxiToolbarEnabled", false);
 +pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.monitorEnabled", false);
 +pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.relayEnabled", false);
 +pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled", false);
  
  // Prefs to control Mozilla account panels that shows an updated flow
  // for users who don't have sync enabled
-@@ -3242,9 +3360,9 @@
+@@ -3202,7 +3379,7 @@ pref("identity.fxaccounts.toolbar.syncSetup.panelAccessed", false);
+ // Whether the user dismissed the app menu's sign-in promo. Once dismissed, the
+ // promo is never shown again and the compact sign-in row takes its place. Only
+ // the app menu's promo is dismissible; the account menu's is not (bug 2070687).
+-pref("identity.fxaccounts.toolbar.appMenuSignInPromo.dismissed", false);
++pref("identity.fxaccounts.toolbar.appMenuSignInPromo.dismissed", true);
+ 
+ // Toolbox preferences
+ pref("devtools.toolbox.footer.height", 250);
+@@ -3242,9 +3419,9 @@ pref("devtools.command-button-measure.enabled", false);
  pref("devtools.command-button-noautohide.enabled", false);
  pref("devtools.command-button-errorcount.enabled", true);
  pref("devtools.command-button-jstracer.enabled", false);
@@ -512,7 +593,7 @@
  
  // Inspector preferences
  // Enable the Inspector
-@@ -3644,7 +3762,7 @@
+@@ -3644,7 +3821,7 @@ pref("first-startup.category-tasks-enabled", true);
  #ifdef MOZ_DEV_EDITION
    pref("browser.menu.showViewImageInfo", true);
  #else
@@ -521,15 +602,16 @@
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3909,3 +4041,207 @@
+@@ -3909,3 +4086,290 @@ pref("distribution.mozillaonline.ignore", true);
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
 +
 +// MERCURY: DE-GOOGLE AND PRIVACY DEFAULTS
 +// These come last so they win over any earlier definition in this file.
-+// Search: Google is filtered out of the search config (SearchEngineSelector
-+// patch) and DuckDuckGo is the default; no Google/Amazon search shortcut tiles
++// Search: commercial spam engines (eBay/Perplexity/Amazon) are filtered out of
++// the search config (SearchEngineSelector patch), curated privacy/SearXNG
++// engines are added, and DuckDuckGo is the default; no search shortcut tiles
 +// on the new tab page, and no "Search image with Google Lens".
 +pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
 +pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts.searchEngines", "");
@@ -573,38 +655,73 @@
 +// Real security features are untouched: Mozilla tracking-protection lists,
 +// CRLite/OCSP, HTTPS-Only, and remote settings for certificate revocation
 +// and the add-on blocklist all keep working.
-+// Telemetry and data upload (Glean and legacy telemetry).
-+pref("datareporting.healthreport.uploadEnabled", false);
-+pref("datareporting.policy.dataSubmissionEnabled", false);
-+pref("datareporting.usage.uploadEnabled", false);
-+pref("toolkit.telemetry.enabled", false);
-+pref("toolkit.telemetry.unified", false);
-+pref("toolkit.telemetry.archive.enabled", false);
-+pref("toolkit.telemetry.server", "data:,");
-+pref("toolkit.telemetry.newProfilePing.enabled", false);
-+pref("toolkit.telemetry.shutdownPingSender.enabled", false);
-+pref("toolkit.telemetry.firstShutdownPing.enabled", false);
-+pref("toolkit.telemetry.bhrPing.enabled", false);
-+pref("toolkit.telemetry.user_characteristics_ping.opt-out", true);
++// Telemetry, studies, and crash reporting: permanently locked OFF in Mercury
++// so Data Collection toggles cannot be accidentally re-enabled.
++lockPref("datareporting.healthreport.uploadEnabled", false);
++lockPref("datareporting.policy.dataSubmissionEnabled", false);
++lockPref("datareporting.usage.uploadEnabled", false);
++lockPref("toolkit.telemetry.enabled", false);
++lockPref("toolkit.telemetry.unified", false);
++lockPref("toolkit.telemetry.archive.enabled", false);
++lockPref("toolkit.telemetry.server", "data:,");
++lockPref("toolkit.telemetry.newProfilePing.enabled", false);
++lockPref("toolkit.telemetry.shutdownPingSender.enabled", false);
++lockPref("toolkit.telemetry.firstShutdownPing.enabled", false);
++lockPref("toolkit.telemetry.bhrPing.enabled", false);
++lockPref("toolkit.telemetry.user_characteristics_ping.opt-out", true);
 +pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
 +pref("network.http.akamai_waf_telemetry.enabled", false);
-+pref("browser.search.serpEventTelemetryCategorization.enabled", false);
-+// Studies, Normandy and Nimbus experiments/rollouts. Firefox Labs stays
-+// available in Settings (it's opt-in per feature).
-+pref("app.shield.optoutstudies.enabled", false);
-+pref("app.normandy.enabled", false);
-+pref("app.normandy.api_url", "");
-+pref("nimbus.rollouts.enabled", false);
-+// Crash reports: never sent automatically (manual submission from
-+// about:crashes still works).
-+pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
-+pref("browser.tabs.crashReporting.sendReport", false);
-+// Sponsored content and ad-related remote settings (see also the new-tab
-+// block above): no sponsored top sites in the URL bar, no Firefox Suggest,
-+// no trending searches.
++// Data reporting policy & Terms of Use / Privacy Notice "Agree" modals,
++// infobars, first-run privacy tabs, and preonboarding splash: locked OFF.
++lockPref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
++lockPref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 999);
++lockPref("datareporting.policy.dataSubmissionPolicyNotifiedTime", "1735689600000");
++lockPref("datareporting.policy.firstRunURL", "");
++lockPref("termsofuse.bypassNotification", true);
++lockPref("termsofuse.acceptedVersion", 999);
++lockPref("termsofuse.acceptedDate", "1735689600000");
++lockPref("termsofuse.firstAcceptedDate", "1735689600000");
++lockPref("browser.preonboarding.enabled", false);
++lockPref("browser.preonboarding.requireAction", false);
++lockPref("browser.preonboarding.splashShown", true);
++pref("browser.termsofuse.prefMigrationCheck", true);
++// Suppress first-run welcome, upgrade dialogs, and What's New tabs.
++pref("trailhead.firstrun.didSeeAboutWelcome", true);
++pref("browser.startup.homepage_override.mstone", "ignore");
++pref("startup.homepage_welcome_url", "");
++pref("startup.homepage_welcome_url.additional", "");
++pref("startup.homepage_override_url", "");
++pref("browser.startup.upgradeDialog.version", 999);
++pref("browser.messaging-system.whatsNewPanel.enabled", false);
++// Studies, Normandy and Nimbus experiments/rollouts: permanently locked OFF.
++lockPref("app.shield.optoutstudies.enabled", false);
++lockPref("app.normandy.enabled", false);
++lockPref("app.normandy.api_url", "");
++lockPref("nimbus.rollouts.enabled", false);
++// Crash reports: permanently locked OFF; never submit or prompt.
++lockPref("browser.crashReports.unsubmittedCheck.enabled", false);
++lockPref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
++lockPref("browser.tabs.crashReporting.sendReport", false);
++lockPref("breakpad.reportURL", "");
++// Sponsored content, browser suggestions, and search suggestions: ALL off by default.
++pref("browser.search.suggest.enabled", false);
++pref("browser.urlbar.suggest.searches", false);
++pref("browser.urlbar.suggest.topsites", false);
++pref("browser.urlbar.suggest.recentsearches", false);
++pref("browser.urlbar.suggest.quickactions", false);
++pref("browser.urlbar.suggest.addons", false);
++pref("browser.urlbar.suggest.amp", false);
++pref("browser.urlbar.suggest.mdn", false);
++pref("browser.urlbar.suggest.wikipedia", false);
++pref("browser.urlbar.suggest.sports", false);
++pref("browser.urlbar.suggest.importantDates", false);
++pref("browser.urlbar.suggest.yelpRealtime", false);
++pref("browser.urlbar.suggest.realtimeOptIn", false);
++pref("browser.urlbar.suggest.temporal", false);
++pref("browser.urlbar.suggest.temporal.seasonal", false);
 +pref("browser.urlbar.sponsoredTopSites", false);
-+pref("browser.topsites.contile.enabled", false);
 +pref("browser.urlbar.quicksuggest.enabled", false);
++pref("browser.urlbar.suggest.quicksuggest.all", false);
 +pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
 +pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
 +pref("browser.urlbar.trending.featureGate", false);
@@ -621,18 +738,19 @@
 +// Pocket leftovers and new-tab personalization.
 +pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", false);
 +pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", false);
-+// Mozilla account / sync / VPN / product promos (sync itself still works).
-+pref("identity.fxaccounts.toolbar.pxiToolbarEnabled", false);
++// Mozilla account / Sync / VPN / product promos: disabled by default
++// (core identity.fxaccounts.* prefs are also disabled in-place above and via
++// policies/policies.json DisableFirefoxAccounts).
++pref("browser.promo.syncPromo.history.signin.dismissed", true);
++pref("browser.promo.syncPromo.bookmarks.signin.dismissed", true);
 +pref("browser.preferences.moreFromMozilla", false);
 +pref("browser.vpn_promo.enabled", false);
-+pref("browser.promo.pin.enabled", false);
 +pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
 +pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
 +pref("extensions.htmlaboutaddons.recommendations.enabled", false);
-+pref("browser.discovery.enabled", false);
++lockPref("browser.discovery.enabled", false);
 +// Default browser agent (Windows scheduled task) and its pings.
 +pref("default-browser-agent.enabled", false);
-+pref("browser.shell.checkDefaultBrowser", false);
 +
 +// Optional AI features: all present but off by default. Nothing is loaded
 +// and no model is downloaded until the user turns a feature on.
@@ -678,54 +796,100 @@
 +// button in the address bar, or turn the offer back on in Settings.
 +pref("browser.translations.automaticallyPopup", false);
 +
-+// MERCURY: PRIVACY OPTIONS (see docs/PRIVACY-OPTIONS.md)
-+// Low-cost protections that are on by default. None of them measurably
-+// slows browsing.
-+// Fingerprinting protection (FPP) in normal windows, not just private ones.
-+// Keep canvas randomization and screen/touch normalization in normal windows,
-+// but don't force software fdlibm for JS Math.* or cap
-+// navigator.hardwareConcurrency on multi-core CPUs (Hardened mode clears
-+// this override and turns on full RFP).
++// MERCURY: "HIDE IN PLAIN SIGHT" CROWD-BLENDING & BLEEDING-EDGE SECURITY
++// Enhanced Tracking Protection: Strict by default (blocks 3rd-party tracking
++// scripts, social/email/cryptomining/fingerprinting trackers, and enables
++// query stripping + Total Cookie Protection).
++pref("browser.contentblocking.category", "strict");
++pref("privacy.trackingprotection.enabled", true);
++pref("privacy.trackingprotection.socialtracking.enabled", true);
++pref("privacy.trackingprotection.emailtracking.enabled", true);
++pref("privacy.trackingprotection.cryptomining.enabled", true);
++pref("privacy.trackingprotection.fingerprinting.enabled", true);
++pref("privacy.annotate_channels.strict_list.enabled", true);
++pref("privacy.trackingprotection.allow_list.convenience.enabled", false);
++
++// Crowd-Blend Fingerprinting Protection (Tor / Mullvad anonymity-set model):
++// Keeps standard Web APIs present so Mercury blends into the modern Firefox
++// crowd without breaking sites, while sanitizing GPU model (Nightly-only
++// WebGLRendererConstant + WebGLVendorSanitize), efficient sparse canvas noise
++// (zero GPU rendering FPS loss), tiered CPU cores (4/8), OS font visibility,
++// taskbar/screen bounds, audio sample rate, gamepad/sensor/media/speech/CSS
++// hardware entropy. Preserves system dark/light theme (-CSSPrefersColorScheme)
++// and native AVX2 JS Math speed (-JSMathFdlibm).
 +pref("privacy.fingerprintingProtection", true);
-+pref("privacy.fingerprintingProtection.overrides", "-JSMathFdlibm,-NavigatorHWConcurrencyTiered,-CanvasRandomization");
++pref("privacy.fingerprintingProtection.pbmode", true);
++pref("privacy.fingerprintingProtection.overrides", "+EfficientCanvasRandomization,-CanvasRandomization,+FontVisibilityLangPack,+ScreenAvailToResolution,+NavigatorHWConcurrencyTiered,+MaxTouchPointsCollapse,+IMEStyle,+WebGLRendererConstant,+WebGLVendorSanitize,+Gamepad,+DeviceSensors,+AudioSampleRate,+MediaDevices,+SpeechSynthesis,+NetworkConnection,+CSSColorInfo,+CSSVideoDynamicRange,+CSSPointerCapabilities,+VideoElementPlaybackQuality,-JSMathFdlibm,-CSSPrefersColorScheme");
 +pref("privacy.resistFingerprinting.randomization.canvas.use_siphash", true);
++pref("mercury.rfp.preserveSystemTheme", true);
++pref("mercury.security.level", "standard");
++
++// DNS-over-HTTPS enabled by default with AdGuard Ad & Tracker Blocking DNS
++// (Increased Protection: graceful captive-portal/LAN fallback). Paired with
++// ECH below, this also fetches HTTPS/SVCB DNS records to encrypt TLS SNI.
++pref("network.trr.mode", 2);
++pref("network.trr.uri", "https://dns.adguard-dns.com/dns-query");
++pref("network.trr.default_provider_uri", "https://dns.adguard-dns.com/dns-query");
++pref("doh-rollout.uri", "https://dns.adguard-dns.com/dns-query");
++pref("doh-rollout.provider-list", "[{\"UIName\":\"AdGuard DNS (Ad & Tracker Blocking)\",\"uri\":\"https://dns.adguard-dns.com/dns-query\",\"canonicalName\":\"adguard\"},{\"UIName\":\"Quad9 (Security Blocking)\",\"uri\":\"https://dns.quad9.net/dns-query\",\"canonicalName\":\"quad9\"},{\"UIName\":\"Mullvad DNS (Ad & Tracker Blocking)\",\"uri\":\"https://adblock.dns.mullvad.net/dns-query\",\"canonicalName\":\"mullvad\"},{\"UIName\":\"Cloudflare\",\"uri\":\"https://mozilla.cloudflare-dns.com/dns-query\",\"canonicalName\":\"cloudflare\"},{\"UIName\":\"NextDNS\",\"uri\":\"https://firefox.dns.nextdns.io/\",\"canonicalName\":\"nextdns\"}]");
++
++// Bleeding-edge Gecko 160 security & network privacy (zero web breakage):
++// - Post-Quantum WebRTC DTLS ML-KEM-768 + TLS NIST Level-5 ML-KEM-1024
++pref("media.webrtc.send_mlkem_keyshare", true);
++pref("security.tls.enable_kyber", true);
++pref("security.tls.enable_mlkem1024", true);
++pref("network.http.http3.enable_kyber", true);
++// - Encrypted Client Hello (ECH) for HTTP/1.1, HTTP/2, HTTP/3
++pref("network.dns.echconfig.enabled", true);
++pref("network.dns.http3_echconfig.enabled", true);
++// - Active Bounce Tracking Purge (mode 1 instead of Release dry-run mode 3)
++pref("privacy.bounceTrackingProtection.mode", 1);
++// - Full Local Network Access (LNA) defense: blocks 3rd-party trackers and
++//   insecure http:// sites from scanning localhost/LAN (localhost stays trusted)
++pref("network.lna.blocking", true);
++pref("network.lna.block_trackers", true);
++pref("network.lna.block_insecure_contexts", true);
++// - Schemeful SameSite cookies (prevents http->https cookie injection)
++pref("network.cookie.sameSite.schemeful", true);
++// - Disable TLS 1.3 & HTTP/3 0-RTT (stops replay attacks & ticket linkability)
++pref("security.tls.enable_0rtt_data", false);
++pref("network.http.http3.enable_0rtt", false);
++// - HTTPS-First + Mixed-Content auto-upgrade + unsafe renegotiation warning
++pref("dom.security.https_first", true);
++pref("dom.security.https_first_pbm", true);
++pref("dom.security.https_first_schemeless", true);
++pref("security.mixed_content.upgrade_display_content", true);
++pref("security.ssl.treat_unsafe_negotiation_as_broken", true);
++// - Beacons, link pings, subresource HTTP auth, clipboard cloud isolation
 +pref("beacon.enabled", false);
 +pref("browser.send_pings", false);
-+pref("webgl.enable-debug-renderer-info", false);
-+pref("dom.battery.enabled", false);
-+pref("dom.gamepad.enabled", false);
-+pref("device.sensors.enabled", false);
 +pref("network.auth.subresource-http-auth-allow", 1);
-+// Strip known tracking parameters (fbclid, mc_eid, ...) from links in normal
-+// and private windows (Firefox only does this in Strict mode).
++pref("clipboard.copyPrivateDataToClipboardCloudOrHistory", false);
++// - Query parameter stripping on navigation AND copy/share links
 +pref("privacy.query_stripping.enabled", true);
 +pref("privacy.query_stripping.enabled.pbmode", true);
-+// WebGPU off (exposes GPU adapter details; little uses it yet). Linux
-+// release builds already have it off; this covers Windows and macOS.
++pref("privacy.query_stripping.strip_on_share.enabled", true);
++// - Global Privacy Control (GPC)
++pref("privacy.globalprivacycontrol.enabled", true);
++// - WebGPU off by default (toggleable in Settings > Mercury)
 +pref("dom.webgpu.enabled", false);
-+// Cross-origin requests send only the origin as referrer, even if the page
-+// asks for more.
++// - Cross-origin referer trimming + block cross-site unsafe-url overrides
 +pref("network.http.referer.XOriginTrimmingPolicy", 2);
-+// If a proxy is configured, WebRTC must use it too (no IP leak around it).
++pref("network.http.referer.disallowCrossSiteRelaxingDefault", true);
++pref("network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation", true);
++// - WebRTC: mask private LAN host IPs while keeping voice/video calls working
++pref("media.peerconnection.ice.default_address_only", true);
++pref("media.peerconnection.ice.no_host", true);
 +pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
-+// No OCSP requests (they tell the certificate authority which sites you
-+// visit). Revocation is checked locally with CRLite, which enforces in
-+// Firefox 159 and 160 (security.pki.crlite_mode=2). Stapled OCSP responses are still
-+// checked. Trade-off: certificates from private or enterprise CAs (not in
-+// CRLite) are no longer checked for revocation.
++// - Zero-leak offline cert revocation (CRLite mode 2 + CT mode 2, no live OCSP)
++pref("security.pki.crlite_mode", 2);
++pref("security.pki.certificate_transparency.mode", 2);
 +pref("security.OCSP.enabled", 0);
-+// No JavaScript inside PDFs opened in the built-in viewer.
++// - No JavaScript inside PDFs opened in the built-in viewer
 +pref("pdfjs.enableScripting", false);
-+// Delete temporary files opened with external apps when Mercury exits
-+// (already the default outside macOS).
++// - Delete temporary files opened with external apps on exit
 +pref("browser.helperApps.deleteTempFileOnExit", true);
 +
-+// Hardened mode: one switch in Settings > Privacy & Security that turns on
-+// stricter, slower, sometimes site-breaking protections. Off by default.
-+// See browser/components/mercury/MercuryHardened.sys.mjs for the list.
++// Hardened / Mullvad-Tor Blend mode: one switch in Settings > Mercury.
 +pref("mercury.hardened.enabled", false);
-+// DNS-over-HTTPS resolver used by Hardened mode, unless you picked a provider
-+// in Settings. Quad9 (Switzerland, non-profit). Alternatives:
-+// https://dns.mullvad.net/dns-query, https://dns10.quad9.net/dns-query
-+// (Quad9 without malware blocking).
-+pref("mercury.hardened.doh.uri", "https://dns.quad9.net/dns-query");
++pref("mercury.hardened.doh.uri", "https://dns.adguard-dns.com/dns-query");
