@@ -359,7 +359,7 @@ await test("newIdentity invokes Services.clearData.deleteData with expected flag
   assert.equal(burnerPurged, true);
 });
 
-await test("CROWD_BLEND_OVERRIDES targets exist in Firefox 160 RFPTargets.inc and match 0003; strip_list excludes functional params", () => {
+await test("CROWD_BLEND_OVERRIDES targets exist in Firefox 161 RFPTargets.inc and match 0003; strip_list excludes functional params", () => {
   const overrides = mod.CROWD_BLEND_OVERRIDES.split(",").map(s => s.trim()).filter(Boolean);
   assert.equal(overrides.length, 36);
   const targets = overrides.map(tok => {
@@ -463,10 +463,10 @@ await test("desktop Mercury settings pane l10n IDs, groups, settings, and pref s
     "mercury.mjs must not call Preferences.add/addAll to avoid cross-pane pref collisions"
   );
 
-  // Must use real Firefox 160 pref name gfx.webrender.svg-shapes.
+  // Must use real Firefox 161 pref name gfx.webrender.svg-shapes.
   assert.ok(
     !mercuryMjs.includes("gfx.webrender.svg-shapes.enabled"),
-    "gfx.webrender.svg-shapes.enabled does not exist in Firefox 160"
+    "gfx.webrender.svg-shapes.enabled does not exist in Firefox 161"
   );
   assert.ok(mercuryMjs.includes('"gfx.webrender.svg-shapes"'));
 

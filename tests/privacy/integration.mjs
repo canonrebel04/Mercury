@@ -13,11 +13,12 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import http from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
 const BIN = process.env.MERCURY_BIN;
@@ -162,9 +163,21 @@ const readPrefs = names => `
   return out;`;
 const userValues = names => `return ${JSON.stringify(names)}.filter(n => Services.prefs.prefHasUserValue(n));`;
 
+// The FPP override list is long and tuned often; take the expected value from
+// patch 0003 (hardened-unit.mjs checks it against RFPTargets.inc).
+const FPP_OVERRIDES = (() => {
+  const p0003 = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../../patches/firefox/0003-browser-app-profile-firefox.js.patch"),
+    "utf8"
+  );
+  const m = p0003.match(/^\+\s*pref\("privacy\.fingerprintingProtection\.overrides",\s*"([^"]*)"/m);
+  assert.ok(m, "0003 must set privacy.fingerprintingProtection.overrides");
+  return m[1];
+})();
+
 const DEFAULT_ON = {
   "privacy.fingerprintingProtection": true,
-  "privacy.fingerprintingProtection.overrides": "-JSMathFdlibm,-NavigatorHWConcurrencyTiered,-CanvasRandomization",
+  "privacy.fingerprintingProtection.overrides": FPP_OVERRIDES,
   "privacy.query_stripping.enabled": true,
   "privacy.query_stripping.enabled.pbmode": true,
   "dom.webgpu.enabled": false,
@@ -180,7 +193,8 @@ const DEFAULT_ON = {
 const HARDENED = {
   "privacy.resistFingerprinting": true,
   "privacy.resistFingerprinting.letterboxing": true,
-  "privacy.fingerprintingProtection.overrides": "",
+  // mercury.rfp.preserveSystemTheme defaults to true.
+  "privacy.fingerprintingProtection.overrides": "-CSSPrefersColorScheme",
   "browser.contentblocking.category": "strict",
   "privacy.sanitize.sanitizeOnShutdown": true,
   "privacy.clearOnShutdown_v2.cookiesAndStorage": true,
@@ -189,7 +203,7 @@ const HARDENED = {
   "privacy.clearOnShutdown_v2.formdata": false,
   "dom.security.https_only_mode": true,
   "network.trr.mode": 2,
-  "network.trr.uri": "https://dns.quad9.net/dns-query",
+  "network.trr.uri": "https://dns.adguard-dns.com/dns-query",
   "browser.urlbar.speculativeConnect.enabled": false,
   "browser.places.speculativeConnect.enabled": false,
   "network.http.speculative-parallel-limit": 0,

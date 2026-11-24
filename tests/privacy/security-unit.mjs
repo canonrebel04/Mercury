@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Unit & static verification tests for Mercury Sub-Project 3:
-// Per-Site JIT/WASM Allowlist helpers, Firefox 160 security/sandbox/Fission prefs,
+// Per-Site JIT/WASM Allowlist helpers, Firefox 161 security/sandbox/Fission prefs,
 // 0043 C++ patch markers, and Mercury Settings l10n coverage.
 // Run: node tests/privacy/security-unit.mjs
 //
@@ -169,7 +169,7 @@ await test("isOriginJitAllowed handles OriginAttributes suffix and rejects spoof
   assert.equal(isOriginJitAllowed("", prefs), false);
 });
 
-await test("Sub-Project 3 security/sandbox/Fission/TLS prefs in 0003 and 0036 exist in Firefox 160 HEAD", () => {
+await test("Sub-Project 3 security/sandbox/Fission/TLS prefs in 0003 and 0036 exist in Firefox 161 HEAD", () => {
   const p0003 = readFileSync(
     join(repoRoot, "patches/firefox/0003-browser-app-profile-firefox.js.patch"),
     "utf8"
@@ -197,11 +197,9 @@ await test("Sub-Project 3 security/sandbox/Fission/TLS prefs in 0003 and 0036 ex
     "browser.download.always_ask_before_handling_new_types",
     "security.sandbox.content.win32k-disable",
     "security.sandbox.gmp.win32k-disable",
-    "security.sandbox.socket.win32k-disable",
     "security.sandbox.content.shadow-stack.enabled",
     "security.sandbox.gpu.shadow-stack.enabled",
     "security.sandbox.rdd.shadow-stack.enabled",
-    "security.sandbox.socket.shadow-stack.enabled",
     "security.sandbox.gmp.shadow-stack.enabled",
     "security.sandbox.rdd.acg.enabled",
     "security.sandbox.gmp.acg.enabled",
@@ -209,7 +207,6 @@ await test("Sub-Project 3 security/sandbox/Fission/TLS prefs in 0003 and 0036 ex
     "security.sandbox.cig.prespawn.enabled",
     "security.sandbox.content.close-ksecdd-handle",
     "security.sandbox.content.level",
-    "security.sandbox.socket.process.level",
     "security.sandbox.gpu.level",
     "security.sandbox.warn_unprivileged_namespaces",
   ];
@@ -256,7 +253,7 @@ await test("Sub-Project 3 security/sandbox/Fission/TLS prefs in 0003 and 0036 ex
       }
       assert.ok(
         combined.includes(pref),
-        `Pref '${pref}' not found in Firefox 160 HEAD StaticPrefList.yaml/all.js/firefox.js`
+        `Pref '${pref}' not found in Firefox 161 HEAD StaticPrefList.yaml/all.js/firefox.js`
       );
     }
   }

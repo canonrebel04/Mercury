@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Unit & static verification tests for Mercury Sub-Project 4:
-// MercuryPerformance.sys.mjs profiles, Firefox 160 speed/rendering/Rust prefs
+// MercuryPerformance.sys.mjs profiles, Firefox 161 speed/rendering/Rust prefs
 // in 0003 & 0036, moz.build registration, and Mercury Settings l10n coverage.
 // Run: node tests/privacy/performance-unit.mjs
 //
@@ -133,7 +133,7 @@ await test("servicesAdapter skips locked enterprise-policy prefs", () => {
   assert.equal(mock._store.get("gfx.canvas.accelerated.cache-size"), 1024);
 });
 
-await test("Sub-Project 4 engine/rendering/Rust prefs in 0003 and 0036 exist in Firefox 160 HEAD", () => {
+await test("Sub-Project 4 engine/rendering/Rust prefs in 0003 and 0036 exist in Firefox 161 HEAD", () => {
   const p0003 = readFileSync(
     join(repoRoot, "patches/firefox/0003-browser-app-profile-firefox.js.patch"),
     "utf8"
@@ -205,7 +205,7 @@ await test("Sub-Project 4 engine/rendering/Rust prefs in 0003 and 0036 exist in 
       }
       assert.ok(
         combined.includes(pref),
-        `Pref '${pref}' not found in Firefox 160 HEAD StaticPrefList.yaml/all.js/firefox.js`
+        `Pref '${pref}' not found in Firefox 161 HEAD StaticPrefList.yaml/all.js/firefox.js`
       );
     }
   }
