@@ -4,7 +4,7 @@
 
 [Firefox](https://www.mozilla.org/en-US/firefox/) fork built for **maximum real-world speed, hardcore exploit mitigations, and strong privacy** across **Linux, Windows, and Android**, combining compiler/linker/BOLT optimizations, Rust-first Gecko/WebRender/Canvas2D engine upgrades, Vanadium-style per-site JIT allowlisting, and privacy hardening inspired by [LibreWolf](https://gitlab.com/librewolf-community), [Waterfox](https://github.com/WaterfoxCo/Waterfox), [Betterfox](https://github.com/yokoffing/Betterfox), [Mull](https://gitlab.com/divested-mobile/mull-fenix), [IronFox](https://gitlab.com/ironfox-oss/IronFox), and [iodé](https://gitlab.com/iode/os/public/apps/browser).
 
-**Current release:** Mercury **160.0.1.1** — based on Firefox **160.0.1** (git tag `FIREFOX_160_0_1_RELEASE` in [mozilla-firefox/firefox](https://github.com/mozilla-firefox/firefox)). This fork ([canonrebel04/Mercury](https://github.com/canonrebel04/Mercury)) continues Mercury after the last upstream release (129.0.2, which is vulnerable to CVE-2024-9680 and later Firefox security bugs).
+**Current release:** Mercury **161.0** — based on Firefox **161.0** (git tag `FIREFOX_161_0_RELEASE` in [mozilla-firefox/firefox](https://github.com/mozilla-firefox/firefox)). This fork ([canonrebel04/Mercury](https://github.com/canonrebel04/Mercury)) continues Mercury after the last upstream release (129.0.2, which is vulnerable to CVE-2024-9680 and later Firefox security bugs).
 
 Mercury's changes to upstream Firefox files live as small, cleanly rebaseable patches in [`patches/firefox/`](patches/firefox) and are applied by `setup.sh`, which stops with an error if a patch no longer applies. Mercury-only files (branding, icons, policies, settings modules) are copied over the tree.
 
@@ -12,7 +12,7 @@ Mercury's changes to upstream Firefox files live as small, cleanly rebaseable pa
 
 ## Performance, Rust-First Engine & Toolchain Overhaul
 
-Mercury **160.0.1.1** combines a 75-point Gecko/GPU overhaul, **Rust-first Canvas2D/font/compression upgrades**, and a unified **Profile-Once Cross-PGO + Full/Cross-LTO + BOLT** release pipeline:
+Mercury **161.0** combines a 75-point Gecko/GPU overhaul, **Rust-first Canvas2D/font/compression upgrades**, and a unified **Profile-Once Cross-PGO + Full/Cross-LTO + BOLT** release pipeline:
 
 - **Unified Cross-PGO + Full/Cross-LTO + BOLT Pipeline (`scripts/build-release.sh`):**
   - Generates one enriched LLVM IR PGO profile on Linux (`scripts/pgo-generate.sh`, including Mercury's local Canvas2D + JS/Wasm + DOM/Layout stress workload) and applies it across **Linux `x86-64-v3`**, **Windows `x86-64-v3` cross-compile**, and **Android `arm64-v8a`** via `--enable-profile-use=cross` + `--with-pgo-profile-path`.
@@ -55,11 +55,11 @@ Prebuilt binaries for all three platforms are published on [GitHub Releases](htt
   SigLevel = Optional TrustAll
   Server = https://github.com/canonrebel04/Mercury/releases/download/pacman-repo
   ```
-- **Tarball:** Download `mercury-160.0.1.1.en-US.linux-x86_64.tar.xz` from [Releases](https://github.com/canonrebel04/Mercury/releases).
+- **Tarball:** Download `mercury-161.0.en-US.linux-x86_64.tar.xz` from [Releases](https://github.com/canonrebel04/Mercury/releases).
 - See [packaging/arch/README.md](packaging/arch/README.md) for signed-repo setup, release publishing, and migrating from the unmaintained `mercury-browser-avx2-bin` (Firefox 129) package.
 
 ### Windows (`win64` AVX2 / `x86-64-v3`)
-- Download `mercury-160.0.1.1.en-US.win64.installer.exe` (NSIS installer) or `mercury-160.0.1.1.en-US.win64.zip` (portable) from [Releases](https://github.com/canonrebel04/Mercury/releases).
+- Download `mercury-161.0.en-US.win64.installer.exe` (NSIS installer) or `mercury-161.0.en-US.win64.zip` (portable) from [Releases](https://github.com/canonrebel04/Mercury/releases).
 
 ### Android (`arm64-v8a` APK)
 - Built directly from `mozilla-unified/mobile/android` (GeckoView + Fenix) with `--enable-isolated-zygote-process`, ARM64 PAC+BTI (`-mbranch-protection=standard`), full **Mercury Settings** parity, custom Mercury branding, and Mull/IronFox/iodé-inspired enhancements:

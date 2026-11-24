@@ -1,11 +1,11 @@
 # Maintainer: canonrebel04 <117294984+canonrebel04@users.noreply.github.com>
-# Binary package of canonrebel04/Mercury (Firefox 160+ fork). Built with
+# Binary package of canonrebel04/Mercury (Firefox 161+ fork). Built with
 # PGO+LTO and AVX2 / x86-64-v3; it will not run on CPUs without AVX2.
 # The tarball is produced by ./package.sh and attached to GitHub Releases
-# tagged v$pkgver (for example v160.0.1). Do not compile the browser here.
+# tagged v$pkgver (for example v161.0). Do not compile the browser here.
 
 pkgname=mercury-browser-v3-bin
-pkgver=160.0.1.1
+pkgver=161.0
 pkgrel=1
 pkgdesc="Privacy-focused Firefox fork with compiler optimizations (binary release; requires AVX2 / x86-64-v3)"
 arch=('x86_64')

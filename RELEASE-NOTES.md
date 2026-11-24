@@ -1,3 +1,21 @@
+# Mercury 161.0 (unreleased)
+
+Rebased onto Firefox `FIREFOX_161_0_RELEASE` (`161.0`), which fixes the
+security bugs in [MFSA 2026-131](https://www.mozilla.org/en-US/security/advisories/mfsa2026-131/)
+(rated high). Everything from Mercury 160.0.1.1 carries over.
+
+- Patches refreshed for Firefox 161: `0003` (context only), `0034` and `0041`
+  (Firefox 161's new PGO driver that closes benchmarks when they report done;
+  the port overrides and the 15 s Mercury workload are kept), `0036`
+  (Android search config v2/v3 split, multi-item account menu provider,
+  onboarding haptics flag), `0038` (new `default-browser.mjs` jar entry).
+- Dropped `0039-mercury-version-bump.patch`: the version is now Firefox's own
+  `161.0`. Re-add a bump patch for a Mercury-only respin (e.g. `161.0.0.1`).
+- Removed `security.sandbox.socket.process.level`,
+  `security.sandbox.socket.win32k-disable` and
+  `security.sandbox.socket.shadow-stack.enabled` from `0003`: Firefox 161
+  removed the socket process, so these prefs no longer exist.
+
 # Mercury 160.0.1.1
 
 Built from Firefox `FIREFOX_160_0_1_RELEASE` (`160.0.1`) for **Linux `x86-64-v3` (AVX2)**, **Windows `x86-64-v3` (AVX2)**, and **Android `arm64-v8a`**.

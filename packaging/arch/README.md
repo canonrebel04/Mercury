@@ -4,7 +4,7 @@ This directory holds the AUR binary package and the optional self-hosted
 pacman repo. The browser itself is **not** compiled on GitHub; you build
 it on your CachyOS machine with PGO+LTO and AVX2, then attach the
 tarball from `./package.sh` to a GitHub Release tagged `vX.Y` (for
-example `v160.0.1`). That tag format is what the in-browser update
+example `v161.0`). That tag format is what the in-browser update
 notifier already expects.
 
 The package name is `mercury-browser-v3-bin` (AVX2 / x86-64-v3).
@@ -72,7 +72,7 @@ export HG_SRC_DIR=$HOME/mozilla-unified
 # after a successful ./setup.sh --avx2 && ./build.sh
 ./package.sh
 ./packaging/arch/release.sh
-# or: ./packaging/arch/release.sh /path/to/mercury-160.0.1.en-US.linux-x86_64.tar.xz
+# or: ./packaging/arch/release.sh /path/to/mercury-161.0.en-US.linux-x86_64.tar.xz
 ```
 
 `release.sh` writes a `.sha256` next to the tarball, bumps `pkgver` and
@@ -88,7 +88,7 @@ only updates the packaging files.
 To build the pacman package locally (CachyOS already has `makepkg`):
 
 ```sh
-./packaging/arch/build-repo.sh --tarball /path/to/mercury-160.0.1.en-US.linux-x86_64.tar.xz
+./packaging/arch/build-repo.sh --tarball /path/to/mercury-161.0.en-US.linux-x86_64.tar.xz
 # add --upload to publish to the pacman-repo pre-release tag
 ```
 

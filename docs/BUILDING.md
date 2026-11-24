@@ -3,7 +3,7 @@ _**The scripts assume the Mercury source is at `$HOME/Mercury/` and Mozilla sour
 
 - In general we follow build instructions at https://firefox-source-docs.mozilla.org/setup/linux_build.html
 - `bootstrap.sh` downloads the Mozilla source tree for the first time.
-- `version.sh` syncs the Mozilla tree to the Firefox release tag Mercury is based on (currently `FIREFOX_160_0_1_RELEASE`).
+- `version.sh` syncs the Mozilla tree to the Firefox release tag Mercury is based on (currently `FIREFOX_161_0_RELEASE`).
 - `tot.sh` syncs the Mozilla tree to trunk (`main`, Nightly) and `revert.sh` reverts all local changes in it.
 - `setup.sh` applies Mercury's patches from `patches/firefox/` (failing loudly if one doesn't apply), copies Mercury-only files over the Mozilla tree, and installs the selected mozconfig (`./setup.sh --help`).
 - Full design specification: [2026-11-23-build-toolchain-speed-design.md](superpowers/specs/2026-11-23-build-toolchain-speed-design.md).
@@ -85,7 +85,7 @@ All primary release mozconfigs (`mozconfig-avx2`, `mozconfig-win-avx2`, `mozconf
 - Optional on-device BOLT pass: pass `--android-bolt-adb` when an `arm64-v8a` device is connected via `adb` (skips cleanly if no device is attached). See [ANDROID.md](ANDROID.md) for additional Android details.
 
 #### macOS
-- Firefox 160 requires the **macOS 26.5 SDK or newer** (Xcode 26.5+ for native builds).
+- Firefox 161 requires the **macOS 26.5 SDK or newer** (Xcode 26.5+ for native builds).
 - Cross-compiling from Linux (`./setup.sh --mac-cross` / `--mac-arm-cross`): export `MERCURY_MACOS_SDK=/path/to/MacOSX26.5.sdk` before building (default: `$HOME/macos-sdk/MacOSX26.5.sdk`).
 - The macOS app icon (`browser/branding/mercury/Assets.car`) must be compiled on a Mac via `infra/make_assets_car.sh`; until then `setup.sh` falls back to `firefox.icns`.
 

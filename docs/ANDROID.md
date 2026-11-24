@@ -2,13 +2,13 @@
 
 ## Architecture: Same `mozilla-unified` Tree vs. Separate Fork
 
-Starting with Firefox 127+ (Mercury is based on Firefox `160.0.1`), Mozilla merged `firefox-android` (**Fenix**, **Android Components**, and **GeckoView**) directly into `mobile/android/` inside `mozilla-unified`:
+Starting with Firefox 127+ (Mercury is based on Firefox `161.0`), Mozilla merged `firefox-android` (**Fenix**, **Android Components**, and **GeckoView**) directly into `mobile/android/` inside `mozilla-unified`:
 
 - `mobile/android/geckoview/` — Gecko engine + Android bindings
 - `mobile/android/android-components/` — shared browser components
 - `mobile/android/fenix/` — Firefox for Android app shell & UI
 
-Because of this monorepo layout, **there is no separate upstream `firefox-android` repository for Firefox 160**. Building Mercury for Android directly from `mozilla-unified/mobile/android/` using Mercury's existing patch and mozconfig pipeline is the cleanest and fastest approach:
+Because of this monorepo layout, **there is no separate upstream `firefox-android` repository for Firefox 161**. Building Mercury for Android directly from `mozilla-unified/mobile/android/` using Mercury's existing patch and mozconfig pipeline is the cleanest and fastest approach:
 
 1. **All Gecko engine speed & privacy patches are shared**:
    - Compiler optimizations (`-O3`, ThinLTO, `-ffp-contract=fast`, Rust SIMD, ARMv8.2-A `cortex-a76` tuning).
