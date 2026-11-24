@@ -16,6 +16,7 @@ const PREF_STATE = "mercury.hardened.state";
 const PREF_DOH_URI = "mercury.hardened.doh.uri";
 const PREF_SECURITY_LEVEL = "mercury.security.level";
 const PREF_PRESERVE_THEME = "mercury.rfp.preserveSystemTheme";
+export const PREF_JIT_ALLOWLIST = "mercury.security.jitAllowlist";
 
 export const DEFAULT_DOH_URI = "https://dns.adguard-dns.com/dns-query";
 
@@ -226,6 +227,230 @@ export function applySecurityLevel(level, prefs) {
 }
 
 /**
+ * Normalize a user-supplied origin for `mercury.security.jitAllowlist`,
+ * matching the C++ rules in `XPCJSContext.cpp` (0043):
+ * - Trims ASCII whitespace and lowercases.
+ * - Accepts `https://host[:port]`, `http://host[:port]`, or bare `host[:port]`
+ *   (normalized to `https://host[:port]`).
+ * - Strips a single trailing `/` only when it is the bare root path.
+ * - Rejects wildcards (`*`), paths, queries, fragments, userinfo, OriginAttributes (`^`),
+ *   non-http(s) schemes, invalid hostnames, or empty strings (returns `null`).
+ *
+ * @param {string} input
+ * @returns {string|null}
+ */
+export function normalizeJitOrigin(input) {
+  if (typeof input !== "string") {
+    return null;
+  }
+  let s = input.trim().toLowerCase();
+  if (!s) {
+    return null;
+  }
+  // Reject whitespace, wildcards, query, fragment, userinfo, backslashes, or OA suffix.
+  if (/[\s*?#@\\^]/.test(s)) {
+    return null;
+  }
+
+  let candidate;
+  if (s.includes("://")) {
+    if (!s.startsWith("https://") && !s.startsWith("http://")) {
+      return null;
+    }
+    candidate = s;
+  } else {
+    // Reject non-http(s) schemes without "//" (e.g. javascript:alert(1), about:blank, data:...).
+    let colonIdx = s.indexOf(":");
+    if (colonIdx !== -1 && !s.startsWith("[")) {
+      let afterColon = s.slice(colonIdx + 1).replace(/\/$/, "");
+      if (!/^\d{1,5}$/.test(afterColon)) {
+        return null;
+      }
+    }
+    candidate = `https://${s}`;
+  }
+
+  // Allow at most a single trailing slash for bare root; reject any non-root path.
+  if (candidate.endsWith("/")) {
+    candidate = candidate.slice(0, -1);
+  }
+  let schemeEnd = candidate.indexOf("://") + 3;
+  if (candidate.indexOf("/", schemeEnd) !== -1) {
+    return null;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return null;
+  }
+  if (
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    return null;
+  }
+
+  let host = parsed.hostname;
+  if (!host) {
+    return null;
+  }
+  if (host.startsWith("[") && host.endsWith("]")) {
+    if (!/^\[[0-9a-f:.]+\]$/.test(host)) {
+      return null;
+    }
+  } else {
+    if (
+      host.startsWith(".") ||
+      host.endsWith(".") ||
+      host.includes("..") ||
+      !/^[a-z0-9.-]+$/.test(host)
+    ) {
+      return null;
+    }
+    for (let label of host.split(".")) {
+      if (!label || label.startsWith("-") || label.endsWith("-")) {
+        return null;
+      }
+    }
+  }
+
+  if (parsed.port) {
+    let portNum = Number(parsed.port);
+    if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+      return null;
+    }
+  }
+
+  return parsed.origin;
+}
+
+/**
+ * Parse a comma/whitespace-separated `mercury.security.jitAllowlist` string into
+ * deduplicated canonical origins preserving order.
+ *
+ * @param {string} raw
+ * @returns {string[]}
+ */
+export function parseJitAllowlist(raw) {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return [];
+  }
+  let seen = new Set();
+  let out = [];
+  for (let tok of raw.split(/[\s,]+/)) {
+    let norm = normalizeJitOrigin(tok);
+    if (norm && !seen.has(norm)) {
+      seen.add(norm);
+      out.push(norm);
+    }
+  }
+  return out;
+}
+
+/**
+ * Format an array (or raw string) of origins into the canonical comma-separated
+ * pref representation.
+ *
+ * @param {string[]|string} origins
+ * @returns {string}
+ */
+export function formatJitAllowlist(origins) {
+  if (typeof origins === "string") {
+    return parseJitAllowlist(origins).join(",");
+  }
+  if (!Array.isArray(origins)) {
+    return "";
+  }
+  let seen = new Set();
+  let out = [];
+  for (let item of origins) {
+    let norm = normalizeJitOrigin(item);
+    if (norm && !seen.has(norm)) {
+      seen.add(norm);
+      out.push(norm);
+    }
+  }
+  return out.join(",");
+}
+
+/**
+ * Add a normalized origin to `mercury.security.jitAllowlist`.
+ *
+ * @param {string} origin
+ * @param {object} prefs - pref adapter
+ * @returns {boolean} true if valid (and added or already present)
+ */
+export function addJitAllowlistOrigin(origin, prefs) {
+  let norm = normalizeJitOrigin(origin);
+  if (!norm) {
+    return false;
+  }
+  let list = parseJitAllowlist(prefs.get(PREF_JIT_ALLOWLIST) || "");
+  if (!list.includes(norm)) {
+    list.push(norm);
+    prefs.set(PREF_JIT_ALLOWLIST, formatJitAllowlist(list));
+  }
+  return true;
+}
+
+/**
+ * Remove a normalized origin from `mercury.security.jitAllowlist`.
+ *
+ * @param {string} origin
+ * @param {object} prefs - pref adapter
+ * @returns {boolean} true if the origin was present and removed
+ */
+export function removeJitAllowlistOrigin(origin, prefs) {
+  let norm = normalizeJitOrigin(origin);
+  if (!norm) {
+    return false;
+  }
+  let list = parseJitAllowlist(prefs.get(PREF_JIT_ALLOWLIST) || "");
+  let next = list.filter(item => item !== norm);
+  if (next.length === list.length) {
+    return false;
+  }
+  prefs.set(PREF_JIT_ALLOWLIST, formatJitAllowlist(next));
+  return true;
+}
+
+/**
+ * Check whether a content process remoteType origin (optionally carrying a
+ * `^...` OriginAttributes suffix such as `https://figma.com^userContextId=1`)
+ * is an EXACT match in `mercury.security.jitAllowlist`.
+ *
+ * @param {string} remoteOrigin
+ * @param {object} prefs - pref adapter
+ * @returns {boolean}
+ */
+export function isOriginJitAllowed(remoteOrigin, prefs) {
+  if (typeof remoteOrigin !== "string" || !remoteOrigin.trim()) {
+    return false;
+  }
+  // Strip any OriginAttributes suffix (^userContextId=1, ^privateBrowsingId=1, ...).
+  let caretIdx = remoteOrigin.indexOf("^");
+  let base = (caretIdx === -1 ? remoteOrigin : remoteOrigin.slice(0, caretIdx)).trim();
+  // Isolated Fission remoteType origins always carry an explicit http(s):// scheme.
+  if (!/^https?:\/\//i.test(base)) {
+    return false;
+  }
+  let norm = normalizeJitOrigin(base);
+  if (!norm) {
+    return false;
+  }
+  let allowlist = parseJitAllowlist(prefs.get(PREF_JIT_ALLOWLIST) || "");
+  return allowlist.includes(norm);
+}
+
+/**
  * Pref adapter over Services.prefs, so the logic above can be unit tested
  * with a mock.
  */
@@ -292,6 +517,18 @@ export const MercuryHardened = {
     } catch (e) {
       console.error("Mercury Security Level:", e);
     }
+  },
+
+  addJitAllowlistOrigin(origin) {
+    return addJitAllowlistOrigin(origin, servicesAdapter(Services));
+  },
+
+  removeJitAllowlistOrigin(origin) {
+    return removeJitAllowlistOrigin(origin, servicesAdapter(Services));
+  },
+
+  isOriginJitAllowed(remoteOrigin) {
+    return isOriginJitAllowed(remoteOrigin, servicesAdapter(Services));
   },
 
   /**

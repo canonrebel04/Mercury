@@ -1,0 +1,339 @@
+diff --git a/dom/ipc/ContentChild.cpp b/dom/ipc/ContentChild.cpp
+index 379bb10..78d968e 100644
+--- a/dom/ipc/ContentChild.cpp
++++ b/dom/ipc/ContentChild.cpp
+@@ -215,6 +215,7 @@
+ #include "nsIScriptSecurityManager.h"
+ #include "nsJSEnvironment.h"
+ #include "nsJSUtils.h"
++#include "xpcprivate.h"
+ #include "nsMemoryInfoDumper.h"
+ #include "nsNetUtil.h"
+ #include "nsServiceManagerUtils.h"
+@@ -2770,6 +2771,10 @@ mozilla::ipc::IPCResult ContentChild::RecvSetRemoteType(
+     SetProcessName("Web Content"_ns, nullptr, &aProfile);
+   }
+ 
++  // Mercury: re-evaluate per-site JIT/WASM allowlist now that this process
++  // has been specialized to its final RemoteType (before any web script runs).
++  XPCJSContext::ReloadJitAllowlist();
++
+   // Turn off Spectre mitigations in isolated web content processes.
+   if (StaticPrefs::javascript_options_spectre_disable_for_isolated_content() &&
+       StaticPrefs::browser_opaqueResponseBlocking() &&
+diff --git a/js/xpconnect/src/XPCJSContext.cpp b/js/xpconnect/src/XPCJSContext.cpp
+index 044942c..dd917a8 100644
+--- a/js/xpconnect/src/XPCJSContext.cpp
++++ b/js/xpconnect/src/XPCJSContext.cpp
+@@ -850,16 +850,230 @@ void xpc::SetPrefableCompileOptions(JS::PrefableCompileOptions& options) {
+       );
+ }
+ 
++static bool NormalizeMercuryJitOrigin(const nsACString& aInput,
++                                      nsACString& aOut) {
++  nsAutoCString entry(aInput);
++  entry.Trim(" \t\r\n");
++  if (entry.IsEmpty()) {
++    return false;
++  }
++
++  char* entryData = entry.BeginWriting();
++  for (size_t i = 0; i < entry.Length(); ++i) {
++    if (entryData[i] >= 'A' && entryData[i] <= 'Z') {
++      entryData[i] = static_cast<char>(entryData[i] - 'A' + 'a');
++    }
++  }
++
++  nsAutoCString scheme;
++  nsAutoCString rest;
++  if (StringBeginsWith(entry, "https://"_ns)) {
++    scheme.AssignLiteral("https://");
++    rest.Assign(Substring(entry, 8));
++  } else if (StringBeginsWith(entry, "http://"_ns)) {
++    scheme.AssignLiteral("http://");
++    rest.Assign(Substring(entry, 7));
++  } else {
++    if (entry.Find("://") != kNotFound) {
++      return false;
++    }
++    if (entry.First() != '[') {
++      int32_t colonIdx = entry.FindChar(':');
++      if (colonIdx != kNotFound) {
++        // Bare host:port is allowed only if the suffix (ignoring at most one
++        // trailing slash) is strictly digits; reject non-http(s) schemes like
++        // "javascript:", "file:", "about:", "data:".
++        nsAutoCString afterColon(Substring(entry, colonIdx + 1));
++        if (!afterColon.IsEmpty() && afterColon.Last() == '/') {
++          afterColon.Truncate(afterColon.Length() - 1);
++        }
++        if (afterColon.IsEmpty()) {
++          return false;
++        }
++        for (size_t i = 0; i < afterColon.Length(); ++i) {
++          char ch = afterColon[i];
++          if (ch < '0' || ch > '9') {
++            return false;
++          }
++        }
++      }
++    }
++    scheme.AssignLiteral("https://");
++    rest.Assign(entry);
++  }
++
++  // Strip a single trailing slash on bare root origins (e.g. "https://a.com/"),
++  // while still rejecting any path or double slash below.
++  if (!rest.IsEmpty() && rest.Last() == '/') {
++    rest.Truncate(rest.Length() - 1);
++  }
++  if (rest.IsEmpty()) {
++    return false;
++  }
++
++  // Reject wildcards, paths, queries, fragments, userinfo, OriginAttributes,
++  // backslashes, or internal whitespace.
++  for (size_t i = 0; i < rest.Length(); ++i) {
++    char ch = rest[i];
++    if (ch == '/' || ch == '?' || ch == '#' || ch == '@' || ch == '*' ||
++        ch == '^' || ch == '\\' || ch == ' ' || ch == '\t' || ch == '\r' ||
++        ch == '\n') {
++      return false;
++    }
++  }
++
++  // Validate host and optional :port.
++  nsAutoCString host;
++  nsAutoCString port;
++  if (rest.First() == '[') {
++    int32_t closeBracket = rest.FindChar(']');
++    if (closeBracket <= 1) {
++      return false;
++    }
++    host.Assign(Substring(rest, 0, closeBracket + 1));
++    for (int32_t i = 1; i < closeBracket; ++i) {
++      char ch = rest[i];
++      bool isHex = (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f');
++      if (!isHex && ch != ':' && ch != '.') {
++        return false;
++      }
++    }
++    if (static_cast<size_t>(closeBracket + 1) < rest.Length()) {
++      if (rest[closeBracket + 1] != ':') {
++        return false;
++      }
++      port.Assign(Substring(rest, closeBracket + 2));
++      if (port.IsEmpty()) {
++        return false;
++      }
++    }
++  } else {
++    int32_t colonIdx = rest.FindChar(':');
++    if (colonIdx != kNotFound) {
++      // Reject multiple colons outside bracketed IPv6 literals.
++      if (rest.FindChar(':', colonIdx + 1) != kNotFound) {
++        return false;
++      }
++      host.Assign(Substring(rest, 0, colonIdx));
++      port.Assign(Substring(rest, colonIdx + 1));
++      if (port.IsEmpty()) {
++        return false;
++      }
++    } else {
++      host.Assign(rest);
++    }
++
++    if (host.IsEmpty() || host.First() == '.' || host.Last() == '.' ||
++        host.First() == '-' || host.Last() == '-' ||
++        host.Find("..") != kNotFound) {
++      return false;
++    }
++    for (size_t i = 0; i < host.Length(); ++i) {
++      char ch = host[i];
++      bool ok = (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
++                ch == '.' || ch == '-';
++      if (!ok) {
++        return false;
++      }
++    }
++  }
++
++  bool hasNonDefaultPort = false;
++  uint32_t portNum = 0;
++  if (!port.IsEmpty()) {
++    if (port.Length() > 5) {
++      return false;
++    }
++    for (size_t i = 0; i < port.Length(); ++i) {
++      char ch = port[i];
++      if (ch < '0' || ch > '9') {
++        return false;
++      }
++      portNum = portNum * 10 + static_cast<uint32_t>(ch - '0');
++    }
++    if (portNum == 0 || portNum > 65535) {
++      return false;
++    }
++    bool isDefaultPort =
++        (scheme.EqualsLiteral("https://") && portNum == 443) ||
++        (scheme.EqualsLiteral("http://") && portNum == 80);
++    hasNonDefaultPort = !isDefaultPort;
++  }
++
++  aOut.Assign(scheme);
++  aOut.Append(host);
++  if (hasNonDefaultPort) {
++    aOut.Append(':');
++    aOut.AppendInt(portNum);
++  }
++  return true;
++}
++
++static bool IsCurrentProcessJitAllowlisted() {
++  if (!XRE_IsContentProcess()) {
++    return false;
++  }
++
++  ContentChild* contentChild = ContentChild::GetSingleton();
++  if (!contentChild) {
++    return false;
++  }
++
++  const RemoteType& remoteType = contentChild->GetRemoteType();
++  // Strictly allow ONLY Fission site-isolated web content processes
++  // (webIsolated=<origin> or webCOOP+COEP=<origin>). Never match prealloc,
++  // shared web, extension, privilegedabout, privilegedmozilla, file, etc.
++  if (!remoteType.HasOrigin() ||
++      (remoteType.GetKind() != RemoteType::Kind::WebContent &&
++       remoteType.GetKind() != RemoteType::Kind::WebCoopCoep)) {
++    return false;
++  }
++
++  // Extract isolated origin and defensively strip any ^... OriginAttributes
++  // suffix (e.g. "https://figma.com^userContextId=1" -> "https://figma.com").
++  nsAutoCString rawOrigin(remoteType.OriginNoSuffix());
++  int32_t caretIdx = rawOrigin.FindChar('^');
++  if (caretIdx != kNotFound) {
++    rawOrigin.Truncate(caretIdx);
++  }
++
++  nsAutoCString processOrigin;
++  if (!NormalizeMercuryJitOrigin(rawOrigin, processOrigin)) {
++    return false;
++  }
++
++  nsAutoCString allowlist;
++  if (NS_FAILED(Preferences::GetCString("mercury.security.jitAllowlist",
++                                        allowlist)) ||
++      allowlist.IsEmpty()) {
++    return false;
++  }
++
++  // Require exact normalized origin equality (never substring/suffix match).
++  for (const nsACString& token : allowlist.Split(',')) {
++    nsAutoCString candidate;
++    if (NormalizeMercuryJitOrigin(token, candidate) &&
++        candidate.Equals(processOrigin)) {
++      return true;
++    }
++  }
++
++  return false;
++}
++
+ void xpc::SetPrefableContextOptions(JS::ContextOptions& options) {
++  bool jitAllowlisted = IsCurrentProcessJitAllowlisted();
+   options
+ #ifdef FUZZING
+       .setFuzzing(Preferences::GetBool(JS_OPTIONS_DOT_STR "fuzzing.enabled"))
+ #endif
+-      .setWasm(Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm"))
++      .setWasm(jitAllowlisted || Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm"))
+       .setWasmForTrustedPrinciples(
+           Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_trustedprincipals"))
+-      .setWasmIon(Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_optimizingjit"))
++      .setWasmIon(jitAllowlisted ||
++                  Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_optimizingjit"))
+       .setWasmBaseline(
++          jitAllowlisted ||
+           Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_baselinejit"))
+       .setAsyncStack(Preferences::GetBool(JS_OPTIONS_DOT_STR "asyncstack"))
+       .setAsyncStackCaptureDebuggeeOnly(Preferences::GetBool(
+@@ -1031,15 +1245,26 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
+       .setDumpStackOnDebuggeeWouldRun(Preferences::GetBool(
+           JS_OPTIONS_DOT_STR "dump_stack_on_debuggee_would_run"));
+ 
++  bool safeMode = false;
+   nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+   if (xr) {
+-    bool safeMode = false;
+     xr->GetInSafeMode(&safeMode);
+     if (safeMode) {
+       contextOptions.disableOptionsForSafeMode();
+     }
+   }
+ 
++  // Mercury: Vanadium-style per-site JIT/WASM allowlist. Force-enable JIT and
++  // WebAssembly ONLY on this isolated content process's JSContext* when its
++  // exact origin is in mercury.security.jitAllowlist (Safe Mode still wins).
++  if (!safeMode && IsCurrentProcessJitAllowlisted()) {
++    contextOptions.setWasm(true).setWasmBaseline(true).setWasmIon(true);
++    JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_BASELINE_ENABLE, true);
++    JS_SetGlobalJitCompilerOption(
++        cx, JSJITCOMPILER_BASELINE_INTERPRETER_ENABLE, true);
++    JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_ENABLE, true);
++  }
++
+   // Set up the callback for DOM event dispatch
+   if (StaticPrefs::dom_expose_test_interfaces()) {
+     JS::SetDispatchDOMEventCallback(cx, DispatchJitEventToDOM);
+@@ -1048,6 +1273,13 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
+   }
+ }
+ 
++/* static */
++void XPCJSContext::ReloadJitAllowlist() {
++  if (XPCJSContext* xpccx = XPCJSContext::Get()) {
++    ReloadPrefsCallback("mercury.security.jitAllowlist", xpccx);
++  }
++}
++
+ XPCJSContext::~XPCJSContext() {
+   MOZ_COUNT_DTOR_INHERITED(XPCJSContext, CycleCollectedJSContext);
+   // Elsewhere we abort immediately if XPCJSContext initialization fails.
+@@ -1056,6 +1288,8 @@ XPCJSContext::~XPCJSContext() {
+ 
+   Preferences::UnregisterPrefixCallback(ReloadPrefsCallback, JS_OPTIONS_DOT_STR,
+                                         this);
++  Preferences::UnregisterCallback(ReloadPrefsCallback,
++                                  "mercury.security.jitAllowlist", this);
+ 
+ #ifdef FUZZING
+   Preferences::UnregisterCallback(ReloadPrefsCallback, "fuzzing.enabled", this);
+@@ -1401,10 +1635,12 @@ nsresult XPCJSContext::Initialize() {
+ 
+   LoadStartupJSPrefs(this);
+ 
+-  // Watch for the JS boolean options.
++  // Watch for the JS boolean options and Mercury's per-site JIT allowlist.
+   ReloadPrefsCallback(nullptr, this);
+   Preferences::RegisterPrefixCallback(ReloadPrefsCallback, JS_OPTIONS_DOT_STR,
+                                       this);
++  Preferences::RegisterCallback(ReloadPrefsCallback,
++                                "mercury.security.jitAllowlist", this);
+ 
+ #ifdef FUZZING
+   Preferences::RegisterCallback(ReloadPrefsCallback, "fuzzing.enabled", this);
+diff --git a/js/xpconnect/src/xpcprivate.h b/js/xpconnect/src/xpcprivate.h
+index 30f2c1e..61944df 100644
+--- a/js/xpconnect/src/xpcprivate.h
++++ b/js/xpconnect/src/xpcprivate.h
+@@ -256,6 +256,9 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
+   static XPCJSContext* NewXPCJSContext();
+   static XPCJSContext* Get();
+ 
++  // Mercury: re-evaluate per-site JIT/WASM allowlist after RemoteType changes.
++  static void ReloadJitAllowlist();
++
+   XPCJSRuntime* Runtime() const;
+ 
+   virtual mozilla::CycleCollectedJSRuntime* CreateRuntime(

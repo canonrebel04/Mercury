@@ -1,5 +1,5 @@
 diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
-index 15a12b6..b02071e 100644
+index 15a12b6..63864a4 100644
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
 @@ -150,9 +150,190 @@ pref("app.update.notifyDuringDownload", false);
@@ -614,7 +614,7 @@ index 15a12b6..b02071e 100644
  #endif
  
  // Handing URLs to external apps via the "Share URL" menu item could allow a proxy bypass
-@@ -3909,3 +4087,307 @@ pref("distribution.mozillaonline.ignore", true);
+@@ -3909,3 +4087,351 @@ pref("distribution.mozillaonline.ignore", true);
  #ifdef XP_MACOSX
    pref("browser.macAppMenu.setAsDefaultShown", false);
  #endif
@@ -922,3 +922,47 @@ index 15a12b6..b02071e 100644
 +pref("permissions.isolateBy.userContext", true);
 +pref("mercury.burner.autoIsolate", false);
 +pref("mercury.burner.activeIds", "[]");
++
++// MERCURY: HARDCORE SECURITY & EXPLOIT MITIGATIONS
++// - Disable JIT in the privileged parent process & enforce W^X JIT code pages
++//   in content processes (Firefox 160 StaticPrefList.yaml:10529).
++pref("javascript.options.main_process_disable_jit", true);
++pref("javascript.options.content_process_write_protect_code", true);
++// - Strict Fission site isolation (1 = IsolateEverything; every web origin gets
++//   its own isolated OS process, prerequisite for per-site JIT/WASM allowlisting).
++pref("fission.autostart", true);
++pref("fission.webContentIsolationStrategy", 1);
++// - Vanadium-style Per-Site JIT & WebAssembly Allowlist (comma-separated exact
++//   origins, e.g. "https://figma.com"; enforced by patch 0043).
++pref("mercury.security.jitAllowlist", "");
++// - OS Process Sandbox & Exploit Mitigations
++#ifdef XP_WIN
++  pref("security.sandbox.content.win32k-disable", true);
++  pref("security.sandbox.gmp.win32k-disable", true);
++  pref("security.sandbox.socket.win32k-disable", true);
++  pref("security.sandbox.content.shadow-stack.enabled", true);
++  pref("security.sandbox.gpu.shadow-stack.enabled", true);
++  pref("security.sandbox.rdd.shadow-stack.enabled", true);
++  pref("security.sandbox.socket.shadow-stack.enabled", true);
++  pref("security.sandbox.gmp.shadow-stack.enabled", true);
++  pref("security.sandbox.rdd.acg.enabled", true);
++  pref("security.sandbox.gmp.acg.enabled", true);
++  pref("security.sandbox.utility-wmf.acg.enabled", true);
++  pref("security.sandbox.cig.prespawn.enabled", true);
++  pref("security.sandbox.content.close-ksecdd-handle", true);
++#endif
++#ifdef XP_LINUX
++  pref("security.sandbox.content.level", 6);
++  pref("security.sandbox.socket.process.level", 2);
++  pref("security.sandbox.gpu.level", 1);
++  pref("security.sandbox.warn_unprivileged_namespaces", true);
++#endif
++// - Strict TLS, mixed-content blocking, no CSP report beacons, and safe downloads
++//   (network.auth.subresource-http-auth-allow = 1 is already set above).
++pref("security.tls.version.min", 3);
++pref("security.ssl.require_safe_negotiation", true);
++pref("dom.security.https_only_mode_send_http_background_request", false);
++pref("security.mixed_content.block_display_content", true);
++pref("security.csp.reporting.enabled", false);
++pref("security.dialog_enable_delay", 1000);
++pref("browser.download.always_ask_before_handling_new_types", true);

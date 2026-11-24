@@ -1,5 +1,5 @@
 diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
-index e36e667..f362e93 100644
+index e36e667..a67e651 100644
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
 @@ -12,6 +12,16 @@ global-privacy-control-description =
@@ -19,7 +19,7 @@ index e36e667..f362e93 100644
  do-not-track-removal3 =
      .message = We no longer support the “Do Not Track” feature.
  
-@@ -2864,3 +2874,223 @@ referrals-section-header2 =
+@@ -2864,3 +2874,236 @@ referrals-section-header2 =
  # use the browser. "Share" here means recommending or referring the browser
  referrals-link2 =
    .label = Share { -brand-product-name }
@@ -46,6 +46,19 @@ index e36e667..f362e93 100644
 +  .label = Safer — Disables Ion JIT, WebAssembly, MathML & SVG fonts
 +mercury-security-level-safest =
 +  .label = Safest — Disables all JITs, WebAssembly, WebGL & remote fonts
++
++mercury-jit-allowlist =
++  .label = Trusted JIT & WebAssembly Sites
++  .description = Comma-separated origins (for example, https://figma.com) allowed to run full JavaScript JIT and WebAssembly inside their isolated site process even when Security Level is Safer or Safest.
++  .placeholder = https://figma.com, https://photopea.com
++
++mercury-main-process-no-jit =
++  .label = Parent-Process JIT Killswitch (requires restart)
++  .description = Disables JavaScript JIT compilation in the privileged browser parent process so browser UI never exposes a writable JIT attack surface.
++
++mercury-fission-isolate-all =
++  .label = Strict Fission Site Isolation (IsolateEverything, requires restart)
++  .description = Gives every website its own dedicated OS content process (strategy 1) instead of sharing processes across lower-value origins.
 +
 +mercury-new-identity-button =
 +  .label = New Identity (Clear Session, Cookies, Cache & TLS Tickets)

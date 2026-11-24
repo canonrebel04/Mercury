@@ -8,10 +8,16 @@ import { SettingGroupManager } from "chrome://browser/content/preferences/config
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { MercuryHardened, CROWD_BLEND_OVERRIDES, DEFAULT_DOH_URI } =
-  ChromeUtils.importESModule(
-    "moz-src:///browser/components/mercury/MercuryHardened.sys.mjs"
-  );
+const {
+  MercuryHardened,
+  CROWD_BLEND_OVERRIDES,
+  DEFAULT_DOH_URI,
+  PREF_JIT_ALLOWLIST,
+  parseJitAllowlist,
+  formatJitAllowlist,
+} = ChromeUtils.importESModule(
+  "moz-src:///browser/components/mercury/MercuryHardened.sys.mjs"
+);
 const { MercuryBurner } = ChromeUtils.importESModule(
   "resource:///modules/MercuryBurner.sys.mjs"
 );
@@ -179,6 +185,29 @@ addPrefSetting(
       MercuryHardened.setSecurityLevel(val);
       return undefined;
     },
+  }
+);
+
+addPrefSetting("mercuryJitAllowlist", PREF_JIT_ALLOWLIST, "string", "", {
+  get: val => formatJitAllowlist(parseJitAllowlist(val)),
+  set: val => formatJitAllowlist(parseJitAllowlist(val)),
+});
+
+addPrefSetting(
+  "mercuryMainProcessNoJit",
+  "javascript.options.main_process_disable_jit",
+  "bool",
+  true
+);
+
+addPrefSetting(
+  "mercuryFissionIsolateAll",
+  "fission.webContentIsolationStrategy",
+  "int",
+  1,
+  {
+    get: val => val === 1,
+    set: val => (val ? 1 : 2),
   }
 );
 
@@ -799,6 +828,19 @@ SettingGroupManager.registerGroups({
           { value: "safer", l10nId: "mercury-security-level-safer" },
           { value: "safest", l10nId: "mercury-security-level-safest" },
         ],
+      },
+      {
+        id: "mercuryJitAllowlist",
+        l10nId: "mercury-jit-allowlist",
+        control: "moz-input-text",
+      },
+      {
+        id: "mercuryMainProcessNoJit",
+        l10nId: "mercury-main-process-no-jit",
+      },
+      {
+        id: "mercuryFissionIsolateAll",
+        l10nId: "mercury-fission-isolate-all",
       },
       {
         id: "mercuryNewIdentityButton",
