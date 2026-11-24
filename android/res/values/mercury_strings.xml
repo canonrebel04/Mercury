@@ -30,6 +30,8 @@
     <string name="pref_key_mercury_punycode" translatable="false">pref_key_mercury_punycode</string>
     <string name="pref_key_mercury_main_process_no_jit" translatable="false">pref_key_mercury_main_process_no_jit</string>
     <string name="pref_key_mercury_fission_isolate_all" translatable="false">pref_key_mercury_fission_isolate_all</string>
+    <string name="pref_key_mercury_performance_profile" translatable="false">pref_key_mercury_performance_profile</string>
+    <string name="pref_key_mercury_fontations" translatable="false">pref_key_mercury_fontations</string>
     <string name="pref_key_mercury_gpu_canvas" translatable="false">pref_key_mercury_gpu_canvas</string>
     <string name="pref_key_mercury_webrender" translatable="false">pref_key_mercury_webrender</string>
     <string name="pref_key_mercury_js_jit" translatable="false">pref_key_mercury_js_jit</string>
@@ -155,6 +157,26 @@
     <string name="mercury_fission_isolate_all_summary">Isolate every website into its own dedicated webIsolated process (IsolateEverything)</string>
 
     <!-- Category 4: Performance & GPU Engine -->
+    <string name="mercury_performance_profile_title">Performance &amp; Memory Profile</string>
+    <string name="mercury_performance_profile_dialog_title">Choose Performance Profile</string>
+    <string name="mercury_performance_profile_balanced">Balanced — Fast GPU canvas &amp; sensible mobile RAM usage</string>
+    <string name="mercury_performance_profile_turbo">Turbo (High-RAM) — Larger GPU/JS caches &amp; 120Hz paint cadence</string>
+    <string name="mercury_performance_profile_low_ram">Low-RAM — Compact caches &amp; reduced memory footprint</string>
+
+    <string-array name="mercury_performance_profile_entries">
+        <item>@string/mercury_performance_profile_balanced</item>
+        <item>@string/mercury_performance_profile_turbo</item>
+        <item>@string/mercury_performance_profile_low_ram</item>
+    </string-array>
+    <string-array name="mercury_performance_profile_values">
+        <item>balanced</item>
+        <item>turbo</item>
+        <item>low-ram</item>
+    </string-array>
+
+    <string name="mercury_fontations_title">Rust Fontations Font Engine</string>
+    <string name="mercury_fontations_summary">Use memory-safe pure-Rust Fontations for font parsing and glyph shaping</string>
+
     <string name="mercury_gpu_canvas_title">GPU-Accelerated 2D Canvas</string>
     <string name="mercury_gpu_canvas_summary">Use hardware-accelerated WebGL/Skia 2D Canvas rendering for maximum frame rates</string>
 

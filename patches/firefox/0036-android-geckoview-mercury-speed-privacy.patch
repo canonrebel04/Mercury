@@ -132,10 +132,10 @@ index 9a7364d..6600385 100644
      private fun buildEnvironment(
          region: RegionState,
 diff --git a/mobile/android/app/geckoview-prefs.js b/mobile/android/app/geckoview-prefs.js
-index 3cf841d..94f90c5 100644
+index 3cf841d..05bd11c 100644
 --- a/mobile/android/app/geckoview-prefs.js
 +++ b/mobile/android/app/geckoview-prefs.js
-@@ -383,7 +383,199 @@ pref("xpinstall.signatures.required", true);
+@@ -383,7 +383,207 @@ pref("xpinstall.signatures.required", true);
  pref("xpinstall.whitelist.add", "https://addons.mozilla.org");
  pref("xpinstall.whitelist.fileRequest", false);
  
@@ -154,7 +154,11 @@ index 3cf841d..94f90c5 100644
 +pref("gfx.webrender.precache-shaders", true);
 +pref("gfx.webrender.program-binary-disk", true);
 +pref("gfx.webrender.compositor", true);
++pref("gfx.webrender.compositor.surface-pool-size", 32);
++pref("gfx.webrender.layer-compositor", true);
++pref("gfx.webrender.batched-upload-threshold", 524288);
 +pref("gfx.webrender.batching.lookback", 20);
++pref("gfx.font_rendering.fontations.enabled", true);
 +pref("gfx.webrender.svg-shapes.ellipses", true);
 +pref("gfx.webrender.svg-shapes.strokes", true);
 +pref("gfx.webrender.svg-shapes.gradients", true);
@@ -185,6 +189,7 @@ index 3cf841d..94f90c5 100644
 +pref("javascript.options.wasm_simd", true);
 +pref("javascript.options.wasm_relaxed_simd", true);
 +pref("javascript.options.wasm_branch_hinting", true);
++pref("javascript.options.wasm_lazy_tiering", true);
 +pref("javascript.options.blinterp.threshold", 5);
 +pref("javascript.options.baselinejit.threshold", 25);
 +pref("javascript.options.ion.threshold", 500);
@@ -217,6 +222,8 @@ index 3cf841d..94f90c5 100644
 +pref("network.dns.disablePrefetchFromHTTPS", false);
 +pref("network.early-hints.enabled", true);
 +pref("network.early-hints.preconnect.enabled", true);
++pref("network.http.http3.max_gso_segments", 16);
++pref("network.http.http3.recvBufferSize", 2097152);
 +
 +// Mercury Crowd-Blend ("Hide in Plain Sight") & Bleeding-Edge Security
 +pref("browser.contentblocking.category", "strict");
@@ -329,6 +336,7 @@ index 3cf841d..94f90c5 100644
 +pref("mercury.hardened.enabled", false);
 +pref("mercury.security.level", "standard");
 +pref("mercury.security.jitAllowlist", "");
++pref("mercury.performance.profile", "balanced");
 +pref("mercury.rfp.preserveSystemTheme", true);
 +pref("privacy.resistFingerprinting", false);
 +pref("privacy.resistFingerprinting.letterboxing", false);
@@ -1410,10 +1418,10 @@ index 420b369..4f868d7 100644
      override fun userPostponedAndWithinCooldownPeriod(currentTimeMillis: Long): Boolean {
          val durationSinceLastPrompt = currentTimeMillis - settings.lastTermsOfUsePromptTimeInMillis
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-index c8f3815..b611b2e 100644
+index c8f3815..4a048e6 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
-@@ -170,14 +170,55 @@ class Settings(
+@@ -170,14 +170,61 @@ class Settings(
          /** DoH is disabled, corresponds to TRR_MODE_DISABLED (5) from GeckoView */
          private const val DOH_SETTINGS_OFF = 5
  
@@ -1467,10 +1475,16 @@ index c8f3815..b611b2e 100644
 +            appContext.getPreferenceKey(R.string.pref_key_mercury_fission_isolate_all),
 +            default = true,
 +        )
++
++    var mercuryPerformanceProfile by
++        stringPreference(
++            appContext.getPreferenceKey(R.string.pref_key_mercury_performance_profile),
++            default = "balanced",
++        )
  
      override val preferences: SharedPreferences = appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
  
-@@ -201,7 +242,7 @@ class Settings(
+@@ -201,7 +248,7 @@ class Settings(
          lazyFeatureFlagBooleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
              featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
@@ -1479,7 +1493,7 @@ index c8f3815..b611b2e 100644
          )
  
      /** Indicates what simple toolbar shortcut key is currently selected. */
-@@ -256,7 +297,9 @@ class Settings(
+@@ -256,7 +303,9 @@ class Settings(
  
      /** Indicates whether or not the "Synced Tabs" section should be shown on the home screen. */
      val showSyncedTabs: Boolean
@@ -1490,7 +1504,7 @@ index c8f3815..b611b2e 100644
  
      /** Indicates whether or not the "Collections" section should be shown on the home screen. */
      val collections: Boolean
-@@ -714,7 +757,7 @@ class Settings(
+@@ -714,7 +763,7 @@ class Settings(
      var crashReportChoice by
          stringPreference(
              appContext.getPreferenceKey(R.string.pref_key_crash_reporting_choice),
@@ -1499,7 +1513,7 @@ index c8f3815..b611b2e 100644
          )
  
      val isRemoteDebuggingEnabled by
-@@ -723,17 +766,14 @@ class Settings(
+@@ -723,17 +772,14 @@ class Settings(
              default = false,
          )
  
@@ -1524,7 +1538,7 @@ index c8f3815..b611b2e 100644
  
      var hasMadeMarketingTelemetrySelection by
          booleanPreference(
-@@ -741,10 +781,11 @@ class Settings(
+@@ -741,10 +787,11 @@ class Settings(
              default = false,
          )
  
@@ -1537,7 +1551,7 @@ index c8f3815..b611b2e 100644
              persistDefaultIfNotExists = true,
          )
  
-@@ -785,11 +826,11 @@ class Settings(
+@@ -785,11 +832,11 @@ class Settings(
              default = { if (hasAcceptedTermsOfService) TOU_VERSION else 0 },
          )
  
@@ -1551,7 +1565,7 @@ index c8f3815..b611b2e 100644
          )
  
      /** Returns true if the nimbus flag for showing the terms of use drag handle is true. */
-@@ -852,18 +893,14 @@ class Settings(
+@@ -852,18 +899,14 @@ class Settings(
       * because this setting was added in early 2025 and we want to make sure that users who upgrade and had telemetry
       * disabled don't start sending the daily usage ping telemetry.
       */
@@ -1577,7 +1591,7 @@ index c8f3815..b611b2e 100644
  
      /**
       * This lets us know if the user has disabled experimentation manually so that we know if we should re-enable
-@@ -883,7 +920,7 @@ class Settings(
+@@ -883,7 +926,7 @@ class Settings(
      var isRolloutsEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_rollouts),
@@ -1586,7 +1600,7 @@ index c8f3815..b611b2e 100644
          )
  
      /**
-@@ -1087,14 +1124,14 @@ class Settings(
+@@ -1087,14 +1130,14 @@ class Settings(
      var isLnaBlockingEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_blocking_enabled),
@@ -1603,7 +1617,7 @@ index c8f3815..b611b2e 100644
          )
  
      /**
-@@ -1106,7 +1143,7 @@ class Settings(
+@@ -1106,7 +1149,7 @@ class Settings(
      var isLnaFeatureEnabled by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_lna_feature_enabled),
@@ -1612,7 +1626,7 @@ index c8f3815..b611b2e 100644
          )
  
      /** Indicates whether isolated content processes are enabled or not. */
-@@ -1321,7 +1358,7 @@ class Settings(
+@@ -1321,7 +1364,7 @@ class Settings(
      var shouldEnableGlobalPrivacyControl by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_privacy_enable_global_privacy_control),
@@ -1621,7 +1635,7 @@ index c8f3815..b611b2e 100644
          )
  
      /**
-@@ -1352,13 +1389,13 @@ class Settings(
+@@ -1352,13 +1395,13 @@ class Settings(
      val useStandardTrackingProtection by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_tracking_protection_standard_option),
@@ -1637,7 +1651,7 @@ index c8f3815..b611b2e 100644
          )
  
      val useCustomTrackingProtection by
-@@ -1789,7 +1826,7 @@ class Settings(
+@@ -1789,7 +1832,7 @@ class Settings(
      val shouldShowSearchSuggestions by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions),
@@ -1646,7 +1660,7 @@ index c8f3815..b611b2e 100644
          )
  
      val shouldAutocompleteInAwesomebar by
-@@ -1814,14 +1851,14 @@ class Settings(
+@@ -1814,14 +1857,14 @@ class Settings(
      internal var trendingSearchSuggestionsEnabled by
          booleanPreference(
              appContext.getPreferenceKey(R.string.pref_key_show_trending_search_suggestions),
@@ -1663,7 +1677,7 @@ index c8f3815..b611b2e 100644
          )
  
      var showSearchSuggestionsInPrivateOnboardingFinished by
-@@ -2382,7 +2419,7 @@ class Settings(
+@@ -2382,7 +2425,7 @@ class Settings(
      var showContileFeature by
          booleanPreference(
              key = appContext.getPreferenceKey(R.string.pref_key_enable_contile),
@@ -1672,7 +1686,7 @@ index c8f3815..b611b2e 100644
          )
  
      /** Blocklist used to filter items from the home screen that have previously been removed. */
-@@ -2512,12 +2549,10 @@ class Settings(
+@@ -2512,12 +2555,10 @@ class Settings(
              default = { FxNimbus.features.migrateOnboardingState.value().enabled },
          )
  
@@ -1689,7 +1703,7 @@ index c8f3815..b611b2e 100644
  
      var shouldUseMinimalBottomToolbarWhenEnteringText by
          booleanPreference(
-@@ -2773,10 +2808,11 @@ class Settings(
+@@ -2773,10 +2814,11 @@ class Settings(
          )
  
      /** Indicates whether Email Mask is enabled or not. */
@@ -1702,7 +1716,7 @@ index c8f3815..b611b2e 100644
          )
  
      /**
-@@ -3122,44 +3158,35 @@ class Settings(
+@@ -3122,44 +3164,35 @@ class Settings(
              default = false,
          )
  

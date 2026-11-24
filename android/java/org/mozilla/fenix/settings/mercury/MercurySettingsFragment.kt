@@ -214,6 +214,19 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
     }
 
     private fun bindPerformancePreferences() {
+        findList(R.string.pref_key_mercury_performance_profile)?.apply {
+            value = requireComponents.settings.mercuryPerformanceProfile
+            setOnPreferenceChangeListener { _, newValue ->
+                applyPerformanceProfile(newValue as String)
+                true
+            }
+        }
+
+        findSwitch(R.string.pref_key_mercury_fontations)?.setOnPreferenceChangeListener { _, newValue ->
+            setBoolPref("gfx.font_rendering.fontations.enabled", newValue as Boolean)
+            true
+        }
+
         findSwitch(R.string.pref_key_mercury_gpu_canvas)?.setOnPreferenceChangeListener { _, newValue ->
             setBoolPref("gfx.canvas.accelerated", newValue as Boolean)
             true
@@ -265,11 +278,14 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
         findSwitch(R.string.pref_key_mercury_query_stripping)?.isChecked = settings.mercuryQueryStripping
         findList(R.string.pref_key_mercury_doh_provider)?.value = currentDohPresetValue()
         findSwitch(R.string.pref_key_mercury_fission_isolate_all)?.isChecked = settings.mercuryFissionIsolateAll
+        findList(R.string.pref_key_mercury_performance_profile)?.value = settings.mercuryPerformanceProfile
         findSwitch(R.string.pref_key_mercury_show_sync_ui)?.isChecked = settings.mercuryShowSyncUi
 
         val prefNames =
             listOf(
                 PREF_JIT_ALLOWLIST,
+                PREF_PERFORMANCE_PROFILE,
+                "gfx.font_rendering.fontations.enabled",
                 "javascript.options.main_process_disable_jit",
                 "privacy.query_stripping.redirect",
                 "dom.storage_access.auto_grants",
@@ -296,6 +312,13 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
                         text = normalized
                         summary = normalized.ifBlank { getString(R.string.mercury_jit_allowlist_summary_empty) }
                     }
+                }
+                (byName[PREF_PERFORMANCE_PROFILE]?.value as? String)?.let { profile ->
+                    val normalized = normalizePerformanceProfile(profile)
+                    findList(R.string.pref_key_mercury_performance_profile)?.value = normalized
+                }
+                (byName["gfx.font_rendering.fontations.enabled"]?.value as? Boolean)?.let {
+                    findSwitch(R.string.pref_key_mercury_fontations)?.isChecked = it
                 }
                 (byName["javascript.options.main_process_disable_jit"]?.value as? Boolean)?.let {
                     findSwitch(R.string.pref_key_mercury_main_process_no_jit)?.isChecked = it
@@ -546,6 +569,30 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
         engineSettings.dohProviderUrl = value
     }
 
+    private fun applyPerformanceProfile(profile: String) {
+        val safeProfile = normalizePerformanceProfile(profile)
+        requireComponents.settings.mercuryPerformanceProfile = safeProfile
+
+        val (canvasCacheMb, nurseryMaxKb, surfaceCacheKb, notifyIntervalUs) =
+            when (safeProfile) {
+                "turbo" -> Quad(1024, 65536, 1048576, 83333)
+                "low-ram" -> Quad(128, 16384, 131072, 120000)
+                else -> Quad(512, 32768, 524288, 100000)
+            }
+
+        setGeckoPrefs(
+            listOf(
+                SetBrowserPreference.setStringPref(PREF_PERFORMANCE_PROFILE, safeProfile, Branch.USER),
+                SetBrowserPreference.setIntPref("gfx.canvas.accelerated.cache-size", canvasCacheMb, Branch.USER),
+                SetBrowserPreference.setIntPref("javascript.options.mem.nursery.max_kb", nurseryMaxKb, Branch.USER),
+                SetBrowserPreference.setIntPref("image.mem.surfacecache.max_size_kb", surfaceCacheKb, Branch.USER),
+                SetBrowserPreference.setIntPref("content.notify.interval", notifyIntervalUs, Branch.USER),
+            ),
+        )
+    }
+
+    private data class Quad(val a: Int, val b: Int, val c: Int, val d: Int)
+
     private fun applySpeculativePrefetch(enabled: Boolean) {
         setGeckoPrefs(
             listOf(
@@ -659,9 +706,16 @@ class MercurySettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFr
 
     companion object {
         const val PREF_JIT_ALLOWLIST = "mercury.security.jitAllowlist"
+        const val PREF_PERFORMANCE_PROFILE = "mercury.performance.profile"
         const val DEFAULT_DOH_URI = "https://dns.adguard-dns.com/dns-query"
         private const val DOH_OFF_VALUE = "off"
         const val RFP_PRESERVE_THEME_OVERRIDE = "-CSSPrefersColorScheme"
+
+        fun normalizePerformanceProfile(profile: String?): String =
+            when (profile) {
+                "turbo", "low-ram" -> profile
+                else -> "balanced"
+            }
 
         /**
          * Normalizes a single JIT allowlist origin matching desktop MercuryHardened.normalizeJitOrigin

@@ -182,6 +182,23 @@
         android:title="@string/mercury_category_performance"
         android:layout="@layout/preference_category_no_icon_style">
 
+        <androidx.preference.ListPreference
+            android:key="@string/pref_key_mercury_performance_profile"
+            app:iconSpaceReserved="false"
+            android:defaultValue="balanced"
+            android:title="@string/mercury_performance_profile_title"
+            android:dialogTitle="@string/mercury_performance_profile_dialog_title"
+            android:entries="@array/mercury_performance_profile_entries"
+            android:entryValues="@array/mercury_performance_profile_values"
+            app:useSimpleSummaryProvider="true" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="@string/pref_key_mercury_fontations"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:title="@string/mercury_fontations_title"
+            android:summary="@string/mercury_fontations_summary" />
+
         <androidx.preference.SwitchPreferenceCompat
             android:key="@string/pref_key_mercury_gpu_canvas"
             app:iconSpaceReserved="false"
